@@ -70,7 +70,7 @@ import { useAuth } from "../../auth";
 export function PlannerPage() {
   const auth = useAuth();
   const canManage = auth.can("plans.create") || auth.can("plans.update");
-  const canShare = auth.can("education.share");
+  const canShare = auth.can("education.share") && auth.can("plans.create");
   const students = useStudentSelection(),
     modal = useModal(),
     qc = useQueryClient(),

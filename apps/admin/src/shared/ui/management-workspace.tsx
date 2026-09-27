@@ -45,6 +45,15 @@ export function ManagementSummaryBar({
   );
 }
 
+type Tone = "brand" | "success" | "warning" | "muted";
+
+const toneStyles: Record<Tone, { accent: string; value: string }> = {
+  brand: { accent: "bg-brand", value: "text-ink" },
+  success: { accent: "bg-emerald-500", value: "text-emerald-700 dark:text-emerald-300" },
+  warning: { accent: "bg-amber-500", value: "text-amber-700 dark:text-amber-300" },
+  muted: { accent: "bg-slate-300 dark:bg-slate-600", value: "text-slate-600 dark:text-slate-300" },
+};
+
 export function ManagementStat({
   label,
   value,
@@ -55,32 +64,47 @@ export function ManagementStat({
   label: string;
   value: number;
   active?: boolean;
-  tone?: "brand" | "success" | "muted";
+  tone?: Tone;
   onClick?: () => void;
 }) {
+  const t = toneStyles[tone];
+
   const className = cn(
-    "inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-xs font-bold transition",
-    active
-      ? "border-brand bg-brand text-white shadow-sm"
-      : tone === "success"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
-        : "border-slate-200 bg-white text-slate-600 hover:border-brand/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300",
+    "group relative flex min-w-0 flex-1 flex-col justify-between gap-1.5 overflow-hidden rounded-xl border bg-[rgb(var(--surface-card))] px-3 py-2.5 text-start transition",
+    "border-[rgb(var(--border-subtle))]",
+    onClick &&
+      "cursor-pointer hover:border-brand/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20",
+    active && "border-brand ring-1 ring-brand/30",
   );
-  const content = (
+
+  const body = (
     <>
-      <strong className="text-base">{value.toLocaleString("fa-IR")}</strong>
-      <span>{label}</span>
+      {/* accent bar */}
+      <span
+        aria-hidden="true"
+        className={cn("absolute inset-y-2 start-0 w-0.5 rounded-full", t.accent)}
+      />
+
+      <span className="truncate ps-2 text-[11px] font-medium leading-none text-slate-500 dark:text-slate-400">
+        {label}
+      </span>
+
+      <span
+        className={cn("ps-2 text-xl font-black leading-none tabular-nums tracking-tight", t.value)}
+      >
+        {value.toLocaleString("fa-IR")}
+      </span>
     </>
   );
+
   return onClick ? (
     <button type="button" className={className} aria-pressed={active} onClick={onClick}>
-      {content}
+      {body}
     </button>
   ) : (
-    <span className={className}>{content}</span>
+    <div className={className}>{body}</div>
   );
 }
-
 export function ManagementSearch({
   value,
   onChange,

@@ -3,6 +3,9 @@ export type StudentForm = {
   name: string;
   username: string;
   password: string;
+  gradeId: string;
+  educationTypeId: string;
+  trackId: string;
   grade: string;
   major: string;
   targetUniversity: string;
@@ -15,6 +18,9 @@ export function emptyStudentForm(): StudentForm {
     name: "",
     username: "",
     password: "",
+    gradeId: "",
+    educationTypeId: "",
+    trackId: "",
     grade: "",
     major: "",
     targetUniversity: "",
@@ -28,6 +34,9 @@ export function studentToForm(student: Student): StudentForm {
     name: student.name || "",
     username: student.user?.username || student.username || "",
     password: "",
+    gradeId: student.gradeId ? String(student.gradeId) : "",
+    educationTypeId: student.educationTypeId || "",
+    trackId: student.trackId || "",
     grade: student.grade || "",
     major: student.major || "",
     targetUniversity: student.targetUniversity || "",
@@ -41,6 +50,13 @@ export function studentPayload(form: StudentForm, includePassword: boolean) {
     name: form.name.trim(),
     username: form.username.trim(),
     ...(includePassword ? { password: form.password.trim() } : {}),
+    ...(form.gradeId && form.educationTypeId
+      ? {
+          gradeId: Number(form.gradeId),
+          educationTypeId: form.educationTypeId,
+          trackId: form.trackId || undefined,
+        }
+      : {}),
     grade: form.grade.trim(),
     major: form.major.trim(),
     targetUniversity: form.targetUniversity.trim(),

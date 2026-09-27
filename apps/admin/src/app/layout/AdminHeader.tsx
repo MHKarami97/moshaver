@@ -46,39 +46,44 @@ export function AdminHeader({
 
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <div className="min-w-0 flex-1">
-              <nav
-                aria-label="موقعیت صفحه"
-                className="mb-0.5 hidden min-w-0 items-center gap-1 text-[10px] text-slate-400 md:flex"
-              >
-                {breadcrumbs.map((item, index) => {
-                  const destination = resolveAdminNavigation(item.path);
-                  return (
-                    <span key={`${item.path}-${index}`} className="flex min-w-0 items-center gap-1">
-                      {index ? (
-                        <ChevronLeft className="shrink-0" size={11} />
-                      ) : (
-                        <Home className="shrink-0" size={11} />
-                      )}
-                      {index === breadcrumbs.length - 1 ? (
-                        <span
-                          className="truncate font-semibold text-slate-600 dark:text-slate-300"
-                          aria-current="page"
-                        >
-                          {item.title}
-                        </span>
-                      ) : (
-                        <NavLink
-                          className="truncate rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
-                          to={adminDestination(item.path, destination.section, selectedStudentId)}
-                        >
-                          {item.title}
-                        </NavLink>
-                      )}
-                    </span>
-                  );
-                })}
-              </nav>
-              <strong className="block truncate text-sm sm:text-base">{current.title}</strong>
+              <div className="flex flex-row gap-6">
+                <strong className="block truncate text-sm sm:text-base">{current.title}</strong>
+                <nav
+                  aria-label="موقعیت صفحه"
+                  className="mb-0.5 hidden min-w-0 items-center gap-1 text-[10px] text-slate-400 md:flex"
+                >
+                  {breadcrumbs.map((item, index) => {
+                    const destination = resolveAdminNavigation(item.path);
+                    return (
+                      <span
+                        key={`${item.path}-${index}`}
+                        className="flex min-w-0 items-center gap-1"
+                      >
+                        {index ? (
+                          <ChevronLeft className="shrink-0" size={11} />
+                        ) : (
+                          <Home className="shrink-0" size={11} />
+                        )}
+                        {index === breadcrumbs.length - 1 ? (
+                          <span
+                            className="truncate font-semibold text-slate-600 dark:text-slate-300"
+                            aria-current="page"
+                          >
+                            {item.title}
+                          </span>
+                        ) : (
+                          <NavLink
+                            className="truncate rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+                            to={adminDestination(item.path, destination.section, selectedStudentId)}
+                          >
+                            {item.title}
+                          </NavLink>
+                        )}
+                      </span>
+                    );
+                  })}
+                </nav>
+              </div>
               <p className="hidden truncate text-[11px] text-slate-500 dark:text-slate-400 xl:block">
                 {current.description}
               </p>
@@ -89,7 +94,7 @@ export function AdminHeader({
 
         <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           <HeaderClock />
-          <button
+          {/* <button
             type="button"
             className="hidden h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-slate-500 outline-none transition hover:bg-slate-50 hover:text-ink focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white sm:flex xl:px-3"
             onClick={onOpenSearch}
@@ -104,7 +109,7 @@ export function AdminHeader({
             >
               Ctrl ⇧ P
             </kbd>
-          </button>
+          </button> */}
           <div className="hidden xl:block">
             <ThemeSwitcher />
           </div>

@@ -70,4 +70,20 @@ describe("private organization seed configuration", () => {
       }),
     ).toThrow("valid Iranian national code");
   });
+
+  it("defines credentials for every supported platform role", () => {
+    const config = resolvePrivateOrganizationSeedConfig({
+      NODE_ENV: "development",
+    });
+    expect(Object.keys(config.passwords)).toEqual([
+      "platformAdmin",
+      "organizationAdmin",
+      "advisor",
+      "teacher",
+      "mentor",
+      "contentManager",
+      "guardian",
+      "student",
+    ]);
+  });
 });

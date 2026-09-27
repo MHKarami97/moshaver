@@ -43,6 +43,9 @@ export interface Student {
   name: string;
   user?: { id: string; username?: string; role?: Role };
   username?: string;
+  gradeId?: number | null;
+  educationTypeId?: string;
+  trackId?: string;
   grade?: string;
   major?: string;
   targetUniversity?: string;
