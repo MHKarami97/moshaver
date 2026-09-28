@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   Building2,
   CalendarDays,
+  ChevronLeft,
   FileQuestion,
   MessageSquare,
   RefreshCw,
@@ -17,6 +18,8 @@ import { fa } from "../../../shared/lib/utils";
 import type { AttentionStudent, RoleDashboardData } from "../model/dashboard.types";
 import { quickActionsForRole } from "../model/role-experience";
 import { AttentionInbox } from "./AttentionInbox";
+import { getRoleConfig } from "../model/role-config";
+import { DashboardQuickActions } from "./DashboardQuickActions";
 
 type Metric = {
   label: string;
@@ -254,30 +257,6 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
 }
 const metrics = roleDashboardMetrics;
 
-function QuickActions() {
-  const auth = useAuth();
-  const actions = quickActionsForRole(auth.activeRole, auth.capabilities);
-  return (
-    <Card>
-      <h2 className="font-black">دسترسی سریع</h2>
-      <p className="mt-1 text-xs text-slate-500">
-        فقط ابزارهای مجاز برای نقش فعال نمایش داده می‌شوند.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {actions.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-ink transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 dark:border-slate-800"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
 export function RoleDashboard({
   data,
   loading,
@@ -306,6 +285,10 @@ export function RoleDashboard({
       title: "داشبورد",
       description: "نمای کلی فضای کاری شما",
     };
+
+  const role = data?.context; // "PLATFORM_ADMIN" | "TEACHER" | ...
+  const { tone, icon: Icon, label } = getRoleConfig(role);
+
   if (loading) return <LoadingState label="در حال آماده‌سازی میز کار نقش فعال…" />;
   if (error || !data)
     return (
@@ -320,50 +303,88 @@ export function RoleDashboard({
       />
     );
   return (
-    <div className="grid gap-4">
-      <Card className="overflow-hidden bg-gradient-to-l from-brand/10 via-white to-sky-50 dark:via-slate-950 dark:to-slate-900">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Badge tone="blue">{data.context}</Badge>
-            <h1 className="mt-3 text-xl font-black text-ink sm:text-2xl">{copy.title}</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{copy.description}</p>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-10">
+      {/* ============= */}
+      {/* Left column (3/10 on lg) */}
+      {/* ============= */}
+      <div className="flex flex-col gap-6 md:col-span-1 lg:col-span-3">
+        {/* Header */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Badge tone={tone} aria-label={label} title={label}>
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              </Badge>
+              <h1 className="truncate text-xl font-black text-ink sm:text-2xl">{copy.title}</h1>
+            </div>
+
+            <Button
+              variant="soft"
+              size="sm"
+              loading={refreshing}
+              onClick={onRefresh}
+              aria-label="Refresh"
+            >
+              <RefreshCw size={16} />
+            </Button>
           </div>
-          <Button variant="soft" loading={refreshing} onClick={onRefresh}>
-            <RefreshCw size={16} />
-            به‌روزرسانی
-          </Button>
+
+          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {copy.description}
+          </p>
         </div>
-      </Card>
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics(data).map((item) => {
-          const Icon = item.icon;
-          return (
-            <Card key={item.label} className="group">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500">{item.label}</p>
-                  <strong className="mt-3 block text-3xl font-black text-ink">
+        {/* Metrics */}
+        <section className="overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {metrics(data).map((item) => {
+              const MetricIcon = item.icon;
+              return (
+                <li
+                  key={item.label}
+                  className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/60"
+                >
+                  <MetricIcon
+                    size={16}
+                    strokeWidth={1.75}
+                    className="shrink-0 text-slate-500 transition-colors group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
+                    aria-hidden="true"
+                  />
+
+                  <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">
+                    {item.label}
+                  </span>
+
+                  {item.hint ? (
+                    <span className="hidden shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400 md:inline">
+                      {item.hint}
+                    </span>
+                  ) : null}
+
+                  <strong className="min-w-[3.5rem] shrink-0 text-right text-base font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-50">
                     {typeof item.value === "number" ? fa(item.value) : item.value}
                   </strong>
-                  <p className="mt-2 text-[11px] text-slate-500">{item.hint}</p>
-                </div>
-                <span className="grid size-10 place-items-center rounded-xl bg-brand/10 text-brand transition group-hover:scale-105">
-                  <Icon size={19} />
-                </span>
-              </div>
-            </Card>
-          );
-        })}
-      </section>
-      <QuickActions />
-      {auth.can("student.live.read") ? (
-        <AttentionInbox
-          students={attention}
-          loading={attentionLoading}
-          error={attentionError}
-          onRetry={onRetryAttention}
-        />
-      ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <DashboardQuickActions />
+      </div>
+
+      {/* ============= */}
+      {/* Right column (7/10 on lg) */}
+      {/* ============= */}
+      <div className="md:col-span-1 lg:col-span-7">
+        {auth.can("student.live.read") ? (
+          <AttentionInbox
+            students={attention}
+            loading={attentionLoading}
+            error={attentionError}
+            onRetry={onRetryAttention}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }

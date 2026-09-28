@@ -1,17 +1,32 @@
 import { RotateCcw, Save, UserPlus, X } from "lucide-react";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button, Field, Input } from "../../../shared/ui/ui";
+import { api } from "../../../shared/api/api";
 import type { StudentForm } from "../model/student-form";
 
 export type StudentEditorMode = "empty" | "create" | "edit";
 export type StudentEditorFeedback = { tone: "success" | "error" | "info"; message: string } | null;
+type CatalogLabel = { id: string; fa: string };
+type SignupOptions = {
+  grades: Array<{ id: number; fa: string }>;
+  educationTypes: CatalogLabel[];
+  theoreticalTracks: CatalogLabel[];
+  vocationalFields: CatalogLabel[];
+  gradeStructure: Array<{
+    grades: number[];
+    education_type_ids: string[];
+    track_required: boolean;
+  }>;
+};
 
 function formCompleteness(form: StudentForm, includePassword: boolean) {
   const values = [
     form.name,
     form.username,
-    form.grade,
-    form.major,
+    form.gradeId,
+    form.educationTypeId,
+    form.trackId,
     form.targetUniversity,
     form.targetField,
     form.targetRank,
@@ -70,8 +85,28 @@ export function StudentEditor({
   saveDirty: boolean;
   usernameError?: string;
 }) {
-  const passwordValid = mode !== "create" || form.password.length >= 8;
-  const baseValid = !!form.name.trim() && !!form.username.trim();
+  const catalog = useQuery({
+    queryKey: ["education-catalog", "signup-options"],
+    queryFn: () => api.get<SignupOptions>("/education-catalog/signup-options"),
+    staleTime: 30 * 60 * 1000,
+  });
+  const structure = catalog.data?.gradeStructure.find((item) =>
+    item.grades.includes(Number(form.gradeId)),
+  );
+  const educationTypes =
+    catalog.data?.educationTypes.filter((item) =>
+      structure?.education_type_ids.includes(item.id),
+    ) || [];
+  const tracks =
+    form.educationTypeId === "theoretical"
+      ? catalog.data?.theoreticalTracks || []
+      : ["technical_vocational", "kar_danesh"].includes(form.educationTypeId)
+        ? catalog.data?.vocationalFields || []
+        : [];
+  const passwordValid = mode !== "create" || form.password.length >= 12;
+  const educationValid =
+    !!form.gradeId && !!form.educationTypeId && (!structure?.track_required || !!form.trackId);
+  const baseValid = !!form.name.trim() && !!form.username.trim() && educationValid;
   const saveDisabled = !baseValid || busy || !saveDirty || !passwordValid || !!usernameError;
   const completion = useMemo(() => formCompleteness(form, mode === "create"), [form, mode]);
 
@@ -139,8 +174,8 @@ export function StudentEditor({
           <Field
             label="رمز عبور"
             error={
-              form.password && form.password.length < 8
-                ? "رمز عبور باید حداقل ۸ نویسه باشد."
+              form.password && form.password.length < 12
+                ? "رمز عبور باید حداقل ۱۲ نویسه باشد."
                 : undefined
             }
           >
@@ -150,7 +185,7 @@ export function StudentEditor({
               type="password"
               value={form.password}
               onChange={(event) => setField("password", event.target.value)}
-              placeholder="حداقل ۸ نویسه"
+              placeholder="حداقل ۱۲ نویسه"
             />
           </Field>
         ) : null}
@@ -165,20 +200,72 @@ export function StudentEditor({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="پایه">
-            <Input
-              value={form.grade}
-              onChange={(event) => setField("grade", event.target.value)}
-              placeholder="مثلاً دوازدهم"
-            />
+            <select
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+              value={form.gradeId}
+              onChange={(event) => {
+                const gradeId = event.target.value;
+                const next = catalog.data?.gradeStructure.find((item) =>
+                  item.grades.includes(Number(gradeId)),
+                );
+                setField("gradeId", gradeId);
+                setField(
+                  "educationTypeId",
+                  next?.education_type_ids.length === 1 ? next.education_type_ids[0] : "",
+                );
+                setField("trackId", "");
+              }}
+              disabled={catalog.isLoading}
+            >
+              <option value="">انتخاب پایه</option>
+              {catalog.data?.grades.map((grade) => (
+                <option key={grade.id} value={grade.id}>
+                  {grade.fa}
+                </option>
+              ))}
+            </select>
           </Field>
-          <Field label="رشته">
-            <Input
-              value={form.major}
-              onChange={(event) => setField("major", event.target.value)}
-              placeholder="مثلاً تجربی"
-            />
+          <Field label="نوع آموزش">
+            <select
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+              value={form.educationTypeId}
+              disabled={!form.gradeId || catalog.isLoading}
+              onChange={(event) => {
+                setField("educationTypeId", event.target.value);
+                setField("trackId", "");
+              }}
+            >
+              <option value="">انتخاب نوع آموزش</option>
+              {educationTypes.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.fa}
+                </option>
+              ))}
+            </select>
           </Field>
+          {structure?.track_required ? (
+            <Field label="رشته">
+              <select
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+                value={form.trackId}
+                disabled={!form.educationTypeId || catalog.isLoading}
+                onChange={(event) => setField("trackId", event.target.value)}
+              >
+                <option value="">انتخاب رشته</option>
+                {tracks.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.fa}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
         </div>
+        {catalog.isError ? (
+          <p role="alert" className="text-xs text-rose-700">
+            دریافت پایه‌ها و رشته‌ها انجام نشد.
+          </p>
+        ) : null}
       </section>
 
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">

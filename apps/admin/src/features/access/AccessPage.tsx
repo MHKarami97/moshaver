@@ -664,12 +664,12 @@ export function OrganizationsPage() {
     } as OrganizationSummary);
   return (
     <div className="grid gap-5">
-      <ManagementPageHeader
+      {/* <ManagementPageHeader
         eyebrow="افراد و دسترسی"
         title="سازمان‌ها"
         description="سازمان را از فهرست انتخاب کنید و اعضا، نقش‌ها و زمینه کاری آن را در پنل کناری مدیریت کنید."
-      />
-      <section className="grid gap-3" aria-label="ابزارهای فهرست سازمان‌ها">
+      /> */}
+      <section className="w-full" aria-label="ابزارهای فهرست سازمان‌ها">
         <ManagementSummaryBar
           action={
             canManage ? (
@@ -685,33 +685,50 @@ export function OrganizationsPage() {
             ) : null
           }
         >
-          <ManagementStat label="همه سازمان‌ها" value={organizations.data?.length ?? 0} />
-          <ManagementStat
-            label="فعال"
-            value={organizations.data?.filter((x) => x.status === "ACTIVE").length ?? 0}
-            tone="success"
-          />
-          <ManagementStat
-            label="بایگانی"
-            value={organizations.data?.filter((x) => x.status === "ARCHIVED").length ?? 0}
-          />
-        </ManagementSummaryBar>
-        <Card className="p-4">
-          <Field label="جستجوی سازمان">
-            <div className="relative">
-              <Search className="absolute right-3 top-3 text-slate-400" size={18} />
-              <Input
-                className="pr-10"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="نام سازمان…"
-              />
+          <div className="flex w-full flex-wrap items-end gap-3">
+            <ManagementStat label="همه سازمان‌ها" value={organizations.data?.length ?? 0} />
+            <ManagementStat
+              label="فعال"
+              value={organizations.data?.filter((x) => x.status === "ACTIVE").length ?? 0}
+              tone="success"
+            />
+            <ManagementStat
+              label="بایگانی"
+              value={organizations.data?.filter((x) => x.status === "ARCHIVED").length ?? 0}
+            />
+
+            <div className="flex min-w-[260px] flex-1 items-end gap-2">
+              <Field label="جستجوی سازمان">
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                  />
+                  <Input
+                    className="pr-9"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="نام سازمان…"
+                  />
+                  {search ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      aria-label="پاک کردن جستجو"
+                      className="absolute left-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
+                </div>
+              </Field>
+
+              <span className="shrink-0 whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {filtered.length.toLocaleString("fa-IR")} نتیجه
+              </span>
             </div>
-          </Field>
-          <div className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-500 dark:border-slate-800">
-            {filtered.length.toLocaleString("fa-IR")} نتیجه
           </div>
-        </Card>
+        </ManagementSummaryBar>
       </section>
       {canManage && creating ? (
         <Card className="p-5">

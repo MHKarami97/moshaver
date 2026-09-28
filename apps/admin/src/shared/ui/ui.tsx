@@ -8,6 +8,7 @@ import {
   forwardRef,
   isValidElement,
   useId,
+  HTMLAttributes,
 } from "react";
 import { cn } from "../lib/utils";
 
@@ -135,6 +136,10 @@ export function Card({ className, ...props }: ComponentProps<"section">) {
       className={cn(
         `
         rounded-2xl
+        
+        px-2
+
+        py-2
 
         border
 
@@ -367,100 +372,64 @@ focus:ring-brand/10
   },
 );
 
+type BadgeTone = "neutral" | "green" | "amber" | "red" | "blue";
+
 export function Badge({
   children,
-
   tone = "neutral",
-}: {
+  className,
+  ...props
+}: HTMLAttributes<HTMLSpanElement> & {
   children: ReactNode;
-
-  tone?: "neutral" | "green" | "amber" | "red" | "blue";
+  tone?: BadgeTone;
 }) {
   return (
     <span
       className={cn(
         `
-
 inline-flex
-
 items-center
-
 rounded-full
-
-
 px-3
-
 py-1
-
-
 text-xs
-
-
 font-semibold
-
-
 transition
-
-
 `,
-
         tone === "neutral" &&
           `
-
 bg-slate-100
-
 text-slate-700
-
 dark:bg-slate-800
-
 dark:text-slate-300
-
 `,
-
         tone === "green" &&
           `
-
 bg-emerald-500/10
-
 text-emerald-600
-
 dark:text-emerald-400
-
 `,
-
         tone === "amber" &&
           `
-
 bg-amber-500/10
-
 text-amber-600
-
 dark:text-amber-400
-
 `,
-
         tone === "red" &&
           `
-
 bg-rose-500/10
-
 text-rose-600
-
 dark:text-rose-400
-
 `,
-
         tone === "blue" &&
           `
-
 bg-blue-500/10
-
 text-blue-600
-
 dark:text-blue-400
-
 `,
+        className,
       )}
+      {...props}
     >
       {children}
     </span>
@@ -471,62 +440,45 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
+  className,
 }: {
   title: string;
   description?: ReactNode;
   action?: ReactNode;
+  icon?: ReactNode;
+  className?: string;
 }) {
   return (
     <div
-      className="
-
-flex
-
-min-h-40
-
-flex-col
-
-items-center
-
-justify-center
-
-
-gap-4
-
-
-rounded-2xl
-
-
-border
-
-border-dashed
-
-border-[rgb(var(--border-subtle))]
-
-
-bg-[rgb(var(--surface-muted))]
-
-
-p-6
-
-
-text-center
-
-
-text-sm
-
-text-slate-500
-
-
-dark:text-slate-400
-
-"
+      role="status"
+      aria-live="polite"
+      className={[
+        "flex min-h-40 flex-col items-center justify-center gap-4",
+        "rounded-2xl border border-dashed border-[rgb(var(--border-subtle))]",
+        "bg-[rgb(var(--surface-muted))] p-6 text-center",
+        "text-sm text-slate-500 dark:text-slate-400",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      <strong className="text-ink">{title}</strong>
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="grid size-11 place-items-center rounded-full bg-white text-slate-400 shadow-sm dark:bg-slate-900"
+        >
+          {icon}
+        </span>
+      ) : null}
 
-      {description ? <p className="max-w-xl text-xs leading-5">{description}</p> : null}
+      <div className="grid gap-1.5">
+        <strong className="text-base font-black text-ink">{title}</strong>
 
-      {action}
+        {description ? <p className="mx-auto max-w-xl text-xs leading-6">{description}</p> : null}
+      </div>
+
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );
 }
