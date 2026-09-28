@@ -59,4 +59,30 @@ describe('ApiClient session refresh', () => {
       message: 'ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید.',
     });
   });
+
+  it('queues only mutations that the backend sync endpoint accepts', async () => {
+    const client = new ApiClient('/api/v2');
+    const enqueue = vi.fn().mockResolvedValue(undefined);
+    client.configureSync({ enqueue, pending: vi.fn(), remove: vi.fn() });
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(client.request('PUT', '/notifications/notice-1/read')).rejects.toMatchObject({ name: 'NETWORK' });
+    await expect(client.request('POST', '/student/tasks/task-1/complete', { status: 'done' })).rejects.toMatchObject({ name: 'NETWORK' });
+
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
+      method: 'POST',
+      path: '/student/tasks/task-1/complete',
+    }));
+  });
+
+  it('clears the configured sync provider during account teardown', async () => {
+    const client = new ApiClient('/api/v2');
+    const clear = vi.fn().mockResolvedValue(undefined);
+    client.configureSync({ enqueue: vi.fn(), pending: vi.fn(), remove: vi.fn(), clear });
+
+    await client.clearSyncState();
+
+    expect(clear).toHaveBeenCalledOnce();
+  });
 });

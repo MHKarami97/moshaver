@@ -20,6 +20,24 @@ export function loginRequest(username: string, password: string) {
   });
 }
 
+export type PlatformBootstrapInput = {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+};
+
+export function getPlatformBootstrapStatus() {
+  return request<{ setupRequired: boolean }>("GET", "/onboarding/platform-bootstrap", undefined, {
+    suppressAuthFailure: true,
+  });
+}
+
+export function bootstrapPlatformAdmin(input: PlatformBootstrapInput) {
+  return api.post<{ username: string }>("/onboarding/platform-bootstrap", input);
+}
+
 export function logoutRequest() {
   return api.post("/auth/logout", {});
 }

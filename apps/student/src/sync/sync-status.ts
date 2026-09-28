@@ -24,6 +24,10 @@ export class WebSyncProvider implements SyncProvider {
     const items = await this.pending();
     this.storage.setItem(WEB_QUEUE_KEY, JSON.stringify(items.filter((item) => item.id !== id)));
   }
+  async clear(): Promise<void> {
+    this.storage.removeItem(WEB_QUEUE_KEY);
+    this.storage.removeItem(WEB_CURSOR_KEY);
+  }
   async getCursor() { return this.storage.getItem(WEB_CURSOR_KEY); }
   async setCursor(cursor: string) { this.storage.setItem(WEB_CURSOR_KEY, cursor); }
 }

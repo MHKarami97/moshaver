@@ -28,6 +28,10 @@ export class User {
   @Column({ length: 120 })
   username!: string;
 
+  @Index({ unique: true })
+  @Column({ length: 254, nullable: true })
+  email?: string | null;
+
   @Column()
   passwordHash!: string;
 

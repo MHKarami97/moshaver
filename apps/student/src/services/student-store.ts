@@ -241,6 +241,7 @@ function clearAccountStorage() {
   localStorage.removeItem('moshaver:v2:guardian-child');
   localStorage.removeItem(NIGHT_REPORT_DRAFT_KEY);
   localStorage.removeItem(RECOVERY_REQUEST_DRAFT_KEY);
+  void apiClient.clearSyncState().catch(() => undefined);
   resetRelaxationPlayer();
 }
 

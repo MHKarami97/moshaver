@@ -12,6 +12,10 @@ export class ApiClient implements NetworkProvider {
     this.syncProvider = syncProvider;
   }
 
+  async clearSyncState() {
+    await this.syncProvider?.clear?.();
+  }
+
   setCsrfToken(token: string | null | undefined) {
     if (token) {
       localStorage.setItem(CSRF_STORAGE_KEY, token);
@@ -123,7 +127,7 @@ export class ApiClient implements NetworkProvider {
   }
 
   private shouldQueue(path: string, status: number) {
-    return !path.startsWith('/auth/') && !path.includes('/exams/') && (status === 0 || status >= 500);
+    return (status === 0 || status >= 500) && isBackendSyncMutation(path);
   }
 
   openEvents(onEvent: (type: string, data: Record<string, unknown>) => void) {
@@ -138,6 +142,18 @@ export class ApiClient implements NetworkProvider {
     });
     return source;
   }
+}
+
+function isBackendSyncMutation(path: string) {
+  const pathname = path.split('?')[0].replace(/\/$/, '');
+  return (
+    /^\/student\/tasks\/[^/]+\/complete$/.test(pathname)
+    || pathname === '/reports'
+    || pathname === '/recovery-requests'
+    || /^\/student\/learning\/[^/]+\/review$/.test(pathname)
+    || /^\/student\/exams\/attempts\/[^/]+$/.test(pathname)
+    || /^\/student\/study-sessions(?:\/[^/]+\/(?:heartbeat|pause|resume|finish))?$/.test(pathname)
+  );
 }
 
 export const apiClient = new ApiClient();

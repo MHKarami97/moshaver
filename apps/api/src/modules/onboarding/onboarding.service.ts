@@ -12,7 +12,7 @@ import { User, UserRole, UserStatus } from "../../database/entities/user.entity"
 import { Conversation } from "../../database/entities/conversation.entity";
 import { ConversationMember } from "../../database/entities/conversation-member.entity";
 import { ConversationType } from "../../database/entities/conversation.entity";
-import { AssignStudentOnboardingDto, StudentSignupDto } from "./onboarding.dto";
+import { AssignStudentOnboardingDto, PlatformBootstrapDto, StudentSignupDto } from "./onboarding.dto";
 import { EducationCatalogService } from "../education-catalog";
 import { isValidIranianNationalCode, normalizeNationalCode } from "./national-code";
 
@@ -37,6 +37,39 @@ export class OnboardingService {
       if (String((error as { message?: string })?.message || "").includes("students.nationalCode")) throw new ApiException(409, "NATIONAL_CODE_EXISTS", "برای این کد ملی قبلاً حساب ساخته شده است.");
       throw error;
     }
+  }
+
+  async platformBootstrapStatus() {
+    const assignment = await this.dataSource.getRepository(UserRoleAssignment).findOne({ where: { role: { code: "PLATFORM_ADMIN" } } });
+    return { setupRequired: !assignment };
+  }
+
+  async bootstrapPlatformAdmin(dto: PlatformBootstrapDto) {
+    const username = dto.username.trim().toLowerCase();
+    const email = dto.email.trim().toLowerCase();
+    return this.dataSource.transaction(async (manager) => {
+      const assignments = manager.getRepository(UserRoleAssignment);
+      if (await assignments.findOne({ where: { role: { code: "PLATFORM_ADMIN" } } })) {
+        throw new ApiException(409, "PLATFORM_ALREADY_BOOTSTRAPPED", "مدیر پلتفرم قبلاً ایجاد شده است.");
+      }
+      const users = manager.getRepository(User);
+      if (await users.findOne({ where: [{ username }, { email }] })) {
+        throw new ApiException(409, "ACCOUNT_EXISTS", "نام کاربری یا ایمیل قبلاً استفاده شده است.");
+      }
+      const role = await manager.findOne(Role, { where: { code: "PLATFORM_ADMIN" } });
+      if (!role) throw new ApiException(503, "PLATFORM_BOOTSTRAP_UNAVAILABLE", "راه‌اندازی پایگاه داده کامل نشده است.");
+      const user = await manager.save(User, manager.create(User, {
+        username,
+        email,
+        firstName: dto.firstName.trim(),
+        lastName: dto.lastName.trim(),
+        passwordHash: await bcrypt.hash(dto.password, 12),
+        role: UserRole.PLATFORM_ADMIN,
+        status: UserStatus.ACTIVE,
+      }));
+      await manager.save(UserRoleAssignment, assignments.create({ user, role, membership: null }));
+      return { id: user.id, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName };
+    });
   }
 
   async pending() {

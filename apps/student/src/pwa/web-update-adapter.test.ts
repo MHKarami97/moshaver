@@ -6,6 +6,26 @@ afterEach(() => {
 });
 
 describe('web update adapter', () => {
+  it('unregisters prior workers instead of registering one in Vite development', async () => {
+    const unregister = vi.fn().mockResolvedValue(true);
+    const register = vi.fn();
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        controller: {},
+        getRegistrations: vi.fn().mockResolvedValue([{ unregister }]),
+        register,
+      },
+    });
+
+    const { registerWebUpdateAdapter } = await import('./web-update-adapter');
+    registerWebUpdateAdapter();
+    await Promise.resolve();
+
+    expect(unregister).toHaveBeenCalledOnce();
+    expect(register).not.toHaveBeenCalled();
+  });
+
   it('does not reload when the service worker takes control for the first time', async () => {
     const addEventListener = vi.fn();
     const registration = {

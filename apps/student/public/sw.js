@@ -1,8 +1,7 @@
-const CACHE_NAME = 'moshaver-student-v2-shell-v1';
+const CACHE_NAME = 'moshaver-student-v2-shell-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/manifest.webmanifest',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
 ];
@@ -33,7 +32,11 @@ self.addEventListener('fetch', (event) => {
   if (
     request.method !== 'GET' ||
     url.origin !== self.location.origin ||
+    url.port === '1420' ||
     url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/@vite/') ||
+    url.pathname === '/@react-refresh' ||
+    url.pathname.startsWith('/src/') ||
     /\/(config\.js|version\.json|sw\.js)$/.test(url.pathname)
   ) return;
 
@@ -41,12 +44,13 @@ self.addEventListener('fetch', (event) => {
     (request.mode === 'navigate'
       ? fetch(request)
         .then((response) => {
+          if (!response.ok) throw new Error(`Navigation failed with ${response.status}`);
           void caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', response.clone()));
           return response;
         })
         .catch(() => caches.match('/index.html'))
       : caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-        if (response.ok) void caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+        if (response.ok && response.type === 'basic' && !/no-store/i.test(response.headers.get('Cache-Control') || '')) void caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
         return response;
       }))),
   );

@@ -52,7 +52,7 @@ async function seed(manager: EntityManager) {
   const orgC = await organization(manager, "مرکز مشاوره مسیر رشد", OrganizationType.COUNSELING_CENTER, OrganizationStatus.ACTIVE);
   const textbookCount = await seedEducationCatalog(manager);
 
-  const platform = await user(manager, "demo.platform", "مدیر", "سامانه", UserRole.PLATFORM_ADMIN, hash);
+  const platform = await user(manager, "admin", "مدیر", "سامانه", UserRole.PLATFORM_ADMIN, await bcrypt.hash("anonymous", 12));
   await role(manager, platform, "PLATFORM_ADMIN", null);
   const orgAdminA = await scopedUser(manager, orgA, "demo.orgadmin.a", "مدیر", "راه روشن", UserRole.ORGANIZATION_ADMIN, "ORGANIZATION_ADMIN", hash);
   await scopedUser(manager, orgB, "demo.orgadmin.b", "مدیر", "دانش فردا", UserRole.ORGANIZATION_ADMIN, "ORGANIZATION_ADMIN", hash);

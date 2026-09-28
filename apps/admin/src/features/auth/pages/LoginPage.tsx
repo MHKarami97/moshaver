@@ -1,13 +1,25 @@
 import { BookOpenCheck, LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { DevBackendSwitcher } from "../../../app/dev/DevBackendSwitcher";
 import { BackendHealthStatus } from "../components/BackendHealthStatus";
 import { LoginForm } from "../components/LoginForm";
+import { PlatformBootstrapForm } from "../components/PlatformBootstrapForm";
 import { useAuth } from "../hooks/useAuth";
+import { getPlatformBootstrapStatus } from "../api/auth.api";
 
 export function LoginPage() {
   const auth = useAuth();
+  const [setupRequired, setSetupRequired] = useState(false);
+  const [showBootstrap, setShowBootstrap] = useState(false);
+
+  useEffect(() => {
+    void getPlatformBootstrapStatus().then((result) => {
+      setSetupRequired(result.setupRequired);
+      setShowBootstrap(result.setupRequired);
+    }).catch(() => undefined);
+  }, []);
 
   if (auth.status === "authenticated") {
     return <Navigate to="/admin" replace />;
@@ -65,14 +77,14 @@ export function LoginPage() {
           </div>
           <div className="my-auto py-8">
             <div className="mb-7">
-              <p className="mb-2 text-xs font-bold text-brand">ورود به میز کار</p>
-              <h1 className="text-2xl font-black sm:text-3xl">خوش آمدید</h1>
+              <p className="mb-2 text-xs font-bold text-brand">{showBootstrap ? "راه‌اندازی سامانه" : "ورود به میز کار"}</p>
+              <h1 className="text-2xl font-black sm:text-3xl">{showBootstrap ? "نخستین مدیر را بسازید" : "خوش آمدید"}</h1>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                با حساب سازمانی خود وارد شوید. منوها و امکانات بر اساس نقش فعال شما تنظیم می‌شوند.
+                {showBootstrap ? "مالک سامانه می‌تواند نام، ایمیل و رمز دلخواه خود را ثبت کند." : "با حساب سازمانی خود وارد شوید. منوها و امکانات بر اساس نقش فعال شما تنظیم می‌شوند."}
               </p>
             </div>
             <BackendHealthStatus />
-            <LoginForm />
+            {showBootstrap ? <PlatformBootstrapForm onBack={() => setShowBootstrap(false)} /> : <><LoginForm />{setupRequired ? <button type="button" className="mt-4 w-full text-center text-sm font-bold text-brand underline-offset-4 hover:underline" onClick={() => setShowBootstrap(true)}>ساخت نخستین مدیر سامانه</button> : null}</>}
           </div>
           <p className="text-center text-[11px] text-slate-400">
             ورود شما به معنی پذیرش سیاست‌های امنیت و حریم خصوصی سامانه است.

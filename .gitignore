@@ -19,6 +19,7 @@ apps/admin/vitest.config.d.ts
 # Environment and local config
 .env
 .env.*
+!.env.coolify.example
 !.env.example
 
 # Runtime data and backups

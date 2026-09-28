@@ -10,6 +10,7 @@ on:
       - 'packages/**'
       - 'tooling/generators/**'
       - 'docker-compose.yml'
+      - 'docker-compose.coolify.yml'
       - '.github/workflows/deployment-readiness.yml'
   push:
     branches: [develop, main]
@@ -21,6 +22,7 @@ on:
       - 'packages/**'
       - 'tooling/generators/**'
       - 'docker-compose.yml'
+      - 'docker-compose.coolify.yml'
       - '.github/workflows/deployment-readiness.yml'
   workflow_dispatch:
 
