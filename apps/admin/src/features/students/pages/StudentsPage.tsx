@@ -649,6 +649,7 @@ export function StudentsPage() {
         title: copy[0],
         description: copy[1],
         confirmLabel: copy[2],
+        confirmationText: action === "restore" ? "بازیابی" : undefined,
         tone: action === "deactivate" || action === "force-logout" ? "danger" : "default",
       })
       .then((ok) => ok && lifecycle.mutate(action));
@@ -753,6 +754,7 @@ export function StudentsPage() {
                   description: "حساب غیرفعال می‌شود اما تاریخچه برای بازیابی حفظ خواهد شد.",
                   tone: "danger",
                   confirmLabel: "بایگانی",
+                  confirmationText: "بایگانی",
                 })
                 .then((ok) => ok && remove.mutate())
             }

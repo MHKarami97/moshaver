@@ -35,3 +35,25 @@ export class WebSyncProvider implements SyncProvider {
 export function statusFromOnlineState(online: boolean): SyncStatus {
   return online ? 'online' : 'offline';
 }
+
+export function syncStatusMessage(status: SyncStatus, pendingCount = 0) {
+  const pending = Math.max(0, pendingCount);
+  const pendingCopy = pending
+    ? `${pending.toLocaleString('fa-IR')} تغییر روی دستگاه شما محفوظ است.`
+    : 'تغییرات روی دستگاه شما محفوظ می‌مانند.';
+
+  if (status === 'offline') {
+    return { label: 'آفلاین', detail: pendingCopy, canRetry: false };
+  }
+  if (status === 'syncing') {
+    return { label: 'در حال همگام‌سازی', detail: pending ? pendingCopy : 'در حال ارسال تغییرات محفوظ‌شده.' , canRetry: false };
+  }
+  if (status === 'failed') {
+    return { label: 'نیازمند توجه', detail: `${pendingCopy} برای تلاش دوباره، همگام‌سازی را اجرا کنید.`, canRetry: true };
+  }
+  return {
+    label: 'همگام‌سازی کامل',
+    detail: pending ? `${pendingCopy} با اتصال پایدار ارسال می‌شود.` : 'همه تغییرات ثبت‌شده با سرور هماهنگ هستند.',
+    canRetry: false,
+  };
+}

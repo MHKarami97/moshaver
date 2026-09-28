@@ -26,6 +26,7 @@ const signalLabels: Record<string, string> = {
   UPCOMING_EXAM: "آزمون نزدیک",
   OPEN_RECOVERY: "درخواست ریکاوری باز",
   TASK_ISSUE: "مسئله فعالیت باز",
+  SYNC_FAILED: "همگام‌سازی ناموفق",
 };
 
 export function normalizeAttentionStudent(student: V2AttentionStudent): AttentionStudent {

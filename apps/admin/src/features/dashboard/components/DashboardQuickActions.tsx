@@ -4,7 +4,6 @@ import { Card } from "../../../shared/ui/ui";
 import { quickActionsForRole } from "../model/role-experience";
 import { useAuth } from "../../auth";
 
-
 export function DashboardQuickActions() {
   const auth = useAuth();
   const actions = quickActionsForRole(auth.activeRole, auth.capabilities);
@@ -17,9 +16,7 @@ export function DashboardQuickActions() {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-bold text-ink">دسترسی سریع</h2>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            فقط ابزارهای مجاز برای نقش فعال
-          </p>
+          <p className="mt-0.5 text-[11px] text-slate-500">فقط ابزارهای مجاز برای نقش فعال</p>
         </div>
         <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
           {actions.length}

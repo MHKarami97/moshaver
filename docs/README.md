@@ -2,7 +2,7 @@
 
 This directory is the navigation hub for the active Moshaver v2 monorepo. Documentation is grouped by intent so a person or an agent can distinguish current architecture from migration plans and historical evidence. The complete v1.4 tree is preserved on `archive/v1.4`.
 
-Last repository inspection: 2026-09-13.
+Last repository inspection: 2026-09-28.
 
 ## Read first
 
@@ -15,6 +15,8 @@ Last repository inspection: 2026-09-13.
    - [backend v2 design](./architecture/backend-v2-design.md)
    - [student v2/Tauri runtime](./architecture/student-v2-tauri-runtime.md)
 7. To change the project safely, read the [developer handbook](./operations/developer-handbook.md).
+8. For current source-backed risks, UX priorities, documentation disposition, and
+   future product work, read the [platform audit — 2026-09-28](./history/audits/platform-audit-2026-09-28.md).
 
 ## Directory contract
 
@@ -57,6 +59,7 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 - [Backend v2 service](./components/backend-v2-service.md)
 - [Backend v2 HTTP API](./components/backend-v2-http-api.md)
 - [Admin v2 application](./components/admin-v2-application.md)
+- [Student v2 application](./components/student-v2-application.md)
 - [Admin v2 Communication workspace](./components/admin-v2-communication-workspace.md)
 - [Admin v2 capability matrix](./ADMIN_V2_CAPABILITY_MATRIX.md) — current backend, frontend, permission, test, and status mapping.
 - [Student and Family exam experience audit](./migrations/STUDENT_FAMILY_EXAM_AUDIT.md) — current learner/family baseline, integrity gaps, and phased delivery matrix.
@@ -64,6 +67,7 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 ## Operations
 
 - [Repository runbook](./operations/repository-runbook.md)
+- [Release evidence checklist](./operations/release-evidence.md)
 - [Developer handbook](./operations/developer-handbook.md) — onboarding, conventions, and definition of done.
 - [Feature and bug playbook](./operations/feature-and-bug-playbook.md) — secure vertical implementation and diagnosis.
 - [Maintenance guide](./operations/maintenance-guide.md) — recurring care, incidents, dependencies, data, and rollback.
@@ -100,8 +104,9 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 - [Initial v2 analysis](./history/audits/v2-initial-analysis.md)
 - [Backend v2 test snapshot](./history/audits/backend-v2-test-report.md)
 - [Admin v2 test snapshot](./history/audits/admin-v2-test-report.md)
-- [Auth/sync fix v1.3.3](./history/fixes/auth-sync-v1-3.3.md)
+- [Auth/sync fix v1.3.3](./history/fixes/auth-sync-v1-3-3.md)
 - [Backend v1 changelog](./history/backend-v1-changelog.md)
+- [Platform audit — 2026-09-28](./history/audits/platform-audit-2026-09-28.md)
 
 ## Maintenance rules
 

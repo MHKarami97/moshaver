@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, Menu, Search } from "lucide-react";
+import { ChevronLeft, Home, Menu } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { HeaderClock } from "../../features/clock";
 import { HeaderNotifications } from "../../features/notifications";
@@ -14,7 +14,6 @@ export function AdminHeader({
   selectedStudentId,
   sticky = true,
   onOpenMobileNavigation,
-  onOpenSearch,
   role,
   organization,
   multipleRoles,
@@ -24,7 +23,6 @@ export function AdminHeader({
   selectedStudentId: string;
   sticky?: boolean;
   onOpenMobileNavigation: () => void;
-  onOpenSearch: () => void;
   role: string;
   organization?: string;
   multipleRoles?: boolean;
@@ -94,22 +92,6 @@ export function AdminHeader({
 
         <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           <HeaderClock />
-          {/* <button
-            type="button"
-            className="hidden h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 text-slate-500 outline-none transition hover:bg-slate-50 hover:text-ink focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white sm:flex xl:px-3"
-            onClick={onOpenSearch}
-            aria-label="جستجو و رفتن سریع"
-            title="جستجو و رفتن سریع (Ctrl/⌘ + Shift + P)"
-          >
-            <Search size={17} />
-            <span className="hidden text-xs font-semibold xl:inline">جستجو</span>
-            <kbd
-              className="hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold text-slate-400 dark:border-slate-700 dark:bg-slate-800 2xl:inline"
-              dir="ltr"
-            >
-              Ctrl ⇧ P
-            </kbd>
-          </button> */}
           <div className="hidden xl:block">
             <ThemeSwitcher />
           </div>

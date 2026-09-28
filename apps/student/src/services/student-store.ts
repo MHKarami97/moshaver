@@ -175,7 +175,9 @@ interface StudentState {
   authStatus: AuthStatus;
   loadStatus: LoadStatus;
   syncStatus: SyncStatus;
+  pendingSyncCount: number;
   setSyncStatus(status: SyncStatus): void;
+  setPendingSyncCount(count: number): void;
   user: BackendUser | null;
   access: PortalAccess | null;
   capabilities: string[];
@@ -305,8 +307,12 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   authStatus: 'checking',
   loadStatus: 'idle',
   syncStatus: navigator.onLine ? 'online' : 'offline',
+  pendingSyncCount: 0,
   setSyncStatus(status) {
     set({ syncStatus: status });
+  },
+  setPendingSyncCount(count) {
+    set({ pendingSyncCount: Math.max(0, count) });
   },
   activeSession: readFocusSession(),
   user: null,

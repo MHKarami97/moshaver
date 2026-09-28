@@ -35,11 +35,17 @@ Historical documents are evidence. Do not rewrite an old audit to look current; 
 - Prefer one canonical explanation with links over copied paragraphs.
 - Report browser, native, deployed, external-delivery, and destructive-restore evidence separately.
 
+Current-status documents inherit their accountable owner and review date from
+[`docs/current-documentation.json`](../current-documentation.json). The automated
+check covers repository-owned relative links and deprecated runtime paths while
+excluding vendored third-party documentation.
+
 ```bash
 rg -n 'backend/|admin-app/|student-app/' docs
 rg -n 'api/v1|api/v2|localhost:[0-9]+' docs
 rg -n 'TODO|TBD|UNKNOWN|production ready|complete' docs
 git diff --check -- docs
+npm run docs:check
 ```
 
 Verify relative links, source paths, and package commands. Generated graphs help navigation but current source remains authoritative.

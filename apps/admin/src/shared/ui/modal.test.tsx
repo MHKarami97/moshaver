@@ -103,6 +103,37 @@ describe("global modal", () => {
     expect(resolved).toHaveBeenCalledWith(true);
   });
 
+  it("requires the configured phrase before a sensitive confirmation can proceed", async () => {
+    function TypedConfirmation() {
+      const modal = useModal();
+      return (
+        <button
+          onClick={() =>
+            void modal.confirm({
+              title: "عملیات حساس",
+              confirmLabel: "بایگانی",
+              confirmationText: "بایگانی",
+            })
+          }
+        >
+          open typed confirm
+        </button>
+      );
+    }
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <TypedConfirmation />
+      </ModalProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "open typed confirm" }));
+    const confirm = screen.getByRole("button", { name: "بایگانی" });
+    expect(confirm).toBeDisabled();
+    await user.type(screen.getByRole("textbox", { name: "عبارت تأیید بایگانی" }), "بایگانی");
+    expect(confirm).toBeEnabled();
+  });
+
   it("restores a parent modal after a nested confirmation is cancelled", async () => {
     render(
       <ModalProvider>

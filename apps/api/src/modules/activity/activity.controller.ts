@@ -21,7 +21,7 @@ export class ActivityController {
   }
   @Put("student/presence/heartbeat") @Roles(UserRole.STUDENT) heartbeat(
     @CurrentUser() u: AuthenticatedUser,
-    @Body() b: { state?: string; currentTaskId?: string | null },
+    @Body() b: { state?: string; currentTaskId?: string | null; syncStatus?: string },
   ) {
     return this.activity.heartbeat(u.id, b).then(ok);
   }

@@ -27,6 +27,8 @@ export type ModalOptions = {
 
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Exact phrase required before a sensitive confirmation is enabled. */
+  confirmationText?: string;
 
   showCancel?: boolean;
   dismissible?: boolean;
@@ -146,6 +148,7 @@ function ModalSurface({
 
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [confirmationValue, setConfirmationValue] = useState("");
 
   const dismissible = modal.dismissible !== false && !busy;
 
@@ -205,6 +208,7 @@ function ModalSurface({
   }, [dismissible, onCancel]);
 
   async function submit() {
+    if (modal.confirmationText && confirmationValue.trim() !== modal.confirmationText) return;
     if (!modal.onConfirm) {
       onConfirm();
       return;
@@ -342,6 +346,20 @@ px-4 py-4
           </p>
         ) : null}
 
+        {modal.confirmationText ? (
+          <label className="mx-4 mb-4 grid gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-200">
+            برای تأیید، عبارت «{modal.confirmationText}» را وارد کنید.
+            <input
+              type="text"
+              value={confirmationValue}
+              onChange={(event) => setConfirmationValue(event.target.value)}
+              aria-label={`عبارت تأیید ${modal.confirmationText}`}
+              autoComplete="off"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 dark:border-slate-600 dark:bg-slate-950"
+            />
+          </label>
+        ) : null}
+
         {(modal.showCancel || modal.confirmLabel || modal.onConfirm) && (
           <footer
             className="
@@ -362,7 +380,12 @@ px-5 py-4
             {modal.softConfirm ? (
               <SoftConfirmButton
                 duration={modal.softConfirmDuration ?? 3000}
-                disabled={busy}
+                disabled={
+                  busy ||
+                  (modal.confirmationText
+                    ? confirmationValue.trim() !== modal.confirmationText
+                    : false)
+                }
                 onComplete={() => void submit()}
                 variant={modal.tone === "danger" ? "danger" : "primary"}
                 progressColor={modal.softConfirmProgressColor}
@@ -374,7 +397,12 @@ px-5 py-4
               <Button
                 loading={busy}
                 variant={modal.tone === "danger" ? "danger" : "primary"}
-                disabled={busy}
+                disabled={
+                  busy ||
+                  (modal.confirmationText
+                    ? confirmationValue.trim() !== modal.confirmationText
+                    : false)
+                }
                 onClick={() => void submit()}
               >
                 {modal.confirmLabel || "تأیید"}

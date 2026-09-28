@@ -3,7 +3,9 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import * as webPush from "web-push";
 import { ApiException } from "../../common/exceptions/api.exception";
-import { NotificationPreference, PushSubscription, User } from "../../database/entities";
+import { NotificationPreference } from "../../database/entities/notification-preference.entity";
+import { PushSubscription } from "../../database/entities/push-subscription.entity";
+import { User } from "../../database/entities/user.entity";
 
 @Injectable()
 export class PushService{

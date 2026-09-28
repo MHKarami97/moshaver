@@ -180,6 +180,8 @@ export async function seedSecurityMatrix() {
     UserRole.PLATFORM_ADMIN,
     hash,
   );
+  platform.isPlatformOwner = true;
+  await manager.getRepository(User).save(platform);
   await ensureRole(platform, "PLATFORM_ADMIN", null);
   const multi = await ensureUser("e2e.multi", UserRole.ADVISOR, hash);
   await ensureMembershipAndRole(multi, orgA, "ADVISOR", true);

@@ -1,12 +1,14 @@
 # Student Core Architecture
 
-Date: 2026-08-20
+Last reviewed: 2026-09-28
 
 ## Purpose
 
-`student-core/` is the migration boundary between the current static student app and future platform shells. It contains business logic that can run in web, Tauri desktop, and Tauri mobile without depending on DOM, React, service workers, browser storage, or native APIs.
-
-The current `student-app/` remains untouched and is still the v1 reference implementation.
+`student-core/` is the runtime-neutral boundary used by the active
+`apps/student/` web, Tauri desktop, and Tauri mobile shells. It contains
+business logic that must not depend on DOM, React, service workers, browser
+storage, or native APIs. The archived v1.4 Student implementation is historical
+reference only and lives on the isolated `archive/v1.4` branch.
 
 ## Package Layout
 
@@ -46,9 +48,9 @@ Browser and Tauri implementations must live outside core. Business modules shoul
 - React components or hooks
 - Tauri APIs
 
-## Current v1 Logic Covered
+## Current logic covered
 
-The first extraction pass captures pure behavior from `student-app/js/app.js`:
+The package owns tested runtime-neutral behavior for:
 
 - planner time math and status decisions
 - active-session current task fallback
@@ -63,8 +65,8 @@ The first extraction pass captures pure behavior from `student-app/js/app.js`:
 
 Web adapter:
 
-- wraps the current `/api/v1` HTTP contract
-- may keep cookie and CSRF behavior from `student-app/js/api.js`
+- wraps the active `/api/v2` HTTP contract through the Student application API layer
+- owns browser cookie/CSRF transport behavior outside the core
 - may use `localStorage`, `sessionStorage`, service worker, and `EventSource`
 
 Tauri adapter:
@@ -76,5 +78,6 @@ Tauri adapter:
 
 ## Migration Rule
 
-Only logic that has been characterized in tests should be moved out of v1 behavior. UI migration should call `student-core` rather than reimplementing planner, exam, chat, notification, auth, storage, or sync decisions inside components.
-
+Only logic characterized in tests belongs in the core. Application UI should call
+`student-core` rather than reimplementing planner, exam, chat, notification,
+auth, storage, or sync decisions inside components.

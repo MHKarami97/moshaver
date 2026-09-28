@@ -68,9 +68,11 @@ describe('Student login page', () => {
     fireEvent.change(screen.getByLabelText('نام'), { target: { value: 'دانش آموز' } });
     fireEvent.change(screen.getByLabelText('نام خانوادگی'), { target: { value: 'نمونه' } });
     fireEvent.change(screen.getByLabelText('کد ملی'), { target: { value: '۹۰۰۰۰۰۰۰۱۷' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ادامه' }));
     fireEvent.change(screen.getByLabelText('پایه'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('نوع آموزش'), { target: { value: 'theoretical' } });
     fireEvent.change(screen.getByLabelText('رشته'), { target: { value: 'experimental_sciences' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ادامه' }));
     fireEvent.change(screen.getByLabelText('رمز عبور جدید'), { target: { value: 'Student-pass-2026!' } });
     fireEvent.change(screen.getByLabelText('تکرار رمز عبور'), { target: { value: 'Student-pass-2026!' } });
     fireEvent.click(screen.getByRole('button', { name: 'ساخت حساب' }));
@@ -80,17 +82,26 @@ describe('Student login page', () => {
 
   it('converts Persian national-code digits immediately and requires English keyboard characters for passwords', async () => {
     const request = vi.spyOn(apiClient, 'request')
-      .mockResolvedValueOnce({ schoolYear: '1405-1406', grades: [], educationTypes: [], theoreticalTracks: [], vocationalFields: [], gradeStructure: [] } as never);
+      .mockResolvedValueOnce({ schoolYear: '1405-1406', grades: [{ id: 12, fa: 'پایه دوازدهم', level_id: 'upper_secondary' }], educationTypes: [{ id: 'theoretical', fa: 'شاخه نظری', levels: ['upper_secondary'] }], theoreticalTracks: [{ id: 'experimental_sciences', fa: 'علوم تجربی' }], vocationalFields: [], gradeStructure: [{ grades: [12], education_type_ids: ['theoretical'], track_required: true }] } as never)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([] as never);
     render(<LoginPage />);
     fireEvent.click(screen.getByRole('tab', { name: 'ساخت حساب' }));
     await screen.findByText('سال تحصیلی 1405-1406');
 
     fireEvent.change(screen.getByLabelText('کد ملی'), { target: { value: '۹۰۰۰۰۰۰۰۱۷' } });
-    expect(screen.getByLabelText('کد ملی')).toHaveValue('9000000017');
+    expect(screen.getByLabelText('کد ملی')).toHaveValue('900-000-0017');
+    fireEvent.change(screen.getByLabelText('نام'), { target: { value: 'دانش آموز' } });
+    fireEvent.change(screen.getByLabelText('نام خانوادگی'), { target: { value: 'نمونه' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ادامه' }));
+    fireEvent.change(screen.getByLabelText('پایه'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('نوع آموزش'), { target: { value: 'theoretical' } });
+    fireEvent.change(screen.getByLabelText('رشته'), { target: { value: 'experimental_sciences' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ادامه' }));
     fireEvent.change(screen.getByLabelText('رمز عبور جدید'), { target: { value: 'رمزعبور-۲۰۲۶!' } });
 
     expect(screen.getByRole('alert')).toHaveTextContent('زبان صفحه‌کلید را به انگلیسی تغییر دهید');
     expect(screen.getByRole('button', { name: 'ساخت حساب' })).toBeDisabled();
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(3);
   });
 });

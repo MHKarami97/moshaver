@@ -2,7 +2,7 @@
 
 **Evidence:** current source on `develop` at `e6185d391030bb012aad8404bd61b5b91ab964ab`.
 
-This map records explicit Nest module imports observed during Phase 1. It does not claim to be the complete file/entity/data dependency graph. A fresh Graphify graph should later validate and extend it.
+This map records explicit Nest module imports observed during Phase 1. It does not claim to be the complete file/entity/data dependency graph. A fresh Graphify graph should later validate and extend it. The architecture gate separately tracks four tolerated TypeORM entity-import cycles and rejects module-level imports from `database/entities`; reductions require metadata and fresh-migration validation before the baseline is changed.
 
 ## Direct registered-module edges
 

@@ -21,7 +21,7 @@ test.describe("Admin v2 role login smoke", () => {
     test(`${username} reaches the protected shell`, async ({ page }) => {
       await page.goto("/login");
       await page.getByLabel("نام کاربری").fill(username);
-      await page.getByLabel("رمز عبور").fill("Moshaver-e2e-2026!");
+      await page.getByLabel("رمز عبور", { exact: true }).fill("Moshaver-e2e-2026!");
       await page.getByRole("button", { name: "ورود", exact: true }).click();
 
       await expect(page).toHaveURL(/\/admin(?:\/|$)/);
@@ -32,10 +32,29 @@ test.describe("Admin v2 role login smoke", () => {
   test("Student-only account is rejected by the Admin shell", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("نام کاربری").fill("e2e.student.a");
-    await page.getByLabel("رمز عبور").fill("Moshaver-e2e-2026!");
+    await page.getByLabel("رمز عبور", { exact: true }).fill("Moshaver-e2e-2026!");
     await page.getByRole("button", { name: "ورود", exact: true }).click();
 
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByText("این حساب مدیر نیست.")).toBeVisible();
+  });
+
+  test("platform owner confirms archive and restore for the seeded student", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/login");
+    await page.getByLabel("نام کاربری").fill("e2e.platform");
+    await page.getByLabel("رمز عبور", { exact: true }).fill("Moshaver-e2e-2026!");
+    await page.getByRole("button", { name: "ورود", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin(?:\/|$)/);
+    await page.goto("/admin/students");
+    await page.getByRole("button", { name: "Student A" }).click();
+    await page.getByRole("button", { name: "امنیت" }).click();
+    await page.getByRole("button", { name: "بایگانی حساب" }).click();
+    await page.getByLabel("عبارت تأیید بایگانی").fill("بایگانی");
+    await page.getByRole("button", { name: "بایگانی", exact: true }).click();
+    await page.getByRole("button", { name: "بازیابی حساب" }).click();
+    await page.getByLabel("عبارت تأیید بازیابی").fill("بازیابی");
+    await page.getByRole("button", { name: "بازیابی", exact: true }).click();
+    await expect(page.getByRole("button", { name: "بایگانی حساب" })).toBeVisible();
   });
 });

@@ -1,6 +1,11 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Organization, OrganizationMembership, Student, User, UserRelationship, UserRoleAssignment } from "../../database/entities";
+import { Organization } from "../../database/entities/organization.entity";
+import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { Student } from "../../database/entities/student.entity";
+import { User } from "../../database/entities/user.entity";
+import { UserRelationship } from "../../database/entities/user-relationship.entity";
+import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { RelationshipsController } from "./relationships.controller";
 import { RelationshipsService } from "./relationships.service";

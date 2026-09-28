@@ -5,7 +5,7 @@ Last source audit: 2026-09-08
 Scope: the current `apps/admin` client and the canonical `apps/api`
 `/api/v2` contract. This document describes implemented source behavior, not
 deployment or branch state. The detailed feature-by-feature status is maintained
-in [`docs/ADMIN_V2_CAPABILITY_MATRIX.md`](../docs/ADMIN_V2_CAPABILITY_MATRIX.md).
+in [`docs/ADMIN_V2_CAPABILITY_MATRIX.md`](../../docs/ADMIN_V2_CAPABILITY_MATRIX.md).
 
 ## Contract
 
@@ -62,4 +62,4 @@ source. The remaining work is acceptance and rollout evidence:
 Do not infer production readiness from route presence alone. Before retiring the
 legacy admin deployment, run the backend tests/build and disposable security/API
 smokes, then run the Admin v2 tests, build, parity audit, and browser acceptance
-listed in [`apps/admin/MIGRATION-AUDIT.md`](../apps/admin/MIGRATION-AUDIT.md).
+listed in [`apps/admin/MIGRATION-AUDIT.md`](../admin/MIGRATION-AUDIT.md).

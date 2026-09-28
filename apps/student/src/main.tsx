@@ -6,6 +6,7 @@ import { apiClient } from './services/api-client';
 import { TauriSQLiteProvider } from './native/tauri-sqlite-provider';
 import { SQLiteSyncProvider } from './sync/sqlite-sync-provider';
 import { WebSyncProvider } from './sync/sync-status';
+import { syncStatusMessage } from './sync/sync-status';
 import { pullChanges, SyncWorker } from '@moshaver/student-core';
 import { registerWebUpdateAdapter } from './pwa/web-update-adapter';
 import { registerNotificationClickHandler } from './services/notification-service';
@@ -29,6 +30,7 @@ const syncController = initializeSync();
 
 function App() {
   const syncStatus = useStudentStore((state) => state.syncStatus);
+  const pendingSyncCount = useStudentStore((state) => state.pendingSyncCount);
   const authStatus = useStudentStore((state) => state.authStatus);
   const restoreSession = useStudentStore((state) => state.restoreSession);
   const access = useStudentStore((state) => state.access);
@@ -42,6 +44,17 @@ function App() {
   });
   const [online, setOnline] = useState(navigator.onLine);
   const [reconnected, setReconnected] = useState(false);
+  const [retryingSync, setRetryingSync] = useState(false);
+  const syncNotice = syncStatusMessage(syncStatus, pendingSyncCount);
+
+  const retrySync = async () => {
+    setRetryingSync(true);
+    try {
+      await syncController.then((controller) => controller.retry());
+    } finally {
+      setRetryingSync(false);
+    }
+  };
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -94,7 +107,7 @@ function App() {
 
   useEffect(() => {
     if (authStatus !== 'authenticated' || access?.mode !== 'student') return;
-    const heartbeat = () => void apiClient.request('PUT', '/student/presence/heartbeat', { state: document.hidden ? 'idle' : 'active' }).catch(() => undefined);
+    const heartbeat = () => void apiClient.request('PUT', '/student/presence/heartbeat', { state: document.hidden ? 'idle' : 'active', syncStatus: useStudentStore.getState().syncStatus }).catch(() => undefined);
     heartbeat();
     const interval = window.setInterval(heartbeat, 45_000);
     document.addEventListener('visibilitychange', heartbeat);
@@ -123,8 +136,9 @@ function App() {
     <BrowserRouter>
       <RouteScrollRestoration />
       <div className="min-h-screen bg-paper text-ink" dir="rtl">
-        {!online ? <div className="bg-red-700 px-4 py-2 text-center text-sm text-white" role="status">اتصال اینترنت قطع است؛ تغییرات روی دستگاه ذخیره می‌شوند.</div> : null}
+        {!online ? <div className="bg-red-700 px-4 py-2 text-center text-sm text-white" role="status"><strong>{syncNotice.label}</strong><span className="mr-2">{syncNotice.detail}</span></div> : null}
         {online && reconnected ? <div className="bg-mint px-4 py-2 text-center text-sm text-white" role="status">اتصال اینترنت برقرار شد.</div> : null}
+        {online && syncNotice.canRetry ? <div className="flex flex-wrap items-center justify-center gap-2 bg-amber-700 px-4 py-2 text-center text-sm text-white" role="status"><span><strong>{syncNotice.label}:</strong> {syncNotice.detail}</span><button type="button" className="rounded-md border border-white/70 px-2 py-0.5 font-bold transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" onClick={() => void retrySync()} disabled={retryingSync}>{retryingSync ? 'در حال تلاش…' : 'تلاش دوباره'}</button></div> : null}
         <StudentAppShell access={access} unread={unread} syncLabel={syncStatusLabel(syncStatus)} theme={theme} onThemeChange={() => setTheme((value) => value === 'light' ? 'dark' : value === 'dark' ? 'system' : 'light')} guardianSelector={access?.mode === 'guardian' && guardianStudents.length ? <label className="guardian-picker"><span>فرزند:</span><select value={selectedGuardianStudentId || ''} onChange={(event) => void selectGuardianStudent(event.target.value)}>{guardianStudents.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}</select></label> : undefined}>
           <Suspense fallback={<LoadingState label="در حال آماده‌سازی صفحه" />}><Routes>
             <Route path="/" element={access?.canReadDashboard ? <HomePage /> : <Navigate to="/more" replace />} />
@@ -163,8 +177,19 @@ async function initializeSync() {
   };
   const worker = new SyncWorker(syncProvider, apiClient, () => navigator.onLine, reconcile);
   apiClient.configureSync(syncProvider);
-  worker.subscribe((status) => useStudentStore.getState().setSyncStatus(status));
-  const onOnline = () => void worker.flush();
+  const refreshPending = async () => {
+    try {
+      useStudentStore.getState().setPendingSyncCount((await syncProvider.pending()).length);
+    } catch {
+      useStudentStore.getState().setPendingSyncCount(0);
+    }
+  };
+  worker.subscribe((status) => {
+    useStudentStore.getState().setSyncStatus(status);
+    void refreshPending();
+  });
+  worker.subscribeResult(() => void refreshPending());
+  const onOnline = () => void worker.flush().finally(refreshPending);
   const onOffline = () => worker.setOffline();
   let started = false;
   return {
@@ -174,6 +199,7 @@ async function initializeSync() {
       window.addEventListener('online', onOnline);
       window.addEventListener('offline', onOffline);
       worker.start();
+      void refreshPending();
     },
     stop() {
       if (!started) return;
@@ -181,6 +207,11 @@ async function initializeSync() {
       worker.stop();
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+    },
+    async retry() {
+      const result = await worker.flush();
+      await refreshPending();
+      return result;
     },
   };
 }

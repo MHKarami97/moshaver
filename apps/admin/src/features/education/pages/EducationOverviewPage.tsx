@@ -1,16 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  ArrowUpLeft,
-  BookOpenCheck,
-  CircleHelp,
-  FilePlus2,
-  RotateCcw,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, CircleHelp, FilePlus2, RotateCcw, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { educationNavigation } from "../../../app/layout/admin-navigation";
-import { ManagementPageHeader, ManagementStat } from "../../../shared/ui/management-workspace";
+import { ManagementStat } from "../../../shared/ui/management-workspace";
 import { Button, Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { useAuth } from "../../auth";
 import { getExams, getRetryRequests } from "../../exams/api/exams.api";

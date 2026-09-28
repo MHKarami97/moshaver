@@ -19,6 +19,7 @@
     "generate:product": "node tooling/generators/create-product-package.mjs",
     "verify:affected": "node tooling/workspace/run.mjs verify --affected",
     "contracts:check": "node tooling/contracts/check-api-contract.mjs",
+    "docs:check": "node tooling/docs/check-docs.mjs",
     "graphify:check": "node tooling/graphify/fingerprint.mjs --check=graphify-out/code-fingerprint.json",
     "bootstrap": "node tooling/workspace/run.mjs bootstrap",
     "build": "node tooling/workspace/run.mjs run build",

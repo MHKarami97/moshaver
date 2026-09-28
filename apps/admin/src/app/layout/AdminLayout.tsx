@@ -118,7 +118,6 @@ export function AdminLayout() {
           selectedStudentId={selectedStudentId}
           sticky={current.path !== "planner"}
           onOpenMobileNavigation={openMobileNavigation}
-          onOpenSearch={openCommandPalette}
           role={roleLabel(auth.activeRole)}
           organization={auth.context?.activeOrganization?.name}
           multipleRoles={(auth.context?.roles.filter((role) => role !== "STUDENT").length || 0) > 1}

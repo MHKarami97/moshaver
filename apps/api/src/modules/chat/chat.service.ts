@@ -6,18 +6,16 @@ import {
   ChatMessage,
   ChatMessageType,
 } from "../../database/entities/chat-message.entity";
-import {
-  ChatConfiguration,
-  Conversation,
-  ConversationMember,
-  MessageReaction,
-  OrganizationMembership,
-  Student,
-  Task,
-  User,
-  UserRelationship,
-  UserRoleAssignment,
-} from "../../database/entities";
+import { ChatConfiguration } from "../../database/entities/chat-configuration.entity";
+import { Conversation } from "../../database/entities/conversation.entity";
+import { ConversationMember } from "../../database/entities/conversation-member.entity";
+import { MessageReaction } from "../../database/entities/message-reaction.entity";
+import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { Student } from "../../database/entities/student.entity";
+import { Task } from "../../database/entities/task.entity";
+import { User } from "../../database/entities/user.entity";
+import { UserRelationship } from "../../database/entities/user-relationship.entity";
+import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { ConversationMemberRole } from "../../database/entities/conversation-member.entity";
 import { ConversationType } from "../../database/entities/conversation.entity";
 import { MembershipStatus } from "../../database/entities/organization-membership.entity";

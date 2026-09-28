@@ -7,7 +7,7 @@ import { RelaxationTrack } from "./relaxation-track.entity";
 export class StudentDailyRelaxation {
   @PrimaryGeneratedColumn("uuid") id!: string;
   @ManyToOne(() => Student, { onDelete: "CASCADE" }) student!: Student;
-  @ManyToOne(() => RelaxationTrack, (track) => track.selections, { onDelete: "RESTRICT" }) track!: RelaxationTrack;
+  @ManyToOne(() => RelaxationTrack, { onDelete: "RESTRICT" }) track!: RelaxationTrack;
   @Column({ length: 10 }) date!: string;
   @Column({ length: 12, default: "AUTO" }) selectedBy!: "AUTO" | "STUDENT";
   @CreateDateColumn() createdAt!: Date;

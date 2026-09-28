@@ -1,5 +1,4 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { StudentDailyRelaxation } from "./student-daily-relaxation.entity";
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity("relaxation_tracks")
 export class RelaxationTrack {
@@ -8,7 +7,6 @@ export class RelaxationTrack {
   @Column({ length: 120, default: "" }) artist!: string;
   @Column({ length: 1600 }) url!: string;
   @Column({ default: true }) active!: boolean;
-  @OneToMany(() => StudentDailyRelaxation, (selection) => selection.track) selections!: StudentDailyRelaxation[];
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;
 }

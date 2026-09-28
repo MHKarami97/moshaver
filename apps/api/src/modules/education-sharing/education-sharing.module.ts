@@ -1,6 +1,11 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { LearningResource, LearningResourceAssignment, OrganizationMembership, Plan, Student, Task } from "../../database/entities";
+import { LearningResource } from "../../database/entities/learning-resource.entity";
+import { LearningResourceAssignment } from "../../database/entities/learning-resource-assignment.entity";
+import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { Plan } from "../../database/entities/plan.entity";
+import { Student } from "../../database/entities/student.entity";
+import { Task } from "../../database/entities/task.entity";
 import { AuthorizationModule } from "../authorization/authorization.module";
 import { EducationSharingController } from "./education-sharing.controller";
 import { EducationSharingService } from "./education-sharing.service";

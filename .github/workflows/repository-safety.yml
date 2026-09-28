@@ -45,6 +45,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify documentation links, ownership and current paths
+        run: npm run docs:check
+
       - name: Detect accidentally tracked environment files
         shell: bash
         run: |

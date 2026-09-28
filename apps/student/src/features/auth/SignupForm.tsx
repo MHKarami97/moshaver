@@ -508,7 +508,7 @@ export function SignupForm({ onLogin }: { onLogin(): void }) {
           <button
             className="student-login__submit signup-nav__next"
             type="submit"
-            disabled={isBusy}
+            disabled={isBusy || !valid}
             aria-disabled={!valid || isBusy}
             title={
               !valid ? "برای فعال‌شدن، همه فیلدها را کامل کنید." : undefined

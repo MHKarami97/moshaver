@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, CheckCircle2, Crown, Pencil, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "../auth";
@@ -53,6 +54,7 @@ export function UsersPage() {
   const auth = useAuth(),
     modal = useModal(),
     qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canManage = auth.can("users.manage"),
     isPlatform = auth.hasRole("PLATFORM_ADMIN"),
     isPlatformOwner = auth.context?.user.isPlatformOwner === true;
@@ -61,11 +63,13 @@ export function UsersPage() {
     queryFn: listOrganizations,
     enabled: isPlatform,
   });
-  const [organizationId, setOrganizationId] = useState(auth.context?.activeOrganization?.id ?? "");
-  const [search, setSearch] = useState(""),
-    [status, setStatus] = useState("ALL"),
+  const [organizationId, setOrganizationId] = useState(
+    () => searchParams.get("organizationId") ?? auth.context?.activeOrganization?.id ?? "",
+  );
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? ""),
+    [status, setStatus] = useState(() => searchParams.get("status") ?? "ALL"),
     [creating, setCreating] = useState(false),
-    [selectedUserId, setSelectedUserId] = useState(""),
+    [selectedUserId, setSelectedUserId] = useState(() => searchParams.get("userId") ?? ""),
     [selectedIds, setSelectedIds] = useState<string[]>([]);
   const users = useQuery({
     queryKey: ["users", organizationId || "platform"],
@@ -172,6 +176,28 @@ export function UsersPage() {
     [search, status, users.data],
   );
   const selectedUser = (users.data || []).find((user) => user.id === selectedUserId) || null;
+
+  useEffect(() => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        const setOrDelete = (key: string, value: string, defaultValue = "") => {
+          if (!value || value === defaultValue) next.delete(key);
+          else next.set(key, value);
+        };
+        setOrDelete("organizationId", organizationId);
+        setOrDelete("q", search);
+        setOrDelete("status", status, "ALL");
+        setOrDelete("userId", selectedUserId);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [organizationId, search, selectedUserId, setSearchParams, status]);
+
+  useEffect(() => {
+    if (selectedUserId && !selectedUser && !users.isLoading) setSelectedUserId("");
+  }, [selectedUser, selectedUserId, users.isLoading]);
   const isProtected = (user: PortalUser) =>
     user.id === auth.context?.user.id || user.isPlatformOwner === true;
   const protectedSelection = selectedIds.some((id) => {
@@ -206,7 +232,8 @@ export function UsersPage() {
             <div>
               <h2 className="font-black">مالکیت پلتفرم</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                برای کارکنان، نقش محدود متناسب با کارشان انتخاب کنید. فقط هنگام نیاز واقعی، مدیر پلتفرم بسازید؛ سپس می‌توانید مالکیت را به آن حساب واگذار کنید.
+                برای کارکنان، نقش محدود متناسب با کارشان انتخاب کنید. فقط هنگام نیاز واقعی، مدیر
+                پلتفرم بسازید؛ سپس می‌توانید مالکیت را به آن حساب واگذار کنید.
               </p>
             </div>
           </div>
@@ -254,7 +281,14 @@ export function UsersPage() {
             </Field>
             {isPlatform ? (
               <Field label="محدوده سازمان">
-                <Select value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}>
+                <Select
+                  value={organizationId}
+                  onChange={(e) => {
+                    setOrganizationId(e.target.value);
+                    setSelectedUserId("");
+                    setSelectedIds([]);
+                  }}
+                >
                   <option value="">همه پلتفرم</option>
                   {organizations.data?.map((org) => (
                     <option key={org.id} value={org.id}>
@@ -408,11 +442,17 @@ export function UsersPage() {
                 onChange={(e) => setEditDraft({ ...editDraft, lastName: e.target.value })}
               />
             </Field>
-            {!isProtected(editing) ? <RoleField
-              value={editDraft.role}
-              onChange={(role) => setEditDraft({ ...editDraft, role })}
-              allowPlatform={isPlatformOwner}
-            /> : <p className="self-end rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">برای حفظ دسترسی، نقش حساب فعلی و مالک پلتفرم از اینجا قابل تغییر نیست.</p>}
+            {!isProtected(editing) ? (
+              <RoleField
+                value={editDraft.role}
+                onChange={(role) => setEditDraft({ ...editDraft, role })}
+                allowPlatform={isPlatformOwner}
+              />
+            ) : (
+              <p className="self-end rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                برای حفظ دسترسی، نقش حساب فعلی و مالک پلتفرم از اینجا قابل تغییر نیست.
+              </p>
+            )}
             {!isProtected(editing) && editDraft.role !== "PLATFORM_ADMIN" ? (
               <OrganizationField
                 organizations={organizations.data || []}
@@ -462,11 +502,11 @@ export function UsersPage() {
               batchActions={(selectedRows) => (
                 <>
                   {
-                      <Button
-                        variant="soft"
-                        className="h-9"
-                        loading={bulkStatus.isPending}
-                        disabled={protectedSelection}
+                    <Button
+                      variant="soft"
+                      className="h-9"
+                      loading={bulkStatus.isPending}
+                      disabled={protectedSelection}
                       onClick={() =>
                         bulkStatus.mutate({
                           ids: selectedRows.map((user) => user.id),
@@ -512,7 +552,11 @@ export function UsersPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <strong>{nameOf(user)}</strong>
-                        {user.isPlatformOwner ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-200"><Crown size={12} /> مالک پلتفرم</span> : null}
+                        {user.isPlatformOwner ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                            <Crown size={12} /> مالک پلتفرم
+                          </span>
+                        ) : null}
                         <StatusPill status={user.status} />
                       </div>
                       <p className="mt-1 text-xs text-slate-500" dir="ltr">
@@ -544,28 +588,34 @@ export function UsersPage() {
                           <Pencil size={15} />
                           ویرایش
                         </Button>
-                        {!isProtected(user) ? <Button
-                          variant="soft"
-                          loading={toggle.isPending && toggle.variables?.id === user.id}
-                          disabled={toggle.isPending || archive.isPending}
-                          onClick={() =>
-                            user.status === "ACTIVE"
-                              ? void modal
-                                  .confirm({
-                                    title: "غیرفعال‌کردن حساب؟",
-                                    description: `دسترسی ${nameOf(user)} و نشست‌های فعال او متوقف می‌شود.`,
-                                    tone: "danger",
-                                    confirmLabel: "غیرفعال‌کردن",
-                                  })
-                                  .then(
-                                    (confirmed) =>
-                                      confirmed && toggle.mutate({ id: user.id, active: false }),
-                                  )
-                              : toggle.mutate({ id: user.id, active: true })
-                          }
-                        >
-                          {user.status === "ACTIVE" ? "غیرفعال" : "فعال‌سازی"}
-                        </Button> : <span className="text-xs font-bold text-slate-500">{user.isPlatformOwner ? "ابتدا واگذاری مالکیت" : "حساب فعلی"}</span>}
+                        {!isProtected(user) ? (
+                          <Button
+                            variant="soft"
+                            loading={toggle.isPending && toggle.variables?.id === user.id}
+                            disabled={toggle.isPending || archive.isPending}
+                            onClick={() =>
+                              user.status === "ACTIVE"
+                                ? void modal
+                                    .confirm({
+                                      title: "غیرفعال‌کردن حساب؟",
+                                      description: `دسترسی ${nameOf(user)} و نشست‌های فعال او متوقف می‌شود.`,
+                                      tone: "danger",
+                                      confirmLabel: "غیرفعال‌کردن",
+                                    })
+                                    .then(
+                                      (confirmed) =>
+                                        confirmed && toggle.mutate({ id: user.id, active: false }),
+                                    )
+                                : toggle.mutate({ id: user.id, active: true })
+                            }
+                          >
+                            {user.status === "ACTIVE" ? "غیرفعال" : "فعال‌سازی"}
+                          </Button>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-500">
+                            {user.isPlatformOwner ? "ابتدا واگذاری مالکیت" : "حساب فعلی"}
+                          </span>
+                        )}
                         {isPlatform && user.status !== "ARCHIVED" && !isProtected(user) ? (
                           <Button
                             variant="danger"
@@ -577,6 +627,7 @@ export function UsersPage() {
                                   title: "بایگانی حساب",
                                   description: `حساب ${nameOf(user)} بایگانی و نشست‌های آن بسته شود؟`,
                                   confirmLabel: "بایگانی",
+                                  confirmationText: "بایگانی",
                                   tone: "danger",
                                   cancelLabel: "انصراف",
                                   showCancel: true,
@@ -627,11 +678,27 @@ export function UsersPage() {
                     ))}
                   </div>
                 </div>
-                {isPlatformOwner && selectedUser.id !== auth.context?.user.id && !selectedUser.isPlatformOwner && selectedUser.status === "ACTIVE" && selectedUser.assignments.some((item) => item.role === "PLATFORM_ADMIN") ? (
+                {isPlatformOwner &&
+                selectedUser.id !== auth.context?.user.id &&
+                !selectedUser.isPlatformOwner &&
+                selectedUser.status === "ACTIVE" &&
+                selectedUser.assignments.some((item) => item.role === "PLATFORM_ADMIN") ? (
                   <Button
                     variant="soft"
                     loading={transferOwnership.isPending}
-                    onClick={() => void modal.confirm({ title: "واگذاری مالکیت پلتفرم؟", description: `${nameOf(selectedUser)} مالک جدید می‌شود. حساب شما مدیر پلتفرم می‌ماند اما دیگر نمی‌تواند مدیر پلتفرم بسازد یا مالکیت را واگذار کند.`, confirmLabel: "واگذاری مالکیت", tone: "danger", cancelLabel: "انصراف", showCancel: true }).then((confirmed) => confirmed && transferOwnership.mutate(selectedUser.id))}
+                    onClick={() =>
+                      void modal
+                        .confirm({
+                          title: "واگذاری مالکیت پلتفرم؟",
+                          description: `${nameOf(selectedUser)} مالک جدید می‌شود. حساب شما مدیر پلتفرم می‌ماند اما دیگر نمی‌تواند مدیر پلتفرم بسازد یا مالکیت را واگذار کند.`,
+                          confirmLabel: "واگذاری مالکیت",
+                          confirmationText: "واگذاری مالکیت",
+                          tone: "danger",
+                          cancelLabel: "انصراف",
+                          showCancel: true,
+                        })
+                        .then((confirmed) => confirmed && transferOwnership.mutate(selectedUser.id))
+                    }
                   >
                     <Crown size={15} /> واگذاری مالکیت پلتفرم
                   </Button>
@@ -916,6 +983,7 @@ export function OrganizationsPage() {
                                       title: "بایگانی سازمان",
                                       description: `سازمان ${org.name} بایگانی شود؟ داده‌ها حذف نمی‌شوند.`,
                                       confirmLabel: "بایگانی",
+                                      confirmationText: "بایگانی",
                                       tone: "danger",
                                       cancelLabel: "انصراف",
                                       showCancel: true,
@@ -929,7 +997,20 @@ export function OrganizationsPage() {
                             ) : (
                               <Button
                                 variant="soft"
-                                onClick={() => update.mutate({ ...org, status: "ACTIVE" })}
+                                onClick={() =>
+                                  void modal
+                                    .confirm({
+                                      title: "بازیابی سازمان؟",
+                                      description: `سازمان ${org.name} و فضای مدیریتی آن دوباره فعال می‌شود.`,
+                                      confirmLabel: "بازیابی",
+                                      confirmationText: "بازیابی",
+                                      showCancel: true,
+                                    })
+                                    .then(
+                                      (confirmed) =>
+                                        confirmed && update.mutate({ ...org, status: "ACTIVE" }),
+                                    )
+                                }
                               >
                                 بازیابی
                               </Button>

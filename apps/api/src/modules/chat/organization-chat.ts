@@ -1,5 +1,8 @@
 import { IsNull, type EntityManager } from "typeorm";
-import { Conversation, ConversationMember, Organization, User } from "../../database/entities";
+import { Conversation } from "../../database/entities/conversation.entity";
+import { ConversationMember } from "../../database/entities/conversation-member.entity";
+import { Organization } from "../../database/entities/organization.entity";
+import { User } from "../../database/entities/user.entity";
 import { ConversationMemberRole } from "../../database/entities/conversation-member.entity";
 import { ConversationType } from "../../database/entities/conversation.entity";
 

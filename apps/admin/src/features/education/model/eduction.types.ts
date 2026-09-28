@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // education.types.ts
 // ─────────────────────────────────────────────────────────────
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from "lucide-react";
 
 export interface EducationSection {
   path: string;

@@ -12,17 +12,13 @@ import {
   StudentsController,
 } from "./students.controller";
 import { StudentsService } from "./students.service";
-import {
-  OrganizationMembership,
-  UserRelationship,
-} from "../../database/entities";
+import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { UserRelationship } from "../../database/entities/user-relationship.entity";
 import { StudentAdministrationService } from "./student-administration.service";
 import { StudentAdministrationController } from "./student-administration.controller";
-import {
-  TaskIssue,
-  RecoveryRequest,
-  ExamRetryRequest,
-} from "../../database/entities";
+import { TaskIssue } from "../../database/entities/task-issue.entity";
+import { RecoveryRequest } from "../../database/entities/recovery-request.entity";
+import { ExamRetryRequest } from "../../database/entities/exam-retry-request.entity";
 import { EducationCatalogModule } from "../education-catalog";
 
 @Module({

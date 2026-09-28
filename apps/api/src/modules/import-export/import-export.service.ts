@@ -6,18 +6,16 @@ import {
 import { Injectable } from "@nestjs/common";
 import { DataSource, In } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
-import {
-  Exam,
-  ExamAssignment,
-  ImportHistory,
-  Organization,
-  OrganizationMembership,
-  Plan,
-  Question,
-  Student,
-  Task,
-  User,
-} from "../../database/entities";
+import { Exam } from "../../database/entities/exam.entity";
+import { ExamAssignment } from "../../database/entities/exam-assignment.entity";
+import { ImportHistory } from "../../database/entities/import-history.entity";
+import { Organization } from "../../database/entities/organization.entity";
+import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { Plan } from "../../database/entities/plan.entity";
+import { Question } from "../../database/entities/question.entity";
+import { Student } from "../../database/entities/student.entity";
+import { Task } from "../../database/entities/task.entity";
+import { User } from "../../database/entities/user.entity";
 import { PlanStatus } from "../../database/entities/plan.entity";
 import { TaskType } from "../../database/entities/task.entity";
 import { AuthorizationService, UserContext } from "../authorization";

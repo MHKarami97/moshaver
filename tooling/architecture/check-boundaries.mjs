@@ -29,6 +29,7 @@ const violations = [];
 const crossProjectEdges = new Set();
 const backendCrossModuleEdges = new Set();
 const backendDeepImports = new Set();
+const backendEntityBarrelImports = new Set();
 const backendFileGraph = new Map();
 const scannedFiles = [];
 
@@ -158,6 +159,15 @@ for (const project of projects) {
           violations.push(`${rel(file)} creates CMB -> product/application backedge via ${specifier}`);
         }
 
+        if (
+          rel(file).startsWith("apps/api/src/modules/") &&
+          /(?:^|\/)database\/entities$/.test(specifier)
+        ) {
+          const barrelImport = `${rel(file)} -> ${specifier}`;
+          backendEntityBarrelImports.add(barrelImport);
+          violations.push(`backend module imports entity barrel: ${barrelImport}; import the required entity files directly`);
+        }
+
         if (targetProject && sourceProject && targetProject.id !== sourceProject.id) {
           const edge = `${sourceProject.id} -> ${targetProject.id}`;
           crossProjectEdges.add(edge);
@@ -246,6 +256,7 @@ const report = {
   workspaceEdges: [...crossProjectEdges].sort(),
   backendCrossModuleEdges: [...backendCrossModuleEdges].sort(),
   backendDeepImports: [...backendDeepImports].sort(),
+  backendEntityBarrelImports: [...backendEntityBarrelImports].sort(),
   backendCycles: [...cycles].sort(),
   violations: [...new Set(violations)].sort(),
 };
@@ -260,6 +271,7 @@ console.log(`Architecture boundary scan: ${report.scannedFiles} source files`);
 console.log(`Workspace edges: ${report.workspaceEdges.length}`);
 console.log(`Backend cross-module edges: ${report.backendCrossModuleEdges.length}`);
 console.log(`Backend deep implementation imports: ${report.backendDeepImports.length}`);
+console.log(`Backend entity-barrel imports: ${report.backendEntityBarrelImports.length}`);
 console.log(`Backend import cycles: ${report.backendCycles.length}`);
 
 if (report.backendDeepImports.length) {

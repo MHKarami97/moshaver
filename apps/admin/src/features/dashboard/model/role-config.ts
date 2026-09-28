@@ -30,7 +30,11 @@ export const ROLE_CONFIG: Record<UserRole, { tone: BadgeTone; icon: LucideIcon; 
   GUARDIAN: { tone: "neutral", icon: HeartHandshake, label: "Guardian" },
 };
 
-export function getRoleConfig(role: string | undefined): { tone: BadgeTone; icon: LucideIcon; label: string } {
+export function getRoleConfig(role: string | undefined): {
+  tone: BadgeTone;
+  icon: LucideIcon;
+  label: string;
+} {
   return (
     ROLE_CONFIG[role as UserRole] ?? {
       tone: "neutral" as BadgeTone,

@@ -3,12 +3,10 @@ import { clampActivityLimit, normalizePresenceState, projectPresence, shouldPers
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
-import {
-  ActivityEvent,
-  Student,
-  StudentPresence,
-  Task,
-} from "../../database/entities";
+import { ActivityEvent } from "../../database/entities/activity-event.entity";
+import { Student } from "../../database/entities/student.entity";
+import { StudentPresence } from "../../database/entities/student-presence.entity";
+import { Task } from "../../database/entities/task.entity";
 import { AuthenticatedUser } from "../auth";
 import {
   AuthorizationService,
@@ -39,10 +37,11 @@ export class ActivityService {
   }
   async heartbeat(
     userId: string,
-    input: { state?: string; currentTaskId?: string | null },
+    input: { state?: string; currentTaskId?: string | null; syncStatus?: string },
   ) {
     const student = await this.student(userId);
     const state = normalizePresenceState(input.state);
+    const syncStatus = ["online", "syncing", "failed", "offline"].includes(input.syncStatus || "") ? input.syncStatus as StudentPresence["syncStatus"] : "online";
     const now = new Date();
     let row = await this.presence.findOne({
       where: { student: { id: student.id } },
@@ -58,10 +57,10 @@ export class ActivityService {
       : null;
     if (input.currentTaskId && !currentTask)
       throw new ApiException(404, "TASK_NOT_FOUND", "فعالیت پیدا نشد.");
-    if (row && !shouldPersistPresence({ state: row.state, resourceId: row.currentTask?.id, lastSeenAt: row.lastSeenAt }, { state, resourceId: currentTask?.id }, now))
+    if (row && row.syncStatus === syncStatus && !shouldPersistPresence({ state: row.state, resourceId: row.currentTask?.id, lastSeenAt: row.lastSeenAt }, { state, resourceId: currentTask?.id }, now))
       return this.publicPresence(row, now);
     row ||= this.presence.create({ student });
-    Object.assign(row, { state, currentTask, lastSeenAt: now });
+    Object.assign(row, { state, syncStatus, currentTask, lastSeenAt: now });
     return this.publicPresence(await this.presence.save(row), now);
   }
   async record(
@@ -158,7 +157,7 @@ export class ActivityService {
       .sort((a, b) => b.attention.score - a.attention.score);
   }
   private async attention(studentId: string) {
-    const [missed, noStudy, upcoming, recovery, issues] = await Promise.all([
+    const [missed, noStudy, upcoming, recovery, issues, presence] = await Promise.all([
       this.db.query(
         `SELECT COUNT(*)n FROM tasks t JOIN plans p ON p.id=t.planId WHERE p.studentId=? AND p.date<=date('now') AND t.completedAt IS NULL AND t.status<>'DONE'`,
         [studentId],
@@ -179,6 +178,7 @@ export class ActivityService {
         `SELECT COUNT(*)n FROM task_issues WHERE studentId=? AND status='OPEN'`,
         [studentId],
       ),
+      this.presence.findOne({ where: { student: { id: studentId } } }),
     ]);
     const signals = [];
     if (missed[0].n)
@@ -191,9 +191,11 @@ export class ActivityService {
       signals.push({ type: "OPEN_RECOVERY", count: recovery[0].n, weight: 3 });
     if (issues[0].n)
       signals.push({ type: "TASK_ISSUE", count: issues[0].n, weight: 3 });
+    if (presence?.syncStatus === "failed")
+      signals.push({ type: "SYNC_FAILED", count: 1, weight: 4 });
     return { score: signals.reduce((n, s) => n + s.weight, 0), signals };
   }
   private publicPresence(row: StudentPresence, now = new Date()) {
-    return projectPresence({ state: row.state, lastSeenAt: row.lastSeenAt, resource: row.currentTask }, now);
+    return { ...projectPresence({ state: row.state, lastSeenAt: row.lastSeenAt, resource: row.currentTask }, now), syncStatus: row.syncStatus };
   }
 }

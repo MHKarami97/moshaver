@@ -3,10 +3,8 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Notification } from "../../database/entities/notification.entity";
 import { Student } from "../../database/entities/student.entity";
 import { User } from "../../database/entities/user.entity";
-import {
-  NotificationPreference,
-  PushSubscription,
-} from "../../database/entities";
+import { NotificationPreference } from "../../database/entities/notification-preference.entity";
+import { PushSubscription } from "../../database/entities/push-subscription.entity";
 import { PushService } from "./push.service";
 import { PushController } from "./push.controller";
 import { RealtimeModule } from "../realtime/realtime.module";

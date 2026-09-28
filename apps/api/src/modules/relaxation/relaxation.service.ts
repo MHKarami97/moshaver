@@ -3,7 +3,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
-import { RelaxationTrack, Student, StudentDailyRelaxation } from "../../database/entities";
+import { RelaxationTrack } from "../../database/entities/relaxation-track.entity";
+import { StudentDailyRelaxation } from "../../database/entities/student-daily-relaxation.entity";
+import { Student } from "../../database/entities/student.entity";
 import { SaveRelaxationTrackDto } from "./relaxation.dto";
 
 @Injectable()

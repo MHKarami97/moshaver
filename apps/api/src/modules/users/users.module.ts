@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Session, User, UserRoleAssignment } from "../../database/entities";
+import { Session } from "../../database/entities/session.entity";
+import { User } from "../../database/entities/user.entity";
+import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { UsersController } from "./users.controller";
 import { UsersService } from "./users.service";
 

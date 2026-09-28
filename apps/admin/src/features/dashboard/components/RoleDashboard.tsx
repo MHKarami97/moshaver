@@ -1,10 +1,8 @@
-import { Link } from "react-router-dom";
 import {
   Activity,
   BookOpenCheck,
   Building2,
   CalendarDays,
-  ChevronLeft,
   FileQuestion,
   MessageSquare,
   RefreshCw,
@@ -13,10 +11,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../auth";
-import { Badge, Button, Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
+import { Badge, Button, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { fa } from "../../../shared/lib/utils";
 import type { AttentionStudent, RoleDashboardData } from "../model/dashboard.types";
-import { quickActionsForRole } from "../model/role-experience";
 import { AttentionInbox } from "./AttentionInbox";
 import { getRoleConfig } from "../model/role-config";
 import { DashboardQuickActions } from "./DashboardQuickActions";

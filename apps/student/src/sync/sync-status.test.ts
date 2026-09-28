@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WebSyncProvider } from './sync-status';
+import { syncStatusMessage, WebSyncProvider } from './sync-status';
 
 describe('WebSyncProvider', () => {
   it('clears the queue and cursor together when an account is removed', async () => {
@@ -21,5 +21,22 @@ describe('WebSyncProvider', () => {
 
     await expect(provider.pending()).resolves.toEqual([]);
     await expect(provider.getCursor()).resolves.toBeNull();
+  });
+});
+
+describe('syncStatusMessage', () => {
+  it('keeps failed changes explicit and retryable in Persian', () => {
+    expect(syncStatusMessage('failed', 2)).toEqual({
+      label: 'نیازمند توجه',
+      detail: '۲ تغییر روی دستگاه شما محفوظ است. برای تلاش دوباره، همگام‌سازی را اجرا کنید.',
+      canRetry: true,
+    });
+  });
+
+  it('does not offer a retry while the device is offline', () => {
+    expect(syncStatusMessage('offline', 0)).toMatchObject({
+      label: 'آفلاین',
+      canRetry: false,
+    });
   });
 });

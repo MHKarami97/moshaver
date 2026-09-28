@@ -7,13 +7,11 @@ import { Student } from "../../database/entities/student.entity";
 import { ExamsController } from "./exams.controller";
 import { ExamsService } from "./exams.service";
 import { ExamScoringService } from "./exam-scoring.service";
-import {
-  ExamAssignment,
-  ExamRetryRequest,
-  Mistake,
-  Organization,
-  User,
-} from "../../database/entities";
+import { ExamAssignment } from "../../database/entities/exam-assignment.entity";
+import { ExamRetryRequest } from "../../database/entities/exam-retry-request.entity";
+import { Mistake } from "../../database/entities/mistake.entity";
+import { Organization } from "../../database/entities/organization.entity";
+import { User } from "../../database/entities/user.entity";
 
 @Module({
   imports: [

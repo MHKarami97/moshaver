@@ -97,6 +97,18 @@ for (const file of adminFiles) {
       if (["DOWNLOAD", "UPLOADBINARY"].includes(method) && path.startsWith("/"))
         requests.add(`POST ${normalize(path)}`);
     }
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "request" &&
+      node.arguments[0] &&
+      node.arguments[1]
+    ) {
+      const method = routeText(node.arguments[0]).toUpperCase();
+      const path = routeText(node.arguments[1]);
+      if (["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method) && path.startsWith("/"))
+        requests.add(`${method} ${normalize(path)}`);
+    }
     ts.forEachChild(node, visit);
   };
   visit(source);
@@ -147,6 +159,7 @@ const excluded = (endpoint) =>
   endpoint.path === "/onboarding/student-signup" ||
   endpoint.path.startsWith("/public/") ||
   endpoint.path === "/education-catalog/signup-options" ||
+  `${endpoint.method} ${endpoint.path}` === "GET /education-catalog/my-books" ||
   `${endpoint.method} ${endpoint.path}` === "PUT /chat/conversations/:id/mute" ||
   `${endpoint.method} ${endpoint.path}` === "PUT /chat/groups/:id/owner";
 const equivalentWorkflowRoutes = new Set([

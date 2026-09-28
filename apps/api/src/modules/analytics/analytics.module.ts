@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 import { AnalyticsService } from "./analytics.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { Recommendation, Student, User } from "../../database/entities";
+import { Recommendation } from "../../database/entities/recommendation.entity";
+import { Student } from "../../database/entities/student.entity";
+import { User } from "../../database/entities/user.entity";
 import { AuthorizationModule } from "../authorization/authorization.module";
 import { AnalyticsController } from "./analytics.controller";
 

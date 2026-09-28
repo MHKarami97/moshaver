@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { RelaxationTrack, Student, StudentDailyRelaxation } from "../../database/entities";
+import { RelaxationTrack } from "../../database/entities/relaxation-track.entity";
+import { StudentDailyRelaxation } from "../../database/entities/student-daily-relaxation.entity";
+import { Student } from "../../database/entities/student.entity";
 import { RelaxationAdminController, RelaxationStudentController } from "./relaxation.controller";
 import { RelaxationService } from "./relaxation.service";
 
