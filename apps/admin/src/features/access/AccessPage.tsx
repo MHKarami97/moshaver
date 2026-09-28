@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, CheckCircle2, Pencil, Plus, Search, ShieldCheck, X } from "lucide-react";
+import { Building2, CheckCircle2, Crown, Pencil, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
 import { roleLabels } from "../../shared/lib/role-ui";
@@ -22,6 +22,7 @@ import {
   listUsers,
   setUserActive,
   setUserRoles,
+  transferPlatformOwnership,
   updateOrganization,
   updateUser,
   type PortalOrganization,
@@ -53,7 +54,8 @@ export function UsersPage() {
     modal = useModal(),
     qc = useQueryClient();
   const canManage = auth.can("users.manage"),
-    isPlatform = auth.hasRole("PLATFORM_ADMIN");
+    isPlatform = auth.hasRole("PLATFORM_ADMIN"),
+    isPlatformOwner = auth.context?.user.isPlatformOwner === true;
   const organizations = useQuery({
     queryKey: ["organizations"],
     queryFn: listOrganizations,
@@ -119,6 +121,13 @@ export function UsersPage() {
       notify("حساب بایگانی شد.");
     },
   });
+  const transferOwnership = useMutation({
+    mutationFn: transferPlatformOwnership,
+    onSuccess: async () => {
+      notify("مالکیت پلتفرم واگذار شد. حساب قبلی همچنان مدیر پلتفرم است.");
+      await refresh();
+    },
+  });
   const bulkStatus = useMutation({
     mutationFn: ({ ids, active }: { ids: string[]; active: boolean }) =>
       Promise.all(ids.map((id) => setUserActive(id, active))),
@@ -136,12 +145,14 @@ export function UsersPage() {
         firstName: editDraft.firstName,
         lastName: editDraft.lastName,
       });
-      await setUserRoles(editing.id, {
-        roleCodes: [editDraft.role],
-        ...(editDraft.role !== "PLATFORM_ADMIN"
-          ? { organizationId: editDraft.organizationId || organizationId }
-          : {}),
-      });
+      if (!editing.isPlatformOwner && editing.id !== auth.context?.user.id) {
+        await setUserRoles(editing.id, {
+          roleCodes: [editDraft.role],
+          ...(editDraft.role !== "PLATFORM_ADMIN"
+            ? { organizationId: editDraft.organizationId || organizationId }
+            : {}),
+        });
+      }
     },
     onSuccess: async () => {
       setEditing(null);
@@ -161,6 +172,12 @@ export function UsersPage() {
     [search, status, users.data],
   );
   const selectedUser = (users.data || []).find((user) => user.id === selectedUserId) || null;
+  const isProtected = (user: PortalUser) =>
+    user.id === auth.context?.user.id || user.isPlatformOwner === true;
+  const protectedSelection = selectedIds.some((id) => {
+    const user = (users.data || []).find((candidate) => candidate.id === id);
+    return user ? isProtected(user) : false;
+  });
   const startEdit = (user: PortalUser) => {
     const assignment =
       user.assignments.find((item) => item.organizationId === organizationId) ??
@@ -182,6 +199,19 @@ export function UsersPage() {
         title="کاربران و کارکنان"
         description="جستجو، نقش، سازمان و وضعیت حساب‌ها را از یک فضای کاری یکپارچه مدیریت کنید."
       />
+      {isPlatformOwner ? (
+        <Card className="border-brand/25 bg-brand/5 p-4">
+          <div className="flex gap-3">
+            <Crown className="mt-0.5 shrink-0 text-brand" size={20} />
+            <div>
+              <h2 className="font-black">مالکیت پلتفرم</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                برای کارکنان، نقش محدود متناسب با کارشان انتخاب کنید. فقط هنگام نیاز واقعی، مدیر پلتفرم بسازید؛ سپس می‌توانید مالکیت را به آن حساب واگذار کنید.
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : null}
       <section className="grid gap-3" aria-label="ابزارهای فهرست کاربران">
         <ManagementSummaryBar
           action={
@@ -300,7 +330,7 @@ export function UsersPage() {
             <RoleField
               value={draft.role}
               onChange={(role) => setDraft({ ...draft, role })}
-              allowPlatform={isPlatform}
+              allowPlatform={isPlatformOwner}
             />
             <Field label="نام">
               <Input
@@ -378,12 +408,12 @@ export function UsersPage() {
                 onChange={(e) => setEditDraft({ ...editDraft, lastName: e.target.value })}
               />
             </Field>
-            <RoleField
+            {!isProtected(editing) ? <RoleField
               value={editDraft.role}
               onChange={(role) => setEditDraft({ ...editDraft, role })}
-              allowPlatform={isPlatform}
-            />
-            {editDraft.role !== "PLATFORM_ADMIN" ? (
+              allowPlatform={isPlatformOwner}
+            /> : <p className="self-end rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">برای حفظ دسترسی، نقش حساب فعلی و مالک پلتفرم از اینجا قابل تغییر نیست.</p>}
+            {!isProtected(editing) && editDraft.role !== "PLATFORM_ADMIN" ? (
               <OrganizationField
                 organizations={organizations.data || []}
                 value={editDraft.organizationId}
@@ -432,10 +462,11 @@ export function UsersPage() {
               batchActions={(selectedRows) => (
                 <>
                   {
-                    <Button
-                      variant="soft"
-                      className="h-9"
-                      loading={bulkStatus.isPending}
+                      <Button
+                        variant="soft"
+                        className="h-9"
+                        loading={bulkStatus.isPending}
+                        disabled={protectedSelection}
                       onClick={() =>
                         bulkStatus.mutate({
                           ids: selectedRows.map((user) => user.id),
@@ -450,6 +481,7 @@ export function UsersPage() {
                     variant="soft"
                     className="h-9"
                     loading={bulkStatus.isPending}
+                    disabled={protectedSelection}
                     onClick={() =>
                       void modal
                         .confirm({
@@ -480,6 +512,7 @@ export function UsersPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <strong>{nameOf(user)}</strong>
+                        {user.isPlatformOwner ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-200"><Crown size={12} /> مالک پلتفرم</span> : null}
                         <StatusPill status={user.status} />
                       </div>
                       <p className="mt-1 text-xs text-slate-500" dir="ltr">
@@ -511,7 +544,7 @@ export function UsersPage() {
                           <Pencil size={15} />
                           ویرایش
                         </Button>
-                        <Button
+                        {!isProtected(user) ? <Button
                           variant="soft"
                           loading={toggle.isPending && toggle.variables?.id === user.id}
                           disabled={toggle.isPending || archive.isPending}
@@ -532,8 +565,8 @@ export function UsersPage() {
                           }
                         >
                           {user.status === "ACTIVE" ? "غیرفعال" : "فعال‌سازی"}
-                        </Button>
-                        {isPlatform && user.status !== "ARCHIVED" ? (
+                        </Button> : <span className="text-xs font-bold text-slate-500">{user.isPlatformOwner ? "ابتدا واگذاری مالکیت" : "حساب فعلی"}</span>}
+                        {isPlatform && user.status !== "ARCHIVED" && !isProtected(user) ? (
                           <Button
                             variant="danger"
                             loading={archive.isPending && archive.variables === user.id}
@@ -594,6 +627,15 @@ export function UsersPage() {
                     ))}
                   </div>
                 </div>
+                {isPlatformOwner && selectedUser.id !== auth.context?.user.id && !selectedUser.isPlatformOwner && selectedUser.status === "ACTIVE" && selectedUser.assignments.some((item) => item.role === "PLATFORM_ADMIN") ? (
+                  <Button
+                    variant="soft"
+                    loading={transferOwnership.isPending}
+                    onClick={() => void modal.confirm({ title: "واگذاری مالکیت پلتفرم؟", description: `${nameOf(selectedUser)} مالک جدید می‌شود. حساب شما مدیر پلتفرم می‌ماند اما دیگر نمی‌تواند مدیر پلتفرم بسازد یا مالکیت را واگذار کند.`, confirmLabel: "واگذاری مالکیت", tone: "danger", cancelLabel: "انصراف", showCancel: true }).then((confirmed) => confirmed && transferOwnership.mutate(selectedUser.id))}
+                  >
+                    <Crown size={15} /> واگذاری مالکیت پلتفرم
+                  </Button>
+                ) : null}
                 {canManage ? (
                   <Button variant="soft" onClick={() => startEdit(selectedUser)}>
                     <Pencil size={15} />

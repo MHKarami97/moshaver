@@ -16,6 +16,7 @@ export interface User {
   display_name?: string;
   role: Role;
   csrfToken?: string;
+  isPlatformOwner?: boolean;
 }
 
 export interface OrganizationSummary {

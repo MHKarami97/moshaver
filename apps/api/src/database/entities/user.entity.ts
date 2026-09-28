@@ -42,6 +42,8 @@ export class User {
   @Column({ length: 100, default: "" }) firstName!: string;
   @Column({ length: 100, default: "" }) lastName!: string;
   @Column({ type: "varchar", length: 20, default: UserStatus.ACTIVE }) status!: UserStatus;
+  /** Exactly one active account owns platform-level administration. */
+  @Column({ type: "boolean", default: false }) isPlatformOwner!: boolean;
   @Column({ length: 12, default: "fa-IR" }) locale!: string;
   @Column({ length: 64, default: "Asia/Tehran" }) timezone!: string;
   @Column({ length: 100, default: "" }) chatDisplayName!: string;

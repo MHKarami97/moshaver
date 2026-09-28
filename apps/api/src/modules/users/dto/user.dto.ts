@@ -27,3 +27,7 @@ export class SetRolesDto {
   @IsArray() @ArrayUnique() @IsString({ each: true }) roleCodes!: string[];
   @IsOptional() @IsUUID() organizationId?: string;
 }
+
+export class TransferPlatformOwnershipDto {
+  @IsUUID() targetUserId!: string;
+}

@@ -7,6 +7,7 @@ export type PortalUser = {
   firstName?: string;
   lastName?: string;
   status: string;
+  isPlatformOwner?: boolean;
   assignments: Array<{ role: RoleCode; organizationId: string | null }>;
 };
 export type PortalOrganization = { id: string; name: string; type: string; status: string };
@@ -50,6 +51,11 @@ export const setUserRoles = (
   body: { roleCodes: RoleCode[]; organizationId?: string },
 ) => api.put(`/users/${id}/roles`, body);
 export const archiveUser = (id: string) => api.delete(`/users/${id}`);
+export const transferPlatformOwnership = (targetUserId: string) =>
+  api.post<{ previousOwnerId: string; ownerId: string; username: string }>(
+    "/users/platform-ownership/transfer",
+    { targetUserId },
+  );
 export const listOrganizations = () => api.get<PortalOrganization[]>("/organizations");
 export const createOrganization = (body: { name: string; type: string }) =>
   api.post<PortalOrganization>("/organizations", body);

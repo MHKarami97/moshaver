@@ -40,8 +40,8 @@ export class OnboardingService {
   }
 
   async platformBootstrapStatus() {
-    const assignment = await this.dataSource.getRepository(UserRoleAssignment).findOne({ where: { role: { code: "PLATFORM_ADMIN" } } });
-    return { setupRequired: !assignment };
+    const owner = await this.dataSource.getRepository(User).findOne({ where: { isPlatformOwner: true } });
+    return { setupRequired: !owner };
   }
 
   async bootstrapPlatformAdmin(dto: PlatformBootstrapDto) {
@@ -49,7 +49,7 @@ export class OnboardingService {
     const email = dto.email.trim().toLowerCase();
     return this.dataSource.transaction(async (manager) => {
       const assignments = manager.getRepository(UserRoleAssignment);
-      if (await assignments.findOne({ where: { role: { code: "PLATFORM_ADMIN" } } })) {
+      if (await manager.findOne(User, { where: { isPlatformOwner: true } })) {
         throw new ApiException(409, "PLATFORM_ALREADY_BOOTSTRAPPED", "مدیر پلتفرم قبلاً ایجاد شده است.");
       }
       const users = manager.getRepository(User);
@@ -66,6 +66,7 @@ export class OnboardingService {
         passwordHash: await bcrypt.hash(dto.password, 12),
         role: UserRole.PLATFORM_ADMIN,
         status: UserStatus.ACTIVE,
+        isPlatformOwner: true,
       }));
       await manager.save(UserRoleAssignment, assignments.create({ user, role, membership: null }));
       return { id: user.id, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName };

@@ -80,11 +80,11 @@ export function LoginPage() {
               <p className="mb-2 text-xs font-bold text-brand">{showBootstrap ? "راه‌اندازی سامانه" : "ورود به میز کار"}</p>
               <h1 className="text-2xl font-black sm:text-3xl">{showBootstrap ? "نخستین مدیر را بسازید" : "خوش آمدید"}</h1>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                {showBootstrap ? "مالک سامانه می‌تواند نام، ایمیل و رمز دلخواه خود را ثبت کند." : "با حساب سازمانی خود وارد شوید. منوها و امکانات بر اساس نقش فعال شما تنظیم می‌شوند."}
+                {showBootstrap ? "یک حساب مالک بسازید. پس از این مرحله، ساخت مدیر فقط از داخل سامانه و با دسترسی کنترل‌شده انجام می‌شود." : "با حساب سازمانی خود وارد شوید. منوها و امکانات بر اساس نقش فعال شما تنظیم می‌شوند."}
               </p>
             </div>
             <BackendHealthStatus />
-            {showBootstrap ? <PlatformBootstrapForm onBack={() => setShowBootstrap(false)} /> : <><LoginForm />{setupRequired ? <button type="button" className="mt-4 w-full text-center text-sm font-bold text-brand underline-offset-4 hover:underline" onClick={() => setShowBootstrap(true)}>ساخت نخستین مدیر سامانه</button> : null}</>}
+            {showBootstrap ? <PlatformBootstrapForm onBack={() => setShowBootstrap(false)} /> : <><LoginForm />{setupRequired ? <button type="button" className="mt-4 w-full text-center text-sm font-bold text-brand underline-offset-4 hover:underline" onClick={() => setShowBootstrap(true)}>ساخت نخستین مالک سامانه</button> : null}</>}
           </div>
           <p className="text-center text-[11px] text-slate-400">
             ورود شما به معنی پذیرش سیاست‌های امنیت و حریم خصوصی سامانه است.

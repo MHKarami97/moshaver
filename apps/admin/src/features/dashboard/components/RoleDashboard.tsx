@@ -312,8 +312,9 @@ export function RoleDashboard({
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <Badge tone={tone} aria-label={label} title={label}>
+              <Badge tone={tone} title={label}>
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only">{label}</span>
               </Badge>
               <h1 className="truncate text-xl font-black text-ink sm:text-2xl">{copy.title}</h1>
             </div>

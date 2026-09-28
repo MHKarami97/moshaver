@@ -4,7 +4,7 @@ import { RequireCapabilities } from "../../common/decorators/capabilities.decora
 import { ok } from "../../common/utils/envelope";
 import { UserStatus } from "../../database/entities/user.entity";
 import { AuthenticatedUser } from "../auth";
-import { CreateUserDto, SetRolesDto, UpdateUserDto } from "./dto/user.dto";
+import { CreateUserDto, SetRolesDto, TransferPlatformOwnershipDto, UpdateUserDto } from "./dto/user.dto";
 import { UsersService } from "./users.service";
 @Controller("users") @RequireCapabilities("users.read")
 export class UsersController { constructor(private service:UsersService){}
@@ -17,4 +17,5 @@ export class UsersController { constructor(private service:UsersService){}
 @Delete(":id") @RequireCapabilities("users.manage") archive(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string){return this.service.archive(u,id).then(ok)}
 @Get(":id/roles") roles(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string){return this.service.get(u,id).then((x)=>ok(x.assignments))}
 @Put(":id/roles") @RequireCapabilities("users.manage") setRoles(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string,@Body()d:SetRolesDto){return this.service.setRoles(u,id,d).then(ok)}
+@Post("platform-ownership/transfer") @RequireCapabilities("users.manage") transferPlatformOwnership(@CurrentUser()u:AuthenticatedUser,@Body()d:TransferPlatformOwnershipDto){return this.service.transferPlatformOwnership(u,d.targetUserId).then(ok)}
 @Get(":id/capabilities") capabilities(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string){return this.service.capabilities(u,id).then(ok)} }

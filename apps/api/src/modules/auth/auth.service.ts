@@ -140,7 +140,7 @@ export class AuthService {
       return { role, capabilities: scoped.capabilities };
     }));
     return {
-      user: { id: account!.id, username: account!.username, firstName: account!.firstName, lastName: account!.lastName, status: account!.status, locale: account!.locale, timezone: account!.timezone },
+      user: { id: account!.id, username: account!.username, firstName: account!.firstName, lastName: account!.lastName, status: account!.status, isPlatformOwner: account!.isPlatformOwner, locale: account!.locale, timezone: account!.timezone },
       roles: assignments.roles,
       capabilities: assignments.capabilities,
       workContexts,
