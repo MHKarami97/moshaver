@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "algorithm": "sha256",
   "scope": "tracked code/config excluding docs and generated/build output",
-  "fileCount": 1039,
-  "digest": "bd62065133cf16d9d6beb202169d4d2cc9d12535da9aee2dfcd133e1c9fad9aa",
+  "fileCount": 1043,
+  "digest": "1b6e8ff1ba05b24ed445b139d3790331778917a7873c99f9172a7b166b9a70b4",
   "files": [
     {
       "path": ".gitbr/project.json",
@@ -84,6 +84,10 @@
     {
       "path": "apps/admin/.prettierrc.json",
       "sha256": "1ed88d3b99eced8dc3b6f58f26645466dd1ceaca6c5a9b818531c941ac28e55b"
+    },
+    {
+      "path": "apps/admin/e2e/planner-drag.spec.ts",
+      "sha256": "e4cc79877037a02fe32ce3d5feca8ee69aa2d18d5584813436fd60ac2ea1a8a1"
     },
     {
       "path": "apps/admin/e2e/role-login.smoke.spec.ts",
@@ -1187,23 +1191,27 @@
     },
     {
       "path": "apps/admin/src/features/planner/PlannerPage.test.ts",
-      "sha256": "a65302828b8207e23577d02fbd7fdf4427429a390c9826a8afec34d057fad325"
+      "sha256": "2ce485403bdc4259becd7e517e1113e9a23ae24a1f1d1877a2c961ab34d68681"
     },
     {
       "path": "apps/admin/src/features/planner/PlannerPage.tsx",
-      "sha256": "7bf3366618bb0d00f6876e8b12e605d7f8bb37f14512f4d74e45eb1526b4043d"
+      "sha256": "4e7ce244da9ea60dce3cbbdca52cb16e1e35c84ac6f59ee763fff1362e480b21"
     },
     {
       "path": "apps/admin/src/features/planner/api/planner.api.ts",
-      "sha256": "48e8845ee0759d8126486a8e720961ceaeaf1dd2c47ab5545c0f264dd4f9c5d8"
+      "sha256": "a39d85a45fe3b5a71d46f42e64b9c3f4b7825aff73ee3225fe249370327aafa0"
     },
     {
       "path": "apps/admin/src/features/planner/components/PlannerBatchToolbar.tsx",
       "sha256": "69ea98e1dd197f0e7c3c235d61589f4941dc568d01ab76f530fb455cf738d9b8"
     },
     {
+      "path": "apps/admin/src/features/planner/components/PlannerCanvas.test.tsx",
+      "sha256": "7bb5bd75d7ec37d7977b59569b1cb2106de136764de5592fca3f9452a4e099cc"
+    },
+    {
       "path": "apps/admin/src/features/planner/components/PlannerCanvas.tsx",
-      "sha256": "0ea75c4fefa85d35a4b2f0d585d19332fa6b830a27e866b091f2ea7cf28b009c"
+      "sha256": "6c437140851324896a6a45fe7367b659315d12d90c02e6e2e9f302a611c45e8d"
     },
     {
       "path": "apps/admin/src/features/planner/components/PlannerContent.tsx",
@@ -1219,7 +1227,7 @@
     },
     {
       "path": "apps/admin/src/features/planner/components/PlannerForms.tsx",
-      "sha256": "47cb7c8e5418751ea2cb59d7ca4a099cb8ed1a5bed1baa8f94e4cf67306bc281"
+      "sha256": "db18d3949ca7a71b80add1692a8200073a2bde80c4185d1e18a2d08b951485ba"
     },
     {
       "path": "apps/admin/src/features/planner/components/PlannerHeader.tsx",
@@ -1299,7 +1307,7 @@
     },
     {
       "path": "apps/admin/src/features/planner/lib/planner-model.ts",
-      "sha256": "d4d5a6fd36fd10f5e9557dab12c8ddd3aaa2213262b24637c9ad8592ccd3b416"
+      "sha256": "aabca4e2caf580abf3d52e379b5830e7a9e6eaf155539052c0211a1ea2290fb4"
     },
     {
       "path": "apps/admin/src/features/planner/lib/safe-date.ts",
@@ -1311,7 +1319,7 @@
     },
     {
       "path": "apps/admin/src/features/planner/pages/PlannerPage.tsx",
-      "sha256": "dcfeb8b1082aba6de6b7278ab60197a8a60c3a34d1346df25ee91bade596ff3a"
+      "sha256": "9c6d62d89e6003c10a4d4f54eb4d9d41c94ba5478a2de903bee637bfe84196f4"
     },
     {
       "path": "apps/admin/src/features/questions/QuestionsPage.tsx",
@@ -1719,11 +1727,11 @@
     },
     {
       "path": "apps/admin/src/shared/lib/data-transfer-xlsx.test.ts",
-      "sha256": "f01e5b4e85e0ffbdf7d0a4ac55a399d2b4c1e080d9ddf77a9f413170419d27c6"
+      "sha256": "a39bee31e11ca8610897452abdf133d738ec1add3ea18d67e33b51348a413ca9"
     },
     {
       "path": "apps/admin/src/shared/lib/data-transfer-xlsx.ts",
-      "sha256": "ade354937dc467fd4a85922a7b1cb3d81f2c803e12966b7bdc22c2cc148ae932"
+      "sha256": "04b937679b8a88a2c13464fbc2cc91675c25804bcf8669257c38c5c5bab21415"
     },
     {
       "path": "apps/admin/src/shared/lib/role-ui.ts",
@@ -1735,7 +1743,7 @@
     },
     {
       "path": "apps/admin/src/shared/lib/utils.ts",
-      "sha256": "6da79056f268d64a2180f69ade141665f70bd1ec91e80adf70d4f76abb815ccc"
+      "sha256": "b0c0c3a248f11c1f92c7e1cb8ae0c1c06fcf7e38561355e2095e619a2e24ff61"
     },
     {
       "path": "apps/admin/src/shared/theme/theme.test.tsx",
@@ -1751,11 +1759,11 @@
     },
     {
       "path": "apps/admin/src/shared/ui/StudentPicker.test.tsx",
-      "sha256": "3130619fc294edb423b8b2d14f77518203f0cd81edddc539088e12ca2739c5d0"
+      "sha256": "6ff7aa166af998111b3233541b1ff5e4d048c5300ab0aa950def99f4e60328f6"
     },
     {
       "path": "apps/admin/src/shared/ui/StudentPicker.tsx",
-      "sha256": "9c03e33fed144f9dabc077cf275158fb65f177379bd0cfdfdc81bbd8615dff62"
+      "sha256": "2a4f95912571adbb678b6e5956debe2f842b60fd3167cb4ae32716b3f82a7d77"
     },
     {
       "path": "apps/admin/src/shared/ui/admin-data-table.test.tsx",
@@ -1859,7 +1867,7 @@
     },
     {
       "path": "apps/admin/vite.config.ts",
-      "sha256": "806ae186331eb2f87318c29c95a4f9c4d1ee4974ae3605b4f56837a0a5c5e49e"
+      "sha256": "2e19c37fe5c8c09ba1be5ca42ded28b59fdaa9b2d4c9a4ffca34c45e1a22bf64"
     },
     {
       "path": "apps/admin/vitest.config.ts",
@@ -2023,7 +2031,7 @@
     },
     {
       "path": "apps/api/src/database/entities/exam.entity.ts",
-      "sha256": "4416c7488e27b2419983b126b179758101c493b631bd803b782d06f4df4bb8c8"
+      "sha256": "bced5c9995af06d97b654ff4de2c7a8b936621c9c03d8f5e95886f1bf4a3df62"
     },
     {
       "path": "apps/api/src/database/entities/import-history.entity.ts",
@@ -2083,7 +2091,7 @@
     },
     {
       "path": "apps/api/src/database/entities/plan.entity.ts",
-      "sha256": "ffbbe283cfd0bb9efd445b77f51e7fc18a192056a72d55970e0fc90a0fb783e9"
+      "sha256": "beb0a37d8f67d6f0513e64eda3c7b2e04d4832162c8ea13218e5d714f65c90d8"
     },
     {
       "path": "apps/api/src/database/entities/push-subscription.entity.ts",
@@ -2091,7 +2099,7 @@
     },
     {
       "path": "apps/api/src/database/entities/question.entity.ts",
-      "sha256": "2074d73428645944d16089896cad9331e161ec590d8d22f101c33a611c539d04"
+      "sha256": "ecbbedcda92dc69ead433ce46d14dbc93ededc41b135bb562373ca564e045457"
     },
     {
       "path": "apps/api/src/database/entities/quiz-attempt.entity.ts",
@@ -2175,7 +2183,7 @@
     },
     {
       "path": "apps/api/src/database/entities/task.entity.ts",
-      "sha256": "c25457fa3210a316271353614948bf01c6960550e6619de856938b4a5cf00a46"
+      "sha256": "656f0cd377922919f51178967b0d5f1faf86e6b04fd161c7dc3b29285392b9f7"
     },
     {
       "path": "apps/api/src/database/entities/teacher-subject-assignment.entity.ts",
@@ -2418,6 +2426,10 @@
       "sha256": "5baf10e62de0eb1528e9f719ef9cd970b0a0880f9d3aa5a794c2f76bc2ce95cc"
     },
     {
+      "path": "apps/api/src/database/migrations/1724145300000-PlanningImportRichFields.ts",
+      "sha256": "e544ee5059f191cf4916dfd2ee6b5515817e708445566e6473acfbc420c6ff23"
+    },
+    {
       "path": "apps/api/src/database/seeds/demo-guard.ts",
       "sha256": "f1a21bd8db9b3313859a1710adb3b47df89abd9c7c0ed8bbe393d589b668243d"
     },
@@ -2599,11 +2611,11 @@
     },
     {
       "path": "apps/api/src/modules/education-sharing/education-sharing.controller.ts",
-      "sha256": "c50ca37fe21c2ef3437580bc8ca3544bdaa6ce8f8189ec0b1b4050c6898691b7"
+      "sha256": "64e14051df1c630cff74b3678303204ec45b4e2716327c4162e838cf60d81cef"
     },
     {
       "path": "apps/api/src/modules/education-sharing/education-sharing.dto.ts",
-      "sha256": "068f239da73adcd78342aa95ecbfc70682abcad89e44cb59c517184997bff758"
+      "sha256": "0c7c0844b9385fa8efbde4934cd5fa8bb7707b816f34d77c7545d1f4210ca263"
     },
     {
       "path": "apps/api/src/modules/education-sharing/education-sharing.module.ts",
@@ -2611,7 +2623,7 @@
     },
     {
       "path": "apps/api/src/modules/education-sharing/education-sharing.service.ts",
-      "sha256": "db336195eedd2d84f7c947787f8d562ecf479da8c8027ecb2279d520385abe06"
+      "sha256": "d100c603e3b00ad3e5fdf6e16af3c14ad718bb00f24d317a4f2cd7bc3b55bcd9"
     },
     {
       "path": "apps/api/src/modules/exams/dto/create-exam.dto.ts",
@@ -2679,7 +2691,7 @@
     },
     {
       "path": "apps/api/src/modules/import-export/import-export.service.ts",
-      "sha256": "806a3e5bf1d2d7ccde68d1f52591c9c38481c2c004b318213fb0c242317b650b"
+      "sha256": "17e9b997673fd3885434b45abbdb779415b76746494d2834997835db8c46d19a"
     },
     {
       "path": "apps/api/src/modules/learning-resources/learning-resources.controller.ts",
@@ -2775,7 +2787,7 @@
     },
     {
       "path": "apps/api/src/modules/plans/dto/import-plan.dto.ts",
-      "sha256": "009a8904464b4e54c16e61823f4989e3dc6beddc22f0c2869380baa850b72a2c"
+      "sha256": "a1336278bc76290d82d3a036675641e286b9e202ed55acc4b4e5964e20d85efb"
     },
     {
       "path": "apps/api/src/modules/plans/plans.module.ts",
@@ -2783,7 +2795,7 @@
     },
     {
       "path": "apps/api/src/modules/plans/plans.service.ts",
-      "sha256": "9ed1547e2e38907c732964864a6c279e1aff53cfa4f400e20c89cfd0f1acf4ba"
+      "sha256": "9826f306e71fc0f60d630df32e3f3dfbfed9073c95e55b7f37158d6ed3c4f435"
     },
     {
       "path": "apps/api/src/modules/plans/staff-plans.controller.ts",
@@ -3071,7 +3083,7 @@
     },
     {
       "path": "apps/api/test/education-sharing.service.spec.ts",
-      "sha256": "b0376db15397739757965299c2df94cc2d718c6d8f525d4d8c77934710ef68c5"
+      "sha256": "7f5442df519f951c53023cf5c6743bf956cbd558a5e6ba5bf845ac8c4c7b065a"
     },
     {
       "path": "apps/api/test/exam-scoring.service.spec.ts",
@@ -3087,7 +3099,7 @@
     },
     {
       "path": "apps/api/test/import-export.service.spec.ts",
-      "sha256": "31331b6cd8473ee420ce38efc76a6c22d39906c3a691bbb1e802e849282ed12b"
+      "sha256": "a604ad809d685a2a22a35fb51f9daa379041db5b8e1a835e0a11fb5f59c97433"
     },
     {
       "path": "apps/api/test/learning-resources.service.spec.ts",
@@ -3112,6 +3124,10 @@
     {
       "path": "apps/api/test/organization-chat.spec.ts",
       "sha256": "2878b1ae7c05a1ecf38256915914ac0dc87934ba801f3c123382ffceaa627732"
+    },
+    {
+      "path": "apps/api/test/plans.service.spec.ts",
+      "sha256": "ec25a76033df28b284135121a2b6639e29d3629f2df7440cea5fbc7e69628af4"
     },
     {
       "path": "apps/api/test/private-organization-seed.spec.ts",
@@ -3551,7 +3567,7 @@
     },
     {
       "path": "apps/student/src/features/more/MoreRouterPage.tsx",
-      "sha256": "a9078dcea4ceba1a0075eea7c9917cc8b8f2b8e3075e11e65fa05e2293e9d22d"
+      "sha256": "1366871bc179ebcddb8cdac4aad82dad56caf0eb023db2ac8bbacfbf2585c1b5"
     },
     {
       "path": "apps/student/src/features/more/PasswordChangeForm.test.tsx",
@@ -3595,7 +3611,7 @@
     },
     {
       "path": "apps/student/src/features/plan/PlanPage.tsx",
-      "sha256": "2dd205d7f20a737fa1baf751cc133615fc06706f1fbb23e4e5963a1132a17867"
+      "sha256": "6eb89054d8275f3fb37f34d18bcee30cefde5e2847f37c96f73c3b2928af6322"
     },
     {
       "path": "apps/student/src/features/plan/TaskSupportPanel.test.tsx",
@@ -3667,7 +3683,7 @@
     },
     {
       "path": "apps/student/src/services/student-store.ts",
-      "sha256": "82fc79f47031ff9f2ee7fdc8ea4edb74b166fc51e184d020788409ace9e47b94"
+      "sha256": "17a73b86a9ba4f2eafa6d5dcaff86d9c686cf7f2f3da0ea21f270c8e1630da91"
     },
     {
       "path": "apps/student/src/storage/web-storage-provider.ts",
@@ -3735,7 +3751,7 @@
     },
     {
       "path": "examples/week-plan-and-exam-v2.json",
-      "sha256": "20d8bf0cd6c90062fe3eba4d9b46e81e685612d7783eccc03c4d2e560545bf64"
+      "sha256": "0c2f1d3fb8f4b45f88706fa8295e9d5b6e275fd7b2c362bfc9624d4ccd81fff1"
     },
     {
       "path": "examples/week-plan-and-exam.json",
