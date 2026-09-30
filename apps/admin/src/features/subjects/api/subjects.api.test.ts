@@ -45,7 +45,7 @@ describe("subjects API contract", () => {
     const patch = vi.spyOn(api, "patch").mockResolvedValue({} as never);
 
     await updateStudentSubject("student-1", {
-      subject: { id: "subject-1", code: "math", name: "ریاضی" },
+      subject: { id: "subject-1", code: "math", name: "ریاضی", category: "علوم پایه" },
       enabled: true,
       displayName: "ریاضی پایه",
       weeklyTargetMinutes: 240,

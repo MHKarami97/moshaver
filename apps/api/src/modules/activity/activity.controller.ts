@@ -37,6 +37,16 @@ export class ActivityController {
   ) {
     return this.activity.record(u.id, b).then(ok);
   }
+  @Put("student/sync-health") @Roles(UserRole.STUDENT) syncHealth(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body() b: { deviceId?: string; status?: string; pendingCount?: number; failureCode?: string; correlationId?: string },
+  ) { return this.activity.reportSyncHealth(u.id, b).then(ok); }
+  @Get("students/:id/sync-health") @RequireCapabilities("student.activity.read") syncHealthForStudent(
+    @CurrentUser() u: AuthenticatedUser, @Param("id") id: string,
+  ) { return this.activity.syncHealth(this.context(u), id).then(ok); }
+  @Post("students/:id/sync-health/review") @RequireCapabilities("student.sync.support") reviewSyncHealth(
+    @CurrentUser() u: AuthenticatedUser, @Param("id") id: string,
+  ) { return this.activity.reviewSyncHealth(this.context(u), id).then(ok); }
   @Get("students/:id/activity")
   @RequireCapabilities("student.activity.read")
   history(

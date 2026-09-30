@@ -7,10 +7,16 @@ export const getSubjects = (includeArchived = false) => {
 };
 export const getStudentSubjects = (studentId: string) =>
   api.get<StudentSubject[]>(`/students/${studentId}/subjects`);
-export const createSubject = (draft: { name: string; code: string }) =>
+export type SubjectDraft = { name: string; code: string; category?: string; organizationId?: string };
+export type SubjectImportPreview = { valid: boolean; accepted: number; rejected: number; rows: Array<{ row: number; code: string | null; valid: boolean; errors: string[] }> };
+export const createSubject = (draft: SubjectDraft) =>
   api.post("/subjects", draft);
-export const updateSubject = (id: string, draft: { name: string }) =>
+export const updateSubject = (id: string, draft: Pick<SubjectDraft, "name" | "category">) =>
   api.patch(`/subjects/${id}`, draft);
+export const exportSubjects = () => api.get<{ schemaVersion: string; subjects: Array<SubjectDraft & { active: boolean }> }>("/subjects/export");
+export const getSubjectImportSample = () => api.get<{ schemaVersion: string; subjects: SubjectDraft[] }>("/subjects/import-sample");
+export const previewSubjectImport = (subjects: SubjectDraft[]) => api.post<SubjectImportPreview>("/subjects/import-preview", { subjects });
+export const commitSubjectImport = (subjects: SubjectDraft[]) => api.post<{ imported: number }>("/subjects/import-commit", { subjects });
 export const setSubjectActive = (id: string, active: boolean) =>
   api.patch(`/subjects/${id}/archive`, { active });
 export const updateStudentSubject = (studentId: string, setting: StudentSubject) =>

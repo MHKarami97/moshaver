@@ -12,6 +12,7 @@ import { Task } from "../../database/entities/task.entity";
 import { MembershipStatus } from "../../database/entities/organization-membership.entity";
 import { AuthenticatedUser } from "../auth";
 import { AuthorizationService, UserContext } from "../authorization";
+import { RealtimeService } from "../realtime/realtime.service";
 import { SharePlanRangeDto } from "./education-sharing.dto";
 
 @Injectable()
@@ -29,6 +30,7 @@ export class EducationSharingService {
     @InjectRepository(AuditLog)
     private readonly auditLogs: Repository<AuditLog>,
     private readonly authorization: AuthorizationService,
+    private readonly realtime?: RealtimeService,
   ) {}
 
   async peers(actor: AuthenticatedUser) {
@@ -141,7 +143,8 @@ export class EducationSharingService {
     if (!anchor)
       throw new ApiException(404, "PLAN_NOT_FOUND", "برنامه پیدا نشد.");
     const prepared = await this.prepareRange(actor, anchor, dto);
-    const { from, targetStartDate, conflictPolicy, sourcePlans, targets } = prepared;
+    const { from, targetStartDate, conflictPolicy, sourcePlans, targets } =
+      prepared;
 
     const result = await this.plans.manager.transaction(async (manager) => {
       let copied = 0;
@@ -239,7 +242,12 @@ export class EducationSharingService {
               (count, task) =>
                 count +
                 destination.tasks.filter((candidate) =>
-                  overlaps(task.startTime, task.endTime, candidate.startTime, candidate.endTime),
+                  overlaps(
+                    task.startTime,
+                    task.endTime,
+                    candidate.startTime,
+                    candidate.endTime,
+                  ),
                 ).length,
               0,
             )
@@ -263,7 +271,8 @@ export class EducationSharingService {
             )
           : 0;
         const plannedMinutes = source.tasks.reduce(
-          (sum, task) => sum + taskMinutes(task.duration, task.startTime, task.endTime),
+          (sum, task) =>
+            sum + taskMinutes(task.duration, task.startTime, task.endTime),
           0,
         );
         const capacityMinutes = dailyCapacityMinutes(target.dailyCapacity);
@@ -283,27 +292,56 @@ export class EducationSharingService {
         name: target.name,
         days,
         existingPlanCount: days.filter((day) => day.existingPlan).length,
-        emptyDestinationDayCount: days.filter((day) => !day.existingPlan).length,
-        timeConflictCount: days.reduce((sum, day) => sum + day.timeConflicts, 0),
-        examCollisionCount: days.reduce((sum, day) => sum + day.examCollisions, 0),
+        emptyDestinationDayCount: days.filter((day) => !day.existingPlan)
+          .length,
+        timeConflictCount: days.reduce(
+          (sum, day) => sum + day.timeConflicts,
+          0,
+        ),
+        examCollisionCount: days.reduce(
+          (sum, day) => sum + day.examCollisions,
+          0,
+        ),
         overCapacityDayCount: days.filter((day) => day.overCapacity).length,
         proposedMinutes: days.reduce((sum, day) => sum + day.plannedMinutes, 0),
       };
     });
     return {
-      source: { from: prepared.from, to: prepared.to, planCount: prepared.sourcePlans.length },
+      source: {
+        from: prepared.from,
+        to: prepared.to,
+        planCount: prepared.sourcePlans.length,
+      },
       targetStartDate: prepared.targetStartDate,
       conflictPolicy: prepared.conflictPolicy,
       recipients,
       summary: {
         targetCount: recipients.length,
         copiedPlanCount: recipients.length * prepared.sourcePlans.length,
-        existingPlanCount: recipients.reduce((sum, recipient) => sum + recipient.existingPlanCount, 0),
-        emptyDestinationDayCount: recipients.reduce((sum, recipient) => sum + recipient.emptyDestinationDayCount, 0),
-        timeConflictCount: recipients.reduce((sum, recipient) => sum + recipient.timeConflictCount, 0),
-        examCollisionCount: recipients.reduce((sum, recipient) => sum + recipient.examCollisionCount, 0),
-        overCapacityDayCount: recipients.reduce((sum, recipient) => sum + recipient.overCapacityDayCount, 0),
-        proposedMinutes: recipients.reduce((sum, recipient) => sum + recipient.proposedMinutes, 0),
+        existingPlanCount: recipients.reduce(
+          (sum, recipient) => sum + recipient.existingPlanCount,
+          0,
+        ),
+        emptyDestinationDayCount: recipients.reduce(
+          (sum, recipient) => sum + recipient.emptyDestinationDayCount,
+          0,
+        ),
+        timeConflictCount: recipients.reduce(
+          (sum, recipient) => sum + recipient.timeConflictCount,
+          0,
+        ),
+        examCollisionCount: recipients.reduce(
+          (sum, recipient) => sum + recipient.examCollisionCount,
+          0,
+        ),
+        overCapacityDayCount: recipients.reduce(
+          (sum, recipient) => sum + recipient.overCapacityDayCount,
+          0,
+        ),
+        proposedMinutes: recipients.reduce(
+          (sum, recipient) => sum + recipient.proposedMinutes,
+          0,
+        ),
       },
     };
   }
@@ -387,6 +425,11 @@ export class EducationSharingService {
       await this.assignments.save(
         this.assignments.create({ resource, student: target }),
       );
+    if (!existing && target.user?.id)
+      this.realtime?.emitToUser(target.user.id, "learning-resource.updated", {
+        resourceId: resource.id,
+        action: "assigned",
+      });
     return {
       resourceId: resource.id,
       targetStudentId: target.id,
@@ -677,7 +720,8 @@ function overlaps(
 function taskMinutes(duration: number, start: string, end: string) {
   if (Number.isFinite(duration) && duration > 0) return duration;
   if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return 0;
-  const toMinutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
+  const toMinutes = (value: string) =>
+    Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
   return Math.max(0, toMinutes(end) - toMinutes(start));
 }
 

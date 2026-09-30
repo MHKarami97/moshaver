@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAdminNotifications } from "../../features/notifications";
 import { useAuth } from "../../features/auth";
@@ -12,7 +12,7 @@ import {
   navigationForCapabilities,
   resolveAdminNavigation,
 } from "./admin-navigation";
-import { adminContentOffsetClass } from "./layout-geometry";
+import { adminContentOffsetClass, shouldAutoCollapseMainRail } from "./layout-geometry";
 import { usePersistentCollapse } from "./layout-storage";
 import { roleLabel } from "../../shared/lib/role-ui";
 
@@ -46,6 +46,7 @@ export function AdminLayout() {
   );
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const wasContextRailVisible = useRef(false);
 
   const current = resolveAdminNavigation(location.pathname);
   const breadcrumbs = adminBreadcrumbs(location.pathname);
@@ -60,6 +61,13 @@ export function AdminLayout() {
     mainCollapsed,
     contextCollapsed,
   });
+
+  // Entering a multi-page section reveals the adjacent contextual rail. Collapse
+  // the primary (right) rail once to preserve workspace width; users may reopen it.
+  useEffect(() => {
+    if (shouldAutoCollapseMainRail(wasContextRailVisible.current, showContextRail)) setMainCollapsed(true);
+    wasContextRailVisible.current = showContextRail;
+  }, [showContextRail, setMainCollapsed]);
 
   const openMobileNavigation = useCallback(() => setMobileNavigationOpen(true), []);
   const closeMobileNavigation = useCallback(() => setMobileNavigationOpen(false), []);

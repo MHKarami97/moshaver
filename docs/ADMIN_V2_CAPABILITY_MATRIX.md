@@ -1,6 +1,6 @@
 # Admin v2 capability matrix
 
-Last source audit: 2026-09-20
+Last source audit: 2026-09-30
 
 Scope: current working-tree `apps/admin` consumers and canonical `apps/api` `/api/v2` contracts. This describes source behavior, not branch ancestry.
 
@@ -17,6 +17,7 @@ Status meanings: **Complete** is implemented in both layers and covered by an au
 | Roles           | Capability-aware routes      | Protected canonical endpoints                                                                          | `app/router.tsx`, `admin-navigation.ts`           | Per-route capability                                   | Router/navigation tests                  | Complete |
 | Roles           | Global command palette       | Client-side authorized destinations and recent navigation                                              | `app/layout/AdminCommandPalette.tsx`              | Filters by active capabilities                         | Navigation tests                         | Complete |
 | Students        | Directory and profile        | `GET/POST /students`, `GET/PATCH /students/:id`                                                        | `features/students`                               | `students.read/create/update`                          | Component, security E2E                  | Complete |
+| Education catalog | Student profile validation, textbook projection and controlled catalog operations | `GET /education-catalog/{signup-options,my-books,admin/*}` and `GET/PATCH /students/:id` | `StudentEditor`, `EducationOverviewPage`, Student `/more/books` | `students.*`, `student.profile.read`, `education.catalog.*`, `education.operations.read` | Focused API tests; Admin typecheck | Partial |
 | Students        | Lifecycle and security       | `DELETE /students/:id`, `POST /students/:id/{activate,deactivate,restore,force-logout,reset-password}` | `StudentsPage`, `StudentSecurity`                 | `students.archive/update`                              | Backend, security E2E                    | Complete |
 | Students        | Overview and progress        | `GET /students/:id/{overview,progress/weekly,performance/topics}`                                      | `StudentDetail`, `StudentOverview`                | `students.read`, `student.progress.read`               | UI model, HTTP smoke                     | Complete |
 | Students        | Analytics and support        | `GET /students/:id/{analytics,recommendations,mistakes}`, `POST /students/:id/recommendations`         | `StudentSupportWorkspace`                         | Analytics/recommendation/mistake capabilities          | Backend, HTTP smoke                      | Complete |
@@ -63,3 +64,4 @@ Status meanings: **Complete** is implemented in both layers and covered by an au
 - Historical v1.6 retirement still requires a complete browser smoke suite.
 - Student exam and quiz flows pass component, contract, accessibility and production-build checks; rendered browser verification remains pending when a browser runtime is available.
 - `npm run audit:parity` now derives all controller method/path pairs from `apps/api`, excludes explicitly student-only, public and deprecated alias routes, and fails when an Admin-applicable canonical route has no Admin request consumer.
+- Education catalog authoring/versioning, organization overrides, batch draft import, education-population coverage/date-and-cohort trends/CSV export/remediation queues, Student sync-health review/retention/correlation, and relaxation-content targeting with audience preview are implemented. See the [Education Platform control-surface audit](./product/education-platform-control-audit.md).

@@ -18,3 +18,8 @@ export function adminContentOffsetClass({
 
   return contextCollapsed ? "lg:mr-80" : "lg:mr-80 xl:mr-[29rem]";
 }
+
+/** Collapse the primary rail only when a contextual rail becomes available. */
+export function shouldAutoCollapseMainRail(wasContextRailVisible: boolean, showContextRail: boolean) {
+  return showContextRail && !wasContextRailVisible;
+}

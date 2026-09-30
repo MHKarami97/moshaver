@@ -15,6 +15,7 @@ import {
 import { QuestionEditor } from "../components/QuestionEditor";
 import { QuestionsList } from "../components/QuestionsList";
 import { QuestionsSelector } from "../components/QuestionsSelector";
+import { QuestionBankPanel } from "../components/QuestionBankPanel";
 import {
   emptyQuestion,
   questionDraft,
@@ -155,6 +156,7 @@ export function QuestionsPage() {
         selectedExam={selectedExam}
         questionCount={questions.data?.length || 0}
       />
+      {auth.can("question_bank.manage") ? <QuestionBankPanel /> : null}
       <section className="grid min-h-0 gap-4 lg:h-[calc(100vh-15.5rem)] lg:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
         {canCreate || canUpdate ? (
           <QuestionEditor

@@ -1,4 +1,4 @@
-# Moshaver documentation
+# Moshaver Education Platform documentation
 
 This directory is the navigation hub for the active Moshaver v2 monorepo. Documentation is grouped by intent so a person or an agent can distinguish current architecture from migration plans and historical evidence. The complete v1.4 tree is preserved on `archive/v1.4`.
 
@@ -94,6 +94,8 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 
 - [Interface design principles](./product/interface-design-principles.md)
 - [Education planning improvement](./product/education-planning-improvement.md) — multi-student planning, range sharing, UX acceptance, and gap roadmap.
+- [Education Platform control-surface audit](./product/education-platform-control-audit.md) — verified Student/API coverage and the remaining Admin-control roadmap.
+- [Education workspace audit](./product/education-workspace-audit.md) — composition boundary, controls, UX decisions, and follow-ups.
 - [Version roadmap](./product/version-roadmap.md)
 - [Application icon catalog](./product/application-icon-catalog.md)
 - [Product changelog](./releases/product-changelog.md)

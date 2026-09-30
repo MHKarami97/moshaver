@@ -16,6 +16,7 @@ import {
   AssignTeacherSubjectDto,
   ArchiveSubjectDto,
   CreateSubjectDto,
+  ImportSubjectsDto,
   UpdateStudentSubjectDto,
   UpdateSubjectDto,
 } from "./subject.dto";
@@ -34,6 +35,24 @@ export class SubjectsController {
     @Body() d: CreateSubjectDto,
   ) {
     return this.service.create(u, d).then(ok);
+  }
+  @Get("subjects/export") @RequireCapabilities("subjects.read") export(@CurrentUser() u: AuthenticatedUser) {
+    return this.service.export(u).then(ok);
+  }
+  @Get("subjects/import-sample") @RequireCapabilities("subjects.create") sample() {
+    return ok(this.service.importSample());
+  }
+  @Post("subjects/import-preview") @RequireCapabilities("subjects.create") previewImport(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body() d: ImportSubjectsDto,
+  ) {
+    return this.service.previewImport(u, d.subjects).then(ok);
+  }
+  @Post("subjects/import-commit") @RequireCapabilities("subjects.create") commitImport(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body() d: ImportSubjectsDto,
+  ) {
+    return this.service.commitImport(u, d.subjects).then(ok);
   }
   @Patch("subjects/:id") @RequireCapabilities("subjects.update") update(
     @CurrentUser() u: AuthenticatedUser,

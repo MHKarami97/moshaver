@@ -2,12 +2,13 @@ export type Subject = {
   id: string;
   code: string;
   name: string;
+  category: string;
   active: boolean;
   organization?: { id: string; name: string } | null;
 };
 
 export type StudentSubject = {
-  subject: Pick<Subject, "id" | "code" | "name">;
+  subject: Pick<Subject, "id" | "code" | "name" | "category">;
   enabled: boolean;
   displayName: string;
   weeklyTargetMinutes: number;

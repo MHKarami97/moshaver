@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, Users } from "lucide-react";
 import { listOrganizationMembers } from "../../access/api/access.api";
 import { Button, EmptyState, Field, Select } from "../../../shared/ui/ui";
+import { useModal } from "../../../shared/ui/modal";
 import {
   assignSubjectTeacher,
   getSubjectTeachers,
@@ -18,6 +19,7 @@ export function TeacherAssignments({
 }) {
   const qc = useQueryClient(),
     [teacherId, setTeacherId] = useState("");
+  const modal = useModal();
   const assignments = useQuery({
     queryKey: ["subject-teachers", subjectId, organizationId],
     queryFn: () => getSubjectTeachers(subjectId, organizationId),
@@ -39,6 +41,15 @@ export function TeacherAssignments({
     mutationFn: (id: string) => unassignSubjectTeacher(subjectId, id, organizationId),
     onSuccess: refresh,
   });
+  const confirmRemove = async (teacherName: string, id: string) => {
+    const confirmed = await modal.confirm({
+      title: "حذف تخصیص دبیر؟",
+      description: `دبیر «${teacherName}» از این درس جدا می‌شود.`,
+      tone: "danger",
+      confirmLabel: "حذف تخصیص",
+    });
+    if (confirmed) remove.mutate(id);
+  };
   const teachers = (members.data || []).filter(
     (member) =>
       member.status === "ACTIVE" &&
@@ -104,7 +115,13 @@ export function TeacherAssignments({
               <Button
                 variant="danger"
                 loading={remove.isPending}
-                onClick={() => remove.mutate(item.teacher.id)}
+                onClick={() =>
+                  void confirmRemove(
+                    [item.teacher.firstName, item.teacher.lastName].filter(Boolean).join(" ") ||
+                      item.teacher.username,
+                    item.teacher.id,
+                  )
+                }
               >
                 حذف تخصیص
               </Button>

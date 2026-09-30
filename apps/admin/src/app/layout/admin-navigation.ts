@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   UserRoundCheck,
   LibraryBig,
+  School,
   HeartHandshake,
 } from "lucide-react";
 
@@ -69,6 +70,13 @@ export const educationNavigation = [
     description: "مدیریت درس‌ها و شناسه‌های آموزشی",
     icon: BookOpen,
     capability: "subjects.read",
+  },
+  {
+    path: "classes",
+    title: "کلاس‌ها",
+    description: "کلاس، کتاب‌های درسی، دبیر، مشاور و فهرست دانش‌آموزان",
+    icon: School,
+    capability: "classes.read",
   },
   {
     path: "resources",

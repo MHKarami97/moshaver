@@ -9,4 +9,5 @@ export class QuizQuestion {
   @Column() correctAnswer!: string;
   @Column({ default: "" }) explanation!: string;
   @Column({ default: 0 }) sortOrder!: number;
+  @Index() @Column({ type: "varchar", nullable: true }) questionBankItemId?: string | null;
 }

@@ -37,10 +37,15 @@ export type RelaxationTrack = {
   artist: string;
   url: string;
   active: boolean;
+  organizationId?: string | null;
+  gradeIds?: number[] | null;
+  availableFrom?: string | null;
+  availableUntil?: string | null;
   updatedAt: string;
 };
-export type RelaxationTrackDraft = { title: string; artist: string; url: string; active: boolean };
+export type RelaxationTrackDraft = { title: string; artist: string; url: string; active: boolean; organizationId?: string; gradeIds?: number[]; availableFrom?: string; availableUntil?: string };
 export const getRelaxationTracks = () => api.get<RelaxationTrack[]>("/system/relaxation-tracks");
+export const getRelaxationTrackAudience = (id: string) => api.get<{ trackId: string; eligibleStudents: number; byGrade: Array<{ grade: number; count: number }> }>(`/system/relaxation-tracks/${encodeURIComponent(id)}/audience`);
 export const createRelaxationTrack = (body: RelaxationTrackDraft) =>
   api.post<RelaxationTrack>("/system/relaxation-tracks", body);
 export const updateRelaxationTrack = (id: string, body: RelaxationTrackDraft) =>

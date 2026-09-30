@@ -32,6 +32,10 @@ function service({ used = 0, approved = 0 } = {}) {
     repo() as any,
     repo() as any,
     repo() as any,
+    repo() as any,
+    repo() as any,
+    repo() as any,
+    repo() as any,
     repo({ findOneOrFail: jest.fn(async () => student) }) as any,
     repo({ count: jest.fn(async () => used) }) as any,
     {} as any,
@@ -100,6 +104,10 @@ describe("AssessmentsService student quiz isolation", () => {
       quizzes as any,
       repo() as any,
       repo({ findOne: jest.fn(async () => null) }) as any,
+      repo() as any,
+      repo() as any,
+      repo() as any,
+      repo() as any,
       repo({ findOneOrFail: jest.fn(async () => ({ id: "student-1", user: { id: "user-1" } })) }) as any,
       repo() as any,
       {} as any,
@@ -148,6 +156,8 @@ describe("AssessmentsService quiz answer compatibility", () => {
     const result = new AssessmentsService(
       repo() as any, repo() as any, repo() as any, repo() as any, repo() as any,
       repo() as any, repo() as any, attempts as any,
+      repo() as any,
+      repo() as any, repo() as any, repo() as any,
       repo({ findOneOrFail: jest.fn(async () => ({ id: "student-1" })) }) as any,
       repo() as any, {} as any,
       { transaction: jest.fn(async (work) => work(manager)) } as any,
@@ -189,6 +199,8 @@ describe("AssessmentsService quiz answer compatibility", () => {
     const result = new AssessmentsService(
       repo() as any, repo() as any, repo() as any, repo() as any, repo() as any,
       quizzes as any, questions as any, repo() as any, repo() as any, repo() as any,
+      repo() as any,
+      repo() as any, repo() as any, repo() as any,
       { canAccessOrganization: jest.fn(() => true) } as any, {} as any,
     );
 

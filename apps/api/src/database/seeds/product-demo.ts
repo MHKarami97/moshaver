@@ -8,6 +8,10 @@ import {
   Conversation,
   ConversationMember,
   DailyReport,
+  EducationBook,
+  EducationClass,
+  EducationClassBook,
+  EducationClassEnrollment,
   Exam,
   ExamAssignment,
   ExamAttempt,
@@ -21,7 +25,9 @@ import {
   OrganizationMembership,
   Plan,
   Question,
+  QuestionBankItem,
   Quiz,
+  QuizAttempt,
   QuizQuestion,
   Recommendation,
   RecoveryRequest,
@@ -109,6 +115,7 @@ async function seed(manager: EntityManager) {
     OrganizationStatus.ACTIVE,
   );
   const textbookCount = await seedEducationCatalog(manager);
+  await seedQuestionBank(manager, orgA);
 
   const platform = await user(
     manager,
@@ -209,7 +216,7 @@ async function seed(manager: EntityManager) {
     "TEACHER",
     hash,
   );
-  await scopedUser(
+  const teacherC = await scopedUser(
     manager,
     orgC,
     "demo.teacher.c",
@@ -239,7 +246,7 @@ async function seed(manager: EntityManager) {
     "MENTOR",
     hash,
   );
-  await scopedUser(
+  const mentorC = await scopedUser(
     manager,
     orgC,
     "demo.mentor.c",
@@ -259,7 +266,7 @@ async function seed(manager: EntityManager) {
     "CONTENT_MANAGER",
     hash,
   );
-  await scopedUser(
+  const contentB = await scopedUser(
     manager,
     orgB,
     "demo.content.b",
@@ -269,7 +276,7 @@ async function seed(manager: EntityManager) {
     "CONTENT_MANAGER",
     hash,
   );
-  await scopedUser(
+  const contentC = await scopedUser(
     manager,
     orgC,
     "demo.content.c",
@@ -425,6 +432,32 @@ async function seed(manager: EntityManager) {
     "GUARDIAN",
     hash,
   );
+
+  // Keep these figures deliberate: the featured accounts above are part of the
+  // operational team, while this fills each organisation to a realistic team
+  // of 30 people without creating a different population on every re-seed.
+  await Promise.all([
+    seedWorkforce(manager, orgA, "a", hash, 7),
+    seedWorkforce(manager, orgB, "b", hash, 5),
+    seedWorkforce(manager, orgC, "c", hash, 5),
+  ]);
+  const studentsA = await seedStudentPopulation(manager, orgA, "a", hash, [
+    studentA1,
+    studentA2,
+    studentA3,
+  ]);
+  const studentsB = await seedStudentPopulation(manager, orgB, "b", hash, [
+    studentB1,
+    studentB2,
+  ]);
+  const studentsC = await seedStudentPopulation(manager, orgC, "c", hash, [
+    studentC1,
+  ]);
+  await Promise.all([
+    seedDemoClass(manager, orgA, "1405-1406-12-exp-a", "دوازدهم تجربی الف", 12, "theoretical", "experimental_sciences", advisorA, [mathTeacher, physicsTeacher], studentsA.filter((student) => student.grade === "پایه دوازدهم" && student.major === "علوم تجربی").slice(0, 28)),
+    seedDemoClass(manager, orgB, "1405-1406-10-humanities-a", "دهم انسانی الف", 10, "theoretical", "humanities", advisorB, [teacherB], studentsB.filter((student) => student.grade === "پایه دهم" && student.major.includes("انسانی")).slice(0, 26)),
+    seedDemoClass(manager, orgC, "1405-1406-9-general-a", "نهم عمومی الف", 9, "general", "general", advisorC, [teacherC, mentorC], studentsC.filter((student) => student.grade === "پایه نهم").slice(0, 24)),
+  ]);
 
   await relationship(
     manager,
@@ -852,6 +885,87 @@ async function seed(manager: EntityManager) {
   );
   await quiz(manager, orgA, upcoming, "کوییز گرم‌کردن زیست");
 
+  // A complete seven-day journey for every demo learner gives the admin and
+  // student applications enough density to exercise pagination, filters,
+  // completion states and the weekly planner without relying on fake counts.
+  await Promise.all([
+    seedWeeklyPlans(manager, studentsA, ["زیست‌شناسی", "شیمی", "ریاضی"]),
+    seedWeeklyPlans(manager, studentsB, ["ریاضی", "علوم", "فارسی"]),
+    seedWeeklyPlans(manager, studentsC, ["ریاضی", "مهارت مطالعه", "علوم"]),
+  ]);
+
+  const academyCohortExam = await exam(
+    manager,
+    orgA,
+    content,
+    "ارزیابی هفتگی آکادمی راه روشن",
+    "چنددرس",
+    true,
+    "konkur",
+    at(1, 8),
+    at(1, 10),
+    "immediate",
+    true,
+    studentsA.slice(0, 30),
+    [["پرسش مرور هفتگی", "زیست‌شناسی", "سلول", "a"]],
+  );
+  const schoolCohortExam = await exam(
+    manager,
+    orgB,
+    contentB,
+    "ارزیابی کلاسی دبیرستان دانش فردا",
+    "چنددرس",
+    true,
+    "standard",
+    at(1, 9),
+    at(1, 10),
+    "scheduled",
+    false,
+    studentsB.slice(0, 32),
+    [["پرسش ارزیابی کلاسی", "ریاضی", "تابع", "b"]],
+  );
+  const counselingCohortExam = await exam(
+    manager,
+    orgC,
+    contentC,
+    "سنجش مسیر رشد",
+    "مهارت‌های پایه",
+    true,
+    "standard",
+    at(2, 10),
+    at(2, 11),
+    "manual",
+    false,
+    studentsC.slice(0, 25),
+    [["پرسش مهارت مطالعه", "مهارت مطالعه", "تمرکز", "c"]],
+  );
+  const academyQuiz = await quiz(
+    manager,
+    orgA,
+    academyCohortExam,
+    "کوییز مرور آکادمی",
+    "زیست‌شناسی",
+  );
+  const schoolQuiz = await quiz(
+    manager,
+    orgB,
+    schoolCohortExam,
+    "کوییز کلاسی دانش فردا",
+    "ریاضی",
+  );
+  const counselingQuiz = await quiz(
+    manager,
+    orgC,
+    counselingCohortExam,
+    "کوییز تمرکز مسیر رشد",
+    "مهارت مطالعه",
+  );
+  await Promise.all([
+    completedQuizAttempt(manager, academyQuiz, studentsA[4], 100),
+    completedQuizAttempt(manager, schoolQuiz, studentsB[3], 0),
+    completedQuizAttempt(manager, counselingQuiz, studentsC[2], 100),
+  ]);
+
   const conversation = await directConversation(
     manager,
     advisorA,
@@ -947,12 +1061,27 @@ async function seed(manager: EntityManager) {
 
   return {
     organizations: 3,
-    students: 6,
+    students: 300,
+    activeWorkersPerOrganization: 30,
     textbooks: textbookCount,
-    exams: 6,
-    plans: planRows.length + 1,
+    classes: 3,
+    exams: 9,
+    quizzes: 4,
+    plans: 2102,
     passwordNote: "Override with DEMO_PASSWORD",
   };
+}
+
+async function seedQuestionBank(m: EntityManager, organization: Organization) {
+  const repo = m.getRepository(QuestionBankItem);
+  const samples = [
+    { text: "کدام گزینه دربارهٔ برنامه‌ریزی هفتگی درست است؟", options: ["هدف مشخص دارد", "بدون مرور است", "فقط یک روز را پوشش می‌دهد", "نیازی به اولویت ندارد"], correctAnswer: "هدف مشخص دارد", subject: "مهارت مطالعه", topic: "برنامه‌ریزی", difficulty: "easy", tags: ["مطالعه", "برنامه"] },
+    { text: "برای مرور مؤثر پس از آزمون چه کاری مناسب‌تر است؟", options: ["بررسی خطاها", "نادیده گرفتن پاسخ‌ها", "تکرار تصادفی", "حذف یادداشت‌ها"], correctAnswer: "بررسی خطاها", subject: "مهارت مطالعه", topic: "تحلیل آزمون", difficulty: "medium", tags: ["مرور", "اشتباهات"] },
+  ];
+  for (const sample of samples) {
+    const row = await repo.findOne({ where: { text: sample.text, organization: { id: organization.id } } });
+    if (!row) await repo.save(repo.create({ ...sample, explanation: "", book: "", grade: "", chapter: "", lesson: "", source: "product-demo", organization }));
+  }
 }
 
 async function organization(
@@ -1103,6 +1232,197 @@ async function studentUser(
       major,
     });
   return r.save(s);
+}
+
+type StudentSeedProfile = {
+  gradeId: number;
+  grade: string;
+  trackId: string;
+  major: string;
+};
+
+const studentProfiles: StudentSeedProfile[] = [
+  { gradeId: 9, grade: "پایه نهم", trackId: "general", major: "عمومی" },
+  {
+    gradeId: 10,
+    grade: "پایه دهم",
+    trackId: "experimental_sciences",
+    major: "علوم تجربی",
+  },
+  {
+    gradeId: 10,
+    grade: "پایه دهم",
+    trackId: "humanities",
+    major: "ادبیات و علوم انسانی",
+  },
+  {
+    gradeId: 11,
+    grade: "پایه یازدهم",
+    trackId: "math_physics",
+    major: "ریاضی و فیزیک",
+  },
+  {
+    gradeId: 11,
+    grade: "پایه یازدهم",
+    trackId: "experimental_sciences",
+    major: "علوم تجربی",
+  },
+  {
+    gradeId: 12,
+    grade: "پایه دوازدهم",
+    trackId: "humanities",
+    major: "ادبیات و علوم انسانی",
+  },
+  {
+    gradeId: 12,
+    grade: "پایه دوازدهم",
+    trackId: "math_physics",
+    major: "ریاضی و فیزیک",
+  },
+];
+
+async function seedDemoClass(
+  m: EntityManager,
+  organization: Organization,
+  code: string,
+  name: string,
+  gradeId: number,
+  educationTypeId: string,
+  trackId: string,
+  advisor: User,
+  teachers: User[],
+  students: Student[],
+) {
+  const classrooms = m.getRepository(EducationClass);
+  const classBooks = m.getRepository(EducationClassBook);
+  const enrollments = m.getRepository(EducationClassEnrollment);
+  let classroom = await classrooms.findOne({ where: { organization: { id: organization.id }, code } });
+  if (!classroom) classroom = classrooms.create({ organization, code });
+  Object.assign(classroom, { name, schoolYear: "1405-1406", gradeId, educationTypeId, trackId, capacity: 35, status: "ACTIVE", description: "کلاس نمونه برای سنجش پیوستگی کتاب، دبیر، مشاور و دانش‌آموز.", advisor });
+  classroom = await classrooms.save(classroom);
+  const books = await m.getRepository(EducationBook).find({ where: { grade: gradeId, track: trackId, state: "PUBLISHED" }, take: 2 });
+  await classBooks.delete({ classroom: { id: classroom.id } });
+  await enrollments.delete({ classroom: { id: classroom.id } });
+  await classBooks.save(books.map((book, index) => classBooks.create({ classroom, book, teacher: teachers[index % teachers.length] })));
+  await enrollments.save(students.map((student) => enrollments.create({ classroom, student })));
+}
+
+async function seedStudentPopulation(
+  m: EntityManager,
+  organization: Organization,
+  organizationCode: string,
+  hash: string,
+  featured: Student[],
+) {
+  const students = [...featured];
+  const firstNames = [
+    "آوا",
+    "مانی",
+    "رها",
+    "سامان",
+    "نازنین",
+    "بردیا",
+    "هلیا",
+    "آرین",
+  ];
+  const lastNames = [
+    "نوری",
+    "حسینی",
+    "مرادی",
+    "فرهادی",
+    "صادقی",
+    "علوی",
+    "موسوی",
+    "قاسمی",
+  ];
+  const nationalOffset = { a: 100, b: 300, c: 500 }[organizationCode] ?? 700;
+  for (let index = featured.length; index < 100; index += 1) {
+    const profile = studentProfiles[index % studentProfiles.length];
+    const serial = index + 1;
+    students.push(
+      await studentUser(
+        m,
+        organization,
+        `demo.student.${organizationCode}${serial}`,
+        `${firstNames[index % firstNames.length]} ${lastNames[(index * 3) % lastNames.length]}`,
+        hash,
+        profile.gradeId,
+        profile.grade,
+        profile.trackId,
+        profile.major,
+        String(9_100_000_000 + nationalOffset + serial),
+      ),
+    );
+  }
+  return students;
+}
+
+async function seedWorkforce(
+  m: EntityManager,
+  organization: Organization,
+  organizationCode: string,
+  hash: string,
+  existingStaff: number,
+) {
+  const roles: Array<[UserRole, string, string]> = [
+    [UserRole.ADVISOR, "ADVISOR", "مشاور"],
+    [UserRole.TEACHER, "TEACHER", "دبیر"],
+    [UserRole.MENTOR, "MENTOR", "مربی"],
+    [UserRole.CONTENT_MANAGER, "CONTENT_MANAGER", "کارشناس محتوا"],
+  ];
+  for (let index = existingStaff + 1; index <= 30; index += 1) {
+    const [legacyRole, code, title] = roles[(index - 1) % roles.length];
+    await scopedUser(
+      m,
+      organization,
+      `demo.staff.${organizationCode}${index}`,
+      title,
+      `نمایشی ${index}`,
+      legacyRole,
+      code,
+      hash,
+    );
+  }
+}
+
+async function seedWeeklyPlans(
+  m: EntityManager,
+  students: Student[],
+  subjects: string[],
+) {
+  for (const [studentIndex, student] of students.entries()) {
+    for (let offset = -6; offset <= 0; offset += 1) {
+      const subject =
+        subjects[(studentIndex + offset + subjects.length) % subjects.length];
+      const completed = offset < 0 && (studentIndex + offset) % 3 !== 0;
+      await plan(m, student, day(offset), PlanStatus.PUBLISHED, [
+        {
+          type: TaskType.STUDY,
+          title: "مطالعه برنامه هفتگی",
+          subject,
+          startTime: "08:00",
+          endTime: "09:15",
+          duration: 75,
+          status: completed ? "DONE" : "PLANNED",
+          completedAt: completed ? at(offset, 9) : null,
+          actualMinutes: completed ? 70 : 0,
+        },
+        {
+          type: TaskType.TEST,
+          title: "تمرین و سنجش روزانه",
+          subject,
+          startTime: "17:00",
+          endTime: "17:45",
+          duration: 45,
+          testCount: 15 + (studentIndex % 4) * 5,
+          status: completed && studentIndex % 4 !== 0 ? "DONE" : "PLANNED",
+          completedAt:
+            completed && studentIndex % 4 !== 0 ? at(offset, 18) : null,
+          actualTests: completed ? 12 : 0,
+        },
+      ]);
+    }
+  }
 }
 async function relationship(
   m: EntityManager,
@@ -1336,28 +1656,32 @@ async function activeAttempt(m: EntityManager, e: Exam, s: Student) {
       exam: e,
       student: s,
       score: 0,
-      answers: e.questions
-        .slice(0, 1)
-        .map((q) => ({
-          questionId: q.id,
-          selectedOption: "a",
-          visited: true,
-          revision: 1,
-          clientUpdatedAt: now.toISOString(),
-        })),
+      answers: e.questions.slice(0, 1).map((q) => ({
+        questionId: q.id,
+        selectedOption: "a",
+        visited: true,
+        revision: 1,
+        clientUpdatedAt: now.toISOString(),
+      })),
       startedAt: new Date(now.getTime() - 900000),
       finishedAt: null,
     },
   );
 }
-async function quiz(m: EntityManager, o: Organization, e: Exam, title: string) {
+async function quiz(
+  m: EntityManager,
+  o: Organization,
+  e: Exam,
+  title: string,
+  subject = "زیست‌شناسی",
+) {
   const r = m.getRepository(Quiz);
   let x = await r.findOne({ where: { title, organization: { id: o.id } } });
   if (!x)
     x = await r.save(
       r.create({
         title,
-        subject: "زیست‌شناسی",
+        subject,
         durationMinutes: 10,
         active: true,
         exam: e,
@@ -1377,7 +1701,40 @@ async function quiz(m: EntityManager, o: Organization, e: Exam, title: string) {
       sortOrder: 1,
     },
   );
-  return x;
+  return r.findOneOrFail({
+    where: { id: x.id },
+    relations: { questions: true },
+  });
+}
+
+async function completedQuizAttempt(
+  m: EntityManager,
+  quizRow: Quiz,
+  student: Student,
+  percent: number,
+) {
+  const question = quizRow.questions[0];
+  return singleton(
+    m,
+    QuizAttempt,
+    { quiz: { id: quizRow.id }, student: { id: student.id } },
+    {
+      quiz: quizRow,
+      student,
+      startedAt: at(-1, 15),
+      submittedAt: at(-1, 15),
+      answers: [
+        {
+          questionId: question.id,
+          selectedOption: percent === 100 ? "a" : "b",
+        },
+      ],
+      correct: percent === 100 ? 1 : 0,
+      wrong: percent === 100 ? 0 : 1,
+      blank: 0,
+      percent,
+    },
+  );
 }
 async function directConversation(
   m: EntityManager,

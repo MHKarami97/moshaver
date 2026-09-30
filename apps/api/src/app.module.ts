@@ -12,8 +12,6 @@ import { RolesGuard } from "./common/guards/roles.guard";
 import { CsrfGuard } from "./common/guards/csrf.guard";
 import { AuthSessionGuard } from "./common/guards/auth-session.guard";
 import { StudentsModule } from "./modules/students/students.module";
-import { PlansModule } from "./modules/plans/plans.module";
-import { ExamsModule } from "./modules/exams/exams.module";
 import { SyncModule } from "./modules/sync/sync.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { ChatModule } from "./modules/chat/chat.module";
@@ -23,19 +21,15 @@ import { MistakesModule } from "./modules/mistakes/mistakes.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { CapabilitiesGuard } from "./common/guards/capabilities.guard";
 import { RelationshipsModule } from "./modules/relationships/relationships.module";
-import { SubjectsModule } from "./modules/subjects/subjects.module";
-import { AssessmentsModule } from "./modules/assessments/assessments.module";
 import { GuardianModule } from "./modules/guardian/guardian.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { ActivityModule } from "./modules/activity/activity.module";
 import { ImportExportModule } from "./modules/import-export/import-export.module";
-import { LearningResourcesModule } from "./modules/learning-resources/learning-resources.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { RelaxationModule } from "./modules/relaxation/relaxation.module";
 import { CmbPlatformModule } from "./platform/cmb-platform.module";
-import { EducationCatalogModule } from "./modules/education-catalog/education-catalog.module";
+import { EducationModule } from "./modules/education/education.module";
 import { EducationSharingModule } from "./modules/education-sharing/education-sharing.module";
-import { PlanTemplatesModule } from "./modules/plan-templates/plan-templates.module";
 
 @Module({
   imports: [
@@ -45,22 +39,16 @@ import { PlanTemplatesModule } from "./modules/plan-templates/plan-templates.mod
     }),
     TypeOrmModule.forRoot(dataSourceOptions),
     CmbPlatformModule,
-    EducationCatalogModule,
+    EducationModule,
     EducationSharingModule,
-    PlanTemplatesModule,
     RelationshipsModule,
-    SubjectsModule,
-    AssessmentsModule,
     GuardianModule,
     DashboardModule,
     ActivityModule,
     ImportExportModule,
-    LearningResourcesModule,
     OnboardingModule,
     RelaxationModule,
     StudentsModule,
-    PlansModule,
-    ExamsModule,
     SyncModule,
     AnalyticsModule,
     ChatModule,

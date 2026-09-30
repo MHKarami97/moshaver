@@ -150,7 +150,7 @@ export interface StudentNotification {
   message: string;
   readAt?: string | null;
 }
-export interface StudentSubject { subject: { id: string; code: string; name: string }; enabled: boolean; displayName?: string; weeklyTargetMinutes?: number; }
+export interface StudentSubject { subject: { id: string; code: string; name: string; category?: string }; enabled: boolean; displayName?: string; weeklyTargetMinutes?: number; }
 export interface StudentRelationship { id: string; type: string; status: string; fromUser?: { id: string; username?: string; firstName?: string; lastName?: string }; }
 export interface StudentMistake { id: string; subject?: string; topic?: string; note?: string; status?: string; }
 

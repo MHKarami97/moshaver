@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Music2, PauseCircle, PlayCircle, Plus, Power } from "lucide-react";
+import { Music2, PauseCircle, PlayCircle, Plus, Power, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Card, EmptyState, Field, Input } from "../../../shared/ui/ui";
+import { listOrganizations } from "../../access/api/access.api";
 import {
   createRelaxationTrack,
+  getRelaxationTrackAudience,
   getRelaxationTracks,
   updateRelaxationTrack,
   type RelaxationTrackDraft,
 } from "../api/system.api";
 
-const emptyDraft: RelaxationTrackDraft = { title: "", artist: "", url: "", active: true };
+const emptyDraft: RelaxationTrackDraft = { title: "", artist: "", url: "", active: true, gradeIds: [] };
 
 export function RelaxationMusicManager() {
   const qc = useQueryClient();
@@ -18,6 +20,9 @@ export function RelaxationMusicManager() {
   const [draft, setDraft] = useState(emptyDraft);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const tracks = useQuery({ queryKey: ["relaxation-tracks"], queryFn: getRelaxationTracks });
+  const organizations = useQuery({ queryKey: ["organizations", "relaxation-targeting"], queryFn: listOrganizations });
+  const [audienceTrackId, setAudienceTrackId] = useState<string | null>(null);
+  const audience = useQuery({ queryKey: ["relaxation-track-audience", audienceTrackId], queryFn: () => getRelaxationTrackAudience(audienceTrackId!), enabled: Boolean(audienceTrackId) });
   const create = useMutation({
     mutationFn: () => createRelaxationTrack(draft),
     onSuccess: () => {
@@ -101,6 +106,16 @@ export function RelaxationMusicManager() {
             />
           </Field>
         </div>
+        <Field label="پایه‌های مجاز (اختیاری، با ویرگول)">
+          <Input placeholder="مثلاً 10,11,12" value={(draft.gradeIds || []).join(",")} onChange={(event) => setDraft({ ...draft, gradeIds: event.target.value.split(",").map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0) })} />
+        </Field>
+        <Field label="سازمان هدف (اختیاری)">
+          <select className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950" value={draft.organizationId || ""} onChange={(event) => setDraft({ ...draft, organizationId: event.target.value || undefined })} disabled={organizations.isLoading}>
+            <option value="">همه سازمان‌ها</option>
+            {(organizations.data || []).filter((organization) => organization.status === "ACTIVE").map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+          </select>
+        </Field>
+        <div className="grid grid-cols-2 gap-2"><Field label="شروع انتشار"><Input type="date" value={draft.availableFrom || ""} onChange={(event) => setDraft({ ...draft, availableFrom: event.target.value || undefined })} /></Field><Field label="پایان انتشار"><Input type="date" value={draft.availableUntil || ""} onChange={(event) => setDraft({ ...draft, availableUntil: event.target.value || undefined })} /></Field></div>
         <Button
           className="md:col-span-2"
           disabled={create.isPending || !draft.title.trim() || !draft.url.startsWith("https://")}
@@ -151,6 +166,10 @@ export function RelaxationMusicManager() {
                     artist: track.artist,
                     url: track.url,
                     active: !track.active,
+                    organizationId: track.organizationId || undefined,
+                    gradeIds: track.gradeIds || [],
+                    availableFrom: track.availableFrom || undefined,
+                    availableUntil: track.availableUntil || undefined,
                   },
                 })
               }
@@ -158,9 +177,11 @@ export function RelaxationMusicManager() {
               <Power size={15} />
               {track.active ? "فعال" : "غیرفعال"}
             </Button>
+            <Button variant="ghost" onClick={() => setAudienceTrackId(track.id)}><Users size={15} />مخاطب</Button>
           </div>
         ))}
       </div>
+      {audienceTrackId ? <div className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><div className="flex items-center justify-between"><strong>پیش‌نمایش مخاطبان</strong><Button variant="ghost" size="sm" onClick={() => setAudienceTrackId(null)}>بستن</Button></div>{audience.isLoading ? <p className="mt-2 text-slate-500">در حال محاسبه…</p> : audience.isError ? <p className="mt-2 text-red-700">محاسبه مخاطبان ناموفق بود.</p> : <p className="mt-2">{audience.data?.eligibleStudents.toLocaleString("fa-IR")} دانش‌آموز واجد شرایط{audience.data?.byGrade.length ? ` · ${audience.data.byGrade.map((item) => `پایه ${item.grade}: ${item.count}`).join("، ")}` : ""}</p>}</div> : null}
     </Card>
   );
 }

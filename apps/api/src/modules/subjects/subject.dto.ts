@@ -10,10 +10,15 @@ import {
 export class CreateSubjectDto {
   @IsString() @Length(1, 80) code!: string;
   @IsString() @Length(2, 160) name!: string;
+  @IsOptional() @IsString() @Length(1, 80) category?: string;
   @IsOptional() @IsUUID() organizationId?: string;
 }
 export class UpdateSubjectDto {
   @IsOptional() @IsString() @Length(2, 160) name?: string;
+  @IsOptional() @IsString() @Length(1, 80) category?: string;
+}
+export class ImportSubjectsDto {
+  subjects!: Array<CreateSubjectDto>;
 }
 export class ArchiveSubjectDto {
   @IsBoolean() active!: boolean;

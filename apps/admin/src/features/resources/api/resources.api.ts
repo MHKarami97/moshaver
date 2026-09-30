@@ -6,6 +6,7 @@ export type LearningResource = {
   title: string;
   description: string;
   type: "LINK" | "VIDEO";
+  category: string;
   url: string;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   assignments: Array<{ id: string; student: Pick<Student, "id" | "name" | "grade" | "major"> }>;
@@ -16,8 +17,9 @@ export type ResourceInput = Omit<LearningResource, "id" | "assignments" | "updat
 };
 
 export const listResources = () => api.get<LearningResource[]>("/learning-resources");
+export type ResourceStudent = Pick<Student, "id" | "name" | "grade" | "major" | "gradeId" | "educationTypeId" | "trackId" | "accountStatus">;
 export const listResourceStudents = () =>
-  api.get<Array<Pick<Student, "id" | "name" | "grade" | "major">>>(
+  api.get<ResourceStudent[]>(
     "/learning-resources/assignable-students",
   );
 export const createResource = (body: ResourceInput) =>

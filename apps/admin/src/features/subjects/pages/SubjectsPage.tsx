@@ -9,6 +9,9 @@ import {
   Save,
   Search,
   Download,
+  FileJson,
+  FileSpreadsheet,
+  Upload,
   Users,
 } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
@@ -22,13 +25,18 @@ import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { Badge, Button, Card, EmptyState, Field, Input, Select } from "../../../shared/ui/ui";
 import {
   createSubject,
+  commitSubjectImport,
+  exportSubjects,
   getStudentSubjects,
   getSubjects,
   getEducationBooks,
   getEducationDatasets,
+  getSubjectImportSample,
+  previewSubjectImport,
   setSubjectActive,
   updateStudentSubject,
   updateSubject,
+  type SubjectDraft,
 } from "../api/subjects.api";
 import type {
   EducationBook,
@@ -53,6 +61,7 @@ export function SubjectsPage() {
           : "catalog",
     ),
     [search, setSearch] = useState(params.get("q") || "");
+  const [category, setCategory] = useState(params.get("category") || "");
   const deferredSearch = useDeferredValue(search);
   const canCreate = auth.can("subjects.create");
   const canUpdate = auth.can("subjects.update");
@@ -82,7 +91,7 @@ export function SubjectsPage() {
       notify(error instanceof Error ? error.message : "ساخت درس ناموفق بود.", "error"),
   });
   const updateCatalog = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => updateSubject(id, { name }),
+    mutationFn: ({ id, name, category }: { id: string; name: string; category?: string }) => updateSubject(id, { name, category }),
     onSuccess: () => {
       notify("مشخصات درس به‌روز شد.");
       void refreshAll();
@@ -113,11 +122,11 @@ export function SubjectsPage() {
   const catalogRows = useMemo(
     () =>
       (subjects.data || []).filter((row) =>
-        normalizePersianText(`${row.name} ${row.code}`).includes(
+        (!category || row.category === category) && normalizePersianText(`${row.name} ${row.code} ${row.category}`).includes(
           normalizePersianText(deferredSearch),
         ),
       ),
-    [deferredSearch, subjects.data],
+    [category, deferredSearch, subjects.data],
   );
   const studentRows = useMemo(
     () =>
@@ -149,15 +158,17 @@ export function SubjectsPage() {
         )
       : 0,
   };
-  function updateUrl(next: { mode?: Mode; q?: string; studentId?: string }) {
+  function updateUrl(next: { mode?: Mode; q?: string; studentId?: string; category?: string }) {
     setParams(
       (current) => {
         const copy = new URLSearchParams(current),
           nextMode = next.mode ?? mode,
           nextQuery = next.q ?? search,
-          nextStudent = next.studentId ?? students.studentId;
+          nextStudent = next.studentId ?? students.studentId,
+          nextCategory = next.category ?? category;
         nextMode === "student" ? copy.delete("mode") : copy.set("mode", nextMode);
         nextQuery.trim() ? copy.set("q", nextQuery.trim()) : copy.delete("q");
+        nextCategory ? copy.set("category", nextCategory) : copy.delete("category");
         if (nextStudent) copy.set("studentId", nextStudent);
         return copy;
       },
@@ -192,12 +203,37 @@ export function SubjectsPage() {
         <CatalogForm
           initial={subject}
           onSubmit={async (value) => {
-            await updateCatalog.mutateAsync({ id: subject.id, name: value.name });
+            await updateCatalog.mutateAsync({ id: subject.id, name: value.name, category: value.category });
             modal.close();
           }}
         />
       ),
     });
+  }
+  function openImport() {
+    modal.open({
+      title: "ورود گروهی درس‌ها",
+      description: "JSON یا Excel را بارگذاری کنید، خطاها را در پیش‌نمایش بررسی کنید و سپس ثبت کنید.",
+      content: <SubjectImportForm onImported={() => { void refreshAll(); modal.close(); }} />,
+    });
+  }
+  async function downloadSubjectData(format: "json" | "xlsx", sample = false) {
+    const payload = sample ? await getSubjectImportSample() : await exportSubjects();
+    const filename = sample ? "moshaver-subjects-sample" : "moshaver-subjects";
+    if (format === "json") {
+      downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `${filename}.json`);
+      return;
+    }
+    const { Workbook } = await import("exceljs");
+    const workbook = new Workbook();
+    const sheet = workbook.addWorksheet("Subjects", { views: [{ rightToLeft: true, state: "frozen", ySplit: 1 }] });
+    sheet.columns = [
+      { header: "code", key: "code", width: 24 }, { header: "name", key: "name", width: 28 },
+      { header: "category", key: "category", width: 20 }, { header: "organizationId", key: "organizationId", width: 38 },
+    ];
+    payload.subjects.forEach((subject) => sheet.addRow(subject));
+    sheet.getRow(1).font = { bold: true };
+    downloadBlob(new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${filename}.xlsx`);
   }
   function openTeacherAssignments(subject: Subject) {
     const organization = auth.context?.activeOrganization;
@@ -267,9 +303,7 @@ export function SubjectsPage() {
             <div className="flex-1" />
           )}
           {mode === "catalog" && canCreate ? (
-            <Button onClick={openCreate}>
-              <BookPlus size={16} /> درس جدید
-            </Button>
+            <div className="flex flex-wrap gap-1"><Button onClick={openCreate}><BookPlus size={16} /> درس جدید</Button><Button variant="soft" onClick={openImport}><Upload size={15} /> ورود</Button><Button variant="ghost" onClick={() => void downloadSubjectData("xlsx")}><FileSpreadsheet size={15} /> Excel</Button><Button variant="ghost" onClick={() => void downloadSubjectData("json", true)}><FileJson size={15} /> نمونه</Button></div>
           ) : null}
           {mode === "books" ? (
             <Button variant="soft" onClick={() => void downloadDatasets()}>
@@ -303,6 +337,7 @@ export function SubjectsPage() {
             </Button>
           ) : null}
           <Badge tone="blue">{rows.length.toLocaleString("fa-IR")} نتیجه</Badge>
+          {mode === "catalog" ? <Select className="h-10 w-36" value={category} onChange={(event) => { setCategory(event.target.value); updateUrl({ category: event.target.value }); }}><option value="">همه دسته‌ها</option>{[...new Set((subjects.data || []).map((item) => item.category || "عمومی"))].sort((a, b) => a.localeCompare(b, "fa")).map((item) => <option key={item} value={item}>{item}</option>)}</Select> : null}
         </div>
       </Card>
       {mode === "student" ? (
@@ -414,6 +449,7 @@ function CatalogRow({
       <Badge tone={subject.active ? "green" : "neutral"}>
         {subject.active ? "فعال" : "بایگانی‌شده"}
       </Badge>
+      <Badge tone="blue">{subject.category || "عمومی"}</Badge>
       {onEdit ? (
         <Button variant="soft" onClick={onEdit}>
           <Edit3 size={15} /> ویرایش
@@ -506,11 +542,12 @@ function CatalogForm({
   onSubmit,
 }: {
   initial?: Subject;
-  onSubmit: (value: { name: string; code: string }) => Promise<void>;
+  onSubmit: (value: SubjectDraft) => Promise<void>;
 }) {
   const [value, setValue] = useState({
       name: initial?.name || "",
       code: initial?.code || "",
+      category: initial?.category || "عمومی",
     }),
     [busy, setBusy] = useState(false);
   return (
@@ -545,6 +582,7 @@ function CatalogForm({
           placeholder="mathematics"
         />
       </Field>
+      <Field label="دسته‌بندی"><Input maxLength={80} value={value.category} onChange={(event) => setValue({ ...value, category: event.target.value })} placeholder="مثلاً علوم پایه" /></Field>
       {initial ? (
         <p className="text-xs text-slate-500">
           برای حفظ ارتباط داده‌ها، کلید یکتا پس از ساخت تغییر نمی‌کند.
@@ -559,6 +597,43 @@ function CatalogForm({
       </Button>
     </form>
   );
+}
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function SubjectImportForm({ onImported }: { onImported: () => void }) {
+  const [rows, setRows] = useState<SubjectDraft[]>([]);
+  const preview = useMutation({ mutationFn: () => previewSubjectImport(rows) });
+  const commit = useMutation({ mutationFn: () => commitSubjectImport(rows), onSuccess: (result) => { notify(`${result.imported.toLocaleString("fa-IR")} درس ثبت شد.`); onImported(); } });
+  async function readFile(file?: File) {
+    if (!file) return;
+    try {
+      if (file.name.toLowerCase().endsWith(".xlsx")) {
+        const { Workbook } = await import("exceljs");
+        const workbook = new Workbook();
+        await workbook.xlsx.load(await file.arrayBuffer());
+        const sheet = workbook.getWorksheet("Subjects") || workbook.worksheets[0];
+        if (!sheet) throw new Error();
+        const headers = (sheet.getRow(1).values as Array<unknown>).map((value) => String(value || "").trim());
+        const index = (name: string) => headers.indexOf(name);
+        if (index("code") < 0 || index("name") < 0) throw new Error();
+        setRows(sheet.getRows(2, sheet.rowCount - 1)?.map((row) => ({ code: String(row.getCell(index("code")).value || ""), name: String(row.getCell(index("name")).value || ""), category: String(row.getCell(index("category")).value || "عمومی"), organizationId: String(row.getCell(index("organizationId")).value || "") || undefined })) || []);
+      } else {
+        const payload = JSON.parse(await file.text());
+        const next = Array.isArray(payload) ? payload : payload.subjects;
+        if (!Array.isArray(next)) throw new Error();
+        setRows(next);
+      }
+      preview.reset();
+    } catch { notify("فایل باید JSON معتبر یا Excel با شیت Subjects باشد.", "error"); }
+  }
+  return <div className="grid gap-3"><Field label="فایل JSON یا Excel"><Input type="file" accept=".json,.xlsx,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void readFile(event.target.files?.[0])} /></Field><p className="text-xs text-slate-500">{rows.length ? `${rows.length.toLocaleString("fa-IR")} ردیف آماده بررسی است.` : "ابتدا نمونه را دانلود و تکمیل کنید."}</p><div className="flex gap-2"><Button variant="soft" disabled={!rows.length || preview.isPending} onClick={() => preview.mutate()}>پیش‌نمایش</Button>{preview.data?.valid ? <Button disabled={commit.isPending} onClick={() => commit.mutate()}>ثبت {preview.data.accepted.toLocaleString("fa-IR")} درس</Button> : null}</div>{preview.data ? <div className={preview.data.valid ? "text-xs text-emerald-700" : "text-xs text-rose-700"}>{preview.data.valid ? "همه ردیف‌ها آماده ثبت هستند." : preview.data.rows.filter((row) => !row.valid).slice(0, 6).map((row) => <p key={row.row}>ردیف {row.row}: {row.errors.join("، ")}</p>)}</div> : null}</div>;
 }
 function Metric({
   label,

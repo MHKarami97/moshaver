@@ -10,6 +10,12 @@ export class Quiz {
   @Column({ default: "" }) subject!: string;
   @Column({ default: 20 }) durationMinutes!: number;
   @Column({ default: true }) active!: boolean;
+  @Column({ default: 1 }) attemptLimit!: number;
+  @Column({ type: "datetime", nullable: true }) openAt?: Date | null;
+  @Column({ type: "datetime", nullable: true }) closeAt?: Date | null;
+  @Column({ default: "immediate" }) resultPolicy!: "immediate" | "manual";
+  @Column({ type: "datetime", nullable: true }) resultsReleasedAt?: Date | null;
+  @Column({ type: "simple-json", default: "{\"gradeIds\":[],\"educationTypeIds\":[],\"trackIds\":[]}" }) audienceRules!: { gradeIds: number[]; educationTypeIds: string[]; trackIds: string[] };
   @Index() @ManyToOne(() => Exam, { nullable: true, onDelete: "CASCADE" }) exam?: Exam | null;
   @Index() @ManyToOne(() => Organization, { nullable: true, onDelete: "CASCADE" }) organization?: Organization | null;
   @OneToMany(() => QuizQuestion, q => q.quiz, { cascade: true }) questions!: QuizQuestion[];

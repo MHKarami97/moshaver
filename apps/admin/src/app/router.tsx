@@ -41,31 +41,34 @@ const UsersPage = lazy(() =>
   import("../features/access").then((module) => ({ default: module.UsersPage })),
 );
 const PlannerPage = lazy(() =>
-  import("../features/planner").then((module) => ({ default: module.PlannerPage })),
+  import("../features/education/planner").then((module) => ({ default: module.PlannerPage })),
 );
 const LearningPage = lazy(() =>
-  import("../features/learning").then((module) => ({ default: module.LearningPage })),
+  import("../features/education/learning").then((module) => ({ default: module.LearningPage })),
 );
 const EducationOverviewPage = lazy(() =>
   import("../features/education").then((module) => ({ default: module.EducationOverviewPage })),
 );
 const ExamsPage = lazy(() =>
-  import("../features/exams").then((module) => ({ default: module.ExamsPage })),
+  import("../features/education/exams").then((module) => ({ default: module.ExamsPage })),
 );
 const QuestionsPage = lazy(() =>
-  import("../features/questions").then((module) => ({ default: module.QuestionsPage })),
+  import("../features/education/questions").then((module) => ({ default: module.QuestionsPage })),
 );
 const QuizzesPage = lazy(() =>
-  import("../features/quizzes").then((module) => ({ default: module.QuizzesPage })),
+  import("../features/education/quizzes").then((module) => ({ default: module.QuizzesPage })),
 );
 const SubjectsPage = lazy(() =>
-  import("../features/subjects").then((module) => ({ default: module.SubjectsPage })),
+  import("../features/education/subjects").then((module) => ({ default: module.SubjectsPage })),
+);
+const ClassesPage = lazy(() =>
+  import("../features/education/classes").then((module) => ({ default: module.ClassesPage })),
 );
 const OnboardingPage = lazy(() =>
   import("../features/onboarding").then((module) => ({ default: module.OnboardingPage })),
 );
 const ResourcesPage = lazy(() =>
-  import("../features/resources").then((module) => ({ default: module.ResourcesPage })),
+  import("../features/education/resources").then((module) => ({ default: module.ResourcesPage })),
 );
 const GuardianPage = lazy(() =>
   import("../features/guardian").then((module) => ({ default: module.GuardianPage })),
@@ -201,6 +204,16 @@ export const router = createBrowserRouter([
               <CapabilityRoute capability="student_onboarding.manage">
                 <RouteScreen>
                   <OnboardingPage />
+                </RouteScreen>
+              </CapabilityRoute>
+            ),
+          },
+          {
+            path: "classes",
+            element: (
+              <CapabilityRoute capability="classes.read">
+                <RouteScreen>
+                  <ClassesPage />
                 </RouteScreen>
               </CapabilityRoute>
             ),

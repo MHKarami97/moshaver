@@ -1,4 +1,4 @@
-import { Column, Entity, Index, PrimaryColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
 @Entity("education_books")
 @Index(["schoolYear", "grade"])
@@ -16,4 +16,10 @@ export class EducationBook {
   @Column({ type: "varchar", length: 80, nullable: true }) textbookCode?: string | null;
   @Column({ type: "simple-json" }) appliesTo!: string[];
   @Column({ type: "text", nullable: true }) notes?: string | null;
+  @Index() @Column({ type: "varchar", nullable: true }) organizationId?: string | null;
+  @Column({ length: 16, default: "PUBLISHED" }) state!: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  @Column({ type: "integer", default: 1 }) version!: number;
+  @Column({ type: "datetime", nullable: true }) publishedAt?: Date | null;
+  @CreateDateColumn() createdAt!: Date;
+  @UpdateDateColumn() updatedAt!: Date;
 }

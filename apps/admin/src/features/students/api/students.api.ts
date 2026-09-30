@@ -20,6 +20,7 @@ export const createStudent = (body: StudentForm, organizationId?: string) => {
 export const updateStudent = (id: string, body: StudentForm) =>
   api.patch<Student>(`/students/${id}`, studentPayload(body, false));
 export const archiveStudent = (id: string) => api.delete(`/students/${id}`);
+export const listStudents = () => api.get<Student[]>("/students");
 export const studentLifecycle = (
   id: string,
   action: "activate" | "deactivate" | "restore" | "force-logout",

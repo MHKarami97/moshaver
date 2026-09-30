@@ -12,8 +12,9 @@ import { RelaxationService } from "./relaxation.service";
 export class RelaxationAdminController {
   constructor(private service: RelaxationService) {}
   @Get() list() { return this.service.listManaged().then(ok); }
-  @Post() create(@Body() dto: SaveRelaxationTrackDto) { return this.service.create(dto).then(ok); }
-  @Patch(":id") update(@Param("id") id: string, @Body() dto: SaveRelaxationTrackDto) { return this.service.update(id, dto).then(ok); }
+  @Get(":id/audience") audience(@Param("id") id: string) { return this.service.audience(id).then(ok); }
+  @Post() create(@CurrentUser() user: AuthenticatedUser, @Body() dto: SaveRelaxationTrackDto) { return this.service.create(user, dto).then(ok); }
+  @Patch(":id") update(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: SaveRelaxationTrackDto) { return this.service.update(user, id, dto).then(ok); }
 }
 
 @Controller("student/relaxation")

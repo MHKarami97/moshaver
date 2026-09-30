@@ -8,6 +8,7 @@ export class LearningResource {
   @Column({ length: 180 }) title!: string;
   @Column({ type: "text", default: "" }) description!: string;
   @Column({ length: 24, default: "LINK" }) type!: "LINK" | "VIDEO";
+  @Column({ length: 80, default: "عمومی" }) category!: string;
   @Column({ length: 1200 }) url!: string;
   @Column({ length: 20, default: "PUBLISHED" }) status!: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   @ManyToOne(() => User, { onDelete: "CASCADE" }) createdBy!: User;

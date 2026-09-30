@@ -1,11 +1,13 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { clampActivityLimit, normalizePresenceState, projectPresence, shouldPersistPresence } from "@moshaver/cmb-activity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, LessThan, Repository } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { ActivityEvent } from "../../database/entities/activity-event.entity";
 import { Student } from "../../database/entities/student.entity";
 import { StudentPresence } from "../../database/entities/student-presence.entity";
+import { StudentSyncHealth } from "../../database/entities/student-sync-health.entity";
+import { AuditLog } from "../../database/entities/audit-log.entity";
 import { Task } from "../../database/entities/task.entity";
 import { AuthenticatedUser } from "../auth";
 import {
@@ -21,17 +23,25 @@ const EVENT_TYPES = [
   "quiz_started",
   "quiz_submitted",
 ];
+const SYNC_FAILURE_CODES = new Set(["NETWORK_UNAVAILABLE", "AUTHORIZATION", "CONFLICT", "VALIDATION", "SYNC_WORKER_FAILED", "UNKNOWN"]);
 @Injectable()
-export class ActivityService {
+export class ActivityService implements OnModuleInit {
+  private readonly logger = new Logger(ActivityService.name);
   constructor(
     @InjectRepository(StudentPresence)
     private presence: Repository<StudentPresence>,
+    @InjectRepository(StudentSyncHealth) private syncHealthRepo: Repository<StudentSyncHealth>,
+    @InjectRepository(AuditLog) private audit: Repository<AuditLog>,
     @InjectRepository(ActivityEvent) private events: Repository<ActivityEvent>,
     @InjectRepository(Student) private students: Repository<Student>,
     @InjectRepository(Task) private tasks: Repository<Task>,
     private authorization: AuthorizationService,
     private db: DataSource,
   ) {}
+  async onModuleInit() {
+    try { await this.purgeStaleSyncHealth(); }
+    catch (error) { this.logger.warn(`Sync-health retention cleanup was skipped: ${error instanceof Error ? error.message : "unknown error"}`); }
+  }
   private student(userId: string) {
     return this.students.findOneOrFail({ where: { user: { id: userId } } });
   }
@@ -88,6 +98,29 @@ export class ActivityService {
         data: input.data || null,
       }),
     );
+  }
+  async reportSyncHealth(userId: string, input: { deviceId?: string; status?: string; pendingCount?: number; failureCode?: string; correlationId?: string }) {
+    const student = await this.student(userId);
+    const deviceId = String(input.deviceId || "").trim();
+    if (!/^[a-zA-Z0-9:_-]{8,96}$/.test(deviceId)) throw new ApiException(400, "SYNC_DEVICE_INVALID", "شناسه دستگاه معتبر نیست.");
+    const status = ["online", "syncing", "failed", "offline"].includes(input.status || "") ? input.status as StudentSyncHealth["status"] : "online";
+    const pendingCount = Math.max(0, Math.min(10_000, Number.isInteger(input.pendingCount) ? input.pendingCount! : 0));
+    const correlationId = String(input.correlationId || "").trim();
+    if (correlationId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(correlationId)) throw new ApiException(400, "SYNC_CORRELATION_INVALID", "شناسه پیگیری همگام‌سازی معتبر نیست.");
+    let row = await this.syncHealthRepo.findOne({ where: { student: { id: student.id }, deviceId } });
+    row ||= this.syncHealthRepo.create({ student, deviceId });
+    Object.assign(row, { status, pendingCount, correlationId: correlationId || null, failureCode: status === "failed" ? this.normalizeSyncFailureCode(input.failureCode) : null, lastSuccessfulAt: status === "online" && pendingCount === 0 ? new Date() : row.lastSuccessfulAt || null });
+    return this.publicSyncHealth(await this.syncHealthRepo.save(row));
+  }
+  async syncHealth(context: UserContext, studentId: string) {
+    if (!(await this.authorization.canAccessStudent(context, studentId, "student.activity.read"))) throw new ApiException(403, "STUDENT_FORBIDDEN", "به این دانش‌آموز دسترسی ندارید.");
+    return (await this.syncHealthRepo.find({ where: { student: { id: studentId } }, order: { updatedAt: "DESC" }, take: 10 })).map((row) => this.publicSyncHealth(row));
+  }
+  async reviewSyncHealth(context: UserContext, studentId: string) {
+    if (!(await this.authorization.canAccessStudent(context, studentId, "student.sync.support"))) throw new ApiException(403, "STUDENT_FORBIDDEN", "به این دانش‌آموز دسترسی ندارید.");
+    const health = await this.syncHealthRepo.find({ where: { student: { id: studentId } }, order: { updatedAt: "DESC" }, take: 10 });
+    await this.audit.save(this.audit.create({ user: { id: context.id } as any, action: "student.sync_health_reviewed", entity: "student_sync_health", metadata: { studentId, devices: health.map((row) => ({ deviceId: row.deviceId, correlationId: row.correlationId || null, status: row.status, pendingCount: row.pendingCount })) } }));
+    return { reviewed: true, devices: health.length };
   }
   async history(context: UserContext, studentId: string, limit = 50) {
     if (
@@ -194,6 +227,16 @@ export class ActivityService {
     if (presence?.syncStatus === "failed")
       signals.push({ type: "SYNC_FAILED", count: 1, weight: 4 });
     return { score: signals.reduce((n, s) => n + s.weight, 0), signals };
+  }
+  private publicSyncHealth(row: StudentSyncHealth) { return { deviceId: row.deviceId, correlationId: row.correlationId || null, status: row.status, pendingCount: row.pendingCount, failureCode: row.failureCode || null, lastSuccessfulAt: row.lastSuccessfulAt?.toISOString() || null, updatedAt: row.updatedAt.toISOString() }; }
+  private normalizeSyncFailureCode(value?: string) {
+    const normalized = String(value || "UNKNOWN").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 80);
+    return SYNC_FAILURE_CODES.has(normalized) ? normalized : "UNKNOWN";
+  }
+  private async purgeStaleSyncHealth() {
+    const configuredDays = Number(process.env.SYNC_HEALTH_RETENTION_DAYS || 90);
+    const days = Number.isFinite(configuredDays) ? Math.max(7, Math.min(365, Math.floor(configuredDays))) : 90;
+    await this.syncHealthRepo.delete({ updatedAt: LessThan(new Date(Date.now() - days * 86_400_000)) });
   }
   private publicPresence(row: StudentPresence, now = new Date()) {
     return { ...projectPresence({ state: row.state, lastSeenAt: row.lastSeenAt, resource: row.currentTask }, now), syncStatus: row.syncStatus };

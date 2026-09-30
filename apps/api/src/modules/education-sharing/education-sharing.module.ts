@@ -8,11 +8,24 @@ import { Plan } from "../../database/entities/plan.entity";
 import { Student } from "../../database/entities/student.entity";
 import { Task } from "../../database/entities/task.entity";
 import { AuthorizationModule } from "../authorization/authorization.module";
+import { RealtimeModule } from "../realtime/realtime.module";
 import { EducationSharingController } from "./education-sharing.controller";
 import { EducationSharingService } from "./education-sharing.service";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Student, OrganizationMembership, Plan, Task, LearningResource, LearningResourceAssignment, AuditLog]), AuthorizationModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Student,
+      OrganizationMembership,
+      Plan,
+      Task,
+      LearningResource,
+      LearningResourceAssignment,
+      AuditLog,
+    ]),
+    AuthorizationModule,
+    RealtimeModule,
+  ],
   controllers: [EducationSharingController],
   providers: [EducationSharingService],
 })

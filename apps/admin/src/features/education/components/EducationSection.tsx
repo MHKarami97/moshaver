@@ -14,13 +14,13 @@ export function EducationSections({ sections }: Props) {
     <section
       aria-labelledby="education-sections-title"
       aria-describedby="education-sections-desc"
-      className="grid gap-4"
+      className="grid gap-2"
     >
       {sections.length === 0 ? (
         <EmptyState />
       ) : (
         // role="list" restores semantics in Safari, which strips them when list-style is removed.
-        <ul role="list" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul role="list" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {sections.map((section) => (
             <EducationSectionCard key={section.path} section={section} />
           ))}

@@ -48,6 +48,10 @@ export class Question {
   @Column({ default: "" })
   source!: string;
 
+  @Index()
+  @Column({ type: "varchar", nullable: true })
+  questionBankItemId?: string | null;
+
   @Column({ default: 0 }) sortOrder!: number;
 
   @Column({ type: "simple-json", default: "[]" })

@@ -10,6 +10,7 @@ export type RealtimeEventType =
   | "notification.created"
   | "plan.updated"
   | "exam.created"
+  | "learning-resource.updated"
   | "system.update"
   | "chat.message.created";
 
@@ -21,7 +22,9 @@ export class RealtimeService {
 
   stream(userId: string): Observable<RealtimeEvent> {
     return new Observable((subscriber) => {
-      const unsubscribe = this.hub.subscribe(userId, (event) => subscriber.next(event));
+      const unsubscribe = this.hub.subscribe(userId, (event) =>
+        subscriber.next(event),
+      );
       return unsubscribe;
     });
   }
@@ -30,7 +33,11 @@ export class RealtimeService {
     this.hub.emitToUser(userId, type, data);
   }
 
-  emitToUsers(userIds: Iterable<string>, type: RealtimeEventType, data: unknown) {
+  emitToUsers(
+    userIds: Iterable<string>,
+    type: RealtimeEventType,
+    data: unknown,
+  ) {
     this.hub.emitToUsers(userIds, type, data);
   }
 

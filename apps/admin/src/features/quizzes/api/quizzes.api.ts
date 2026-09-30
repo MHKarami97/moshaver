@@ -15,6 +15,19 @@ export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> 
 export const createQuiz = (body: QuizDraft) => api.post<{ id: string }>("/quizzes", body);
 export const updateQuiz = (id: string, body: QuizDraft | Partial<Quiz>) =>
   api.patch(`/quizzes/${id}`, body);
+export const deleteQuiz = (id: string) =>
+  api.delete<{ deleted?: boolean; archived?: boolean }>(`/quizzes/${id}`);
+export type QuizAssignment = { id: string; studentId: string; name: string; grade?: string | null; gradeId?: number | null; educationTypeId?: string | null; trackId?: string | null };
+export const getQuizAssignments = (id: string) => api.get<QuizAssignment[]>(`/quizzes/${id}/assignments`);
+export const setQuizAssignments = (id: string, studentIds: string[]) => api.put<QuizAssignment[]>(`/quizzes/${id}/assignments`, { studentIds });
+export type QuizClassAssignment = { id: string; classId: string; name: string; code: string; schoolYear: string; enrollmentCount: number };
+export const getQuizClassAssignments = (id: string) => api.get<QuizClassAssignment[]>(`/quizzes/${id}/class-assignments`);
+export const setQuizClassAssignments = (id: string, classIds: string[]) => api.put<QuizClassAssignment[]>(`/quizzes/${id}/class-assignments`, { classIds });
+export type QuizAudienceRules = { gradeIds: number[]; educationTypeIds: string[]; trackIds: string[] };
+export const setQuizAudienceRules = (id: string, body: QuizAudienceRules) => api.put<QuizAudienceRules>(`/quizzes/${id}/audience-rules`, body);
+export const releaseQuizResults = (id: string) => api.post<{ id: string; resultsReleasedAt: string }>(`/quizzes/${id}/release-results`, {});
+export type QuizAnalytics = { attempts: number; averagePercent: number | null; byGrade: Array<{ grade: string; attempts: number; averagePercent: number }>; questions: Array<{ id: string; text: string; sortOrder: number; attempts: number; correct: number; accuracy: number | null; responses: Record<string, number> }> };
+export const getQuizAnalytics = (id: string) => api.get<QuizAnalytics>(`/quizzes/${id}/analytics`);
 export const createQuizQuestion = (quizId: string, body: QuestionDraft) =>
   api.post(`/quizzes/${quizId}/questions`, toRequest(body));
 export const updateQuizQuestion = (id: string, body: QuestionDraft) =>

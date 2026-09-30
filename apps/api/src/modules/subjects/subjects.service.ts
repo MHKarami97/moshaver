@@ -78,6 +78,7 @@ export class SubjectsService {
           ]
         : { organization: IsNull(), ...(includeArchived ? {} : { active: true }) },
       order: { name: "ASC" },
+      relations: { organization: true },
     });
   }
 
@@ -102,10 +103,19 @@ export class SubjectsService {
       : null;
     if (d.organizationId && !organization)
       throw new ApiException(404, "NOT_FOUND", "سازمان یافت نشد.");
+    const code = d.code.trim().toLowerCase();
+    const existing = await this.subjects.findOne({
+      where: d.organizationId
+        ? { code, organization: { id: d.organizationId } }
+        : { code, organization: IsNull() },
+    });
+    if (existing)
+      throw new ApiException(409, "SUBJECT_CODE_EXISTS", "کلید یکتای درس قبلاً ثبت شده است.");
     return this.subjects.save(
       this.subjects.create({
-        code: d.code.trim().toLowerCase(),
+        code,
         name: d.name.trim(),
+        category: d.category?.trim() || "عمومی",
         organization,
         active: true,
       }),
@@ -116,8 +126,69 @@ export class SubjectsService {
     const c = this.context(u);
     this.authorization.requireCapability(c, "subjects.update");
     const subject = await this.accessibleSubject(c, id);
-    Object.assign(subject, d);
+    Object.assign(subject, {
+      ...(d.name !== undefined ? { name: d.name.trim() } : {}),
+      ...(d.category !== undefined ? { category: d.category.trim() } : {}),
+    });
     return this.subjects.save(subject);
+  }
+
+  async export(u: AuthenticatedUser) {
+    const rows = await this.list(u, true);
+    return {
+      schemaVersion: "1.0",
+      subjects: rows.map((row) => ({
+        code: row.code,
+        name: row.name,
+        category: row.category || "عمومی",
+        active: row.active,
+        organizationId: row.organization?.id,
+      })),
+    };
+  }
+
+  importSample() {
+    return {
+      schemaVersion: "1.0",
+      subjects: [
+        { code: "mathematics", name: "ریاضی", category: "علوم پایه" },
+        { code: "persian", name: "فارسی", category: "عمومی" },
+      ],
+    };
+  }
+
+  async previewImport(u: AuthenticatedUser, rows: CreateSubjectDto[] = []) {
+    this.authorization.requireCapability(this.context(u), "subjects.create");
+    if (!Array.isArray(rows) || !rows.length || rows.length > 500)
+      throw new ApiException(422, "SUBJECT_IMPORT_INVALID", "فایل باید شامل ۱ تا ۵۰۰ درس باشد.");
+    const seen = new Set<string>();
+    const results = await Promise.all(rows.map(async (row, index) => {
+      const code = typeof row?.code === "string" ? row.code.trim().toLowerCase() : "";
+      const name = typeof row?.name === "string" ? row.name.trim() : "";
+      const category = typeof row?.category === "string" ? row.category.trim() : "عمومی";
+      const errors: string[] = [];
+      if (!code || code.length > 80) errors.push("کلید درس معتبر نیست");
+      if (name.length < 2 || name.length > 160) errors.push("نام درس معتبر نیست");
+      if (!category || category.length > 80) errors.push("دسته‌بندی معتبر نیست");
+      const identity = `${row?.organizationId || "platform"}:${code}`;
+      if (seen.has(identity)) errors.push("کلید درس در همین فایل تکراری است");
+      seen.add(identity);
+      if (row?.organizationId && !this.authorization.canAccessOrganization(this.context(u), row.organizationId, "organization.read")) errors.push("سازمان انتخاب‌شده در دسترس نیست");
+      if (!errors.length) {
+        const existing = await this.subjects.findOne({ where: row.organizationId ? { code, organization: { id: row.organizationId } } : { code, organization: IsNull() } });
+        if (existing) errors.push("کلید درس از قبل ثبت شده است");
+      }
+      return { row: index + 1, code: code || null, valid: !errors.length, errors };
+    }));
+    return { valid: results.every((row) => row.valid), accepted: results.filter((row) => row.valid).length, rejected: results.filter((row) => !row.valid).length, rows: results };
+  }
+
+  async commitImport(u: AuthenticatedUser, rows: CreateSubjectDto[] = []) {
+    const preview = await this.previewImport(u, rows);
+    if (!preview.valid) throw new ApiException(422, "SUBJECT_IMPORT_INVALID", "پیش‌نمایش ورود دارای خطا است.", preview);
+    const created = [];
+    for (const row of rows) created.push(await this.create(u, row));
+    return { imported: created.length, subjects: created };
   }
 
   async setActive(u: AuthenticatedUser, id: string, active: boolean) {
@@ -273,6 +344,7 @@ export class SubjectsService {
         id: row.subject.id,
         code: row.subject.code,
         name: row.subject.name,
+        category: row.subject.category || "عمومی",
       },
       enabled: row.enabled,
       displayName: row.displayName,

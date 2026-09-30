@@ -7,7 +7,7 @@ import { UserRole } from "../../database/entities/user.entity";
 import { AuthenticatedUser } from "../auth";
 import { UserContext } from "../authorization";
 import { AssessmentsService } from "./assessments.service";
-import { CreateQuizDto, ModerateRetryDto, QuizQuestionDto, RetryRequestDto, SubmitQuizDto, SyllabusDto, SyllabusProgressDto, UpdateQuizDto } from "./dto/assessment.dto";
+import { CreateQuizDto, ModerateRetryDto, QuizAssignmentsDto, QuizAudienceRulesDto, QuizClassAssignmentsDto, QuizQuestionDto, RetryRequestDto, SubmitQuizDto, SyllabusDto, SyllabusProgressDto, UpdateQuizDto } from "./dto/assessment.dto";
 
 @Controller()
 export class AssessmentsController {
@@ -25,9 +25,17 @@ export class AssessmentsController {
   @Get("quizzes") @RequireCapabilities("quizzes.read") quizzes(@CurrentUser()u:AuthenticatedUser){return this.service.listQuizzes(this.context(u)).then(ok);}
   @Post("quizzes") @RequireCapabilities("quizzes.create") createQuiz(@CurrentUser()u:AuthenticatedUser,@Body() dto:CreateQuizDto){return this.service.createQuiz(this.context(u),dto).then(ok);}
   @Patch("quizzes/:id") @RequireCapabilities("quizzes.update") updateQuiz(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string,@Body() dto:UpdateQuizDto){return this.service.updateQuiz(this.context(u),id,dto).then(ok);}
+  @Get("quizzes/:id/assignments") @RequireCapabilities("quizzes.read") quizAssignments(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.listQuizAssignments(this.context(u),id).then(ok);}
+  @Put("quizzes/:id/assignments") @RequireCapabilities("quizzes.update") assignQuiz(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string,@Body() dto:QuizAssignmentsDto){return this.service.assignQuiz(this.context(u),id,dto.studentIds).then(ok);}
+  @Get("quizzes/:id/class-assignments") @RequireCapabilities("quizzes.read") quizClassAssignments(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.listQuizClassAssignments(this.context(u),id).then(ok);}
+  @Put("quizzes/:id/class-assignments") @RequireCapabilities("quizzes.update") assignQuizClasses(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string,@Body() dto:QuizClassAssignmentsDto){return this.service.assignQuizClasses(this.context(u),id,dto.classIds).then(ok);}
+  @Put("quizzes/:id/audience-rules") @RequireCapabilities("quizzes.update") setQuizAudienceRules(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string,@Body() dto:QuizAudienceRulesDto){return this.service.setQuizAudienceRules(this.context(u),id,dto).then(ok);}
+  @Post("quizzes/:id/release-results") @RequireCapabilities("quizzes.update") releaseQuizResults(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.releaseQuizResults(this.context(u),id).then(ok);}
+  @Delete("quizzes/:id") @RequireCapabilities("quizzes.update") removeQuiz(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.removeQuiz(this.context(u),id).then(ok);}
   @Get("quizzes/history") @Roles(UserRole.STUDENT) @RequireCapabilities("student.quizzes.read") history(@CurrentUser() u:AuthenticatedUser){return this.service.history(u.id).then(ok);}
   @Get("quizzes/history/:attemptId") @Roles(UserRole.STUDENT) @RequireCapabilities("student.quizzes.read") historyDetail(@CurrentUser() u:AuthenticatedUser,@Param("attemptId") id:string){return this.service.history(u.id,id).then(ok);}
   @Get("quizzes/:id/questions") @RequireCapabilities("quizzes.read") questions(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.quizQuestions(this.context(u),id).then(ok);}
+  @Get("quizzes/:id/analytics") @RequireCapabilities("quizzes.read") analytics(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string){return this.service.quizAnalytics(this.context(u),id).then(ok);}
   @Post("quizzes/:id/questions") @RequireCapabilities("quiz_questions.manage") addQuestion(@CurrentUser()u:AuthenticatedUser,@Param("id") id:string,@Body() dto:QuizQuestionDto){return this.service.addQuizQuestion(this.context(u),id,dto).then(ok);}
   @Patch("quiz-questions/:id") @RequireCapabilities("quiz_questions.manage") updateQuestion(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string,@Body()dto:QuizQuestionDto){return this.service.updateQuizQuestion(this.context(u),id,dto).then(ok);}
   @Delete("quiz-questions/:id") @RequireCapabilities("quiz_questions.manage") removeQuestion(@CurrentUser()u:AuthenticatedUser,@Param("id")id:string){return this.service.removeQuizQuestion(this.context(u),id).then(ok);}

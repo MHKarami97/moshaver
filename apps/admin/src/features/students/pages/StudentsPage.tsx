@@ -35,6 +35,7 @@ import { StudentOverview } from "../components/StudentOverview";
 import { StudentOverviewStats } from "../components/StudentOverviewStats";
 import { StudentSecurity } from "../components/StudentSecurity";
 import { StudentSupportWorkspace } from "../components/StudentSupportWorkspace";
+import { getStudentSyncHealth, reviewStudentSyncHealth } from "../api/student-activity.api";
 import {
   getStudentProfileCompleteness,
   getStudentStatus,
@@ -497,6 +498,19 @@ export function StudentsPage() {
       }),
   });
 
+  const reviewSyncHealth = useMutation({
+    mutationFn: () => reviewStudentSyncHealth(selectedId),
+    onSuccess: () => {
+      setFeedback({ tone: "success", message: "وضعیت همگام‌سازی بررسی و ثبت شد." });
+      void qc.invalidateQueries({ queryKey: ["student-sync-health", selectedId] });
+    },
+    onError: (error) =>
+      setFeedback({
+        tone: "error",
+        message: readableError(error, "ثبت بررسی همگام‌سازی ناموفق بود."),
+      }),
+  });
+
   const overview = useQuery({
     queryKey: ["student-overview", selectedId],
     enabled: mode === "edit" && !!selectedId && detailTab === "overview",
@@ -522,6 +536,11 @@ export function StudentsPage() {
     queryKey: ["student-topics", selectedId],
     enabled: activityEnabled,
     queryFn: () => getStudentTopics(selectedId),
+  });
+  const syncHealth = useQuery({
+    queryKey: ["student-sync-health", selectedId],
+    enabled: activityEnabled && auth.can("student.activity.read"),
+    queryFn: () => getStudentSyncHealth(selectedId),
   });
 
   useEffect(() => {
@@ -661,6 +680,7 @@ export function StudentsPage() {
       ...(auth.can("exams.read") ? [attempts.refetch()] : []),
       weekly.refetch(),
       topics.refetch(),
+      ...(auth.can("student.activity.read") ? [syncHealth.refetch()] : []),
     ]);
 
   const activityValues = [
@@ -700,6 +720,9 @@ export function StudentsPage() {
       error: topics.isError,
       hint: "موضوع‌های تحلیل‌شده",
     },
+    ...(auth.can("student.activity.read")
+      ? [{ label: "همگام‌سازی در انتظار", value: (syncHealth.data || []).reduce((sum, device) => sum + device.pendingCount, 0), loading: syncHealth.isLoading, error: syncHealth.isError, hint: syncHealth.data?.some((device) => device.status === "failed") ? "یک دستگاه خطای همگام‌سازی دارد" : `${syncHealth.data?.length || 0} دستگاه گزارش داده‌اند` }]
+      : []),
   ];
 
   const detailContent = selected ? (
@@ -719,6 +742,19 @@ export function StudentsPage() {
         {detailTab === "activity" ? (
           <>
             <StudentInsights onRetry={retryActivity} values={activityValues} />
+            {auth.can("student.sync.support") ? (
+              <div className="mt-3 flex justify-end">
+                <Button
+                  variant="soft"
+                  size="sm"
+                  loading={reviewSyncHealth.isPending}
+                  loadingLabel="در حال ثبت…"
+                  onClick={() => reviewSyncHealth.mutate()}
+                >
+                  ثبت بررسی همگام‌سازی
+                </Button>
+              </div>
+            ) : null}
             <StudentSupportWorkspace studentId={selectedId} />
           </>
         ) : null}
