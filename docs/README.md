@@ -93,6 +93,7 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 ## Product and releases
 
 - [Interface design principles](./product/interface-design-principles.md)
+- [Education planning improvement](./product/education-planning-improvement.md) — multi-student planning, range sharing, UX acceptance, and gap roadmap.
 - [Version roadmap](./product/version-roadmap.md)
 - [Application icon catalog](./product/application-icon-catalog.md)
 - [Product changelog](./releases/product-changelog.md)

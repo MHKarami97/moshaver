@@ -1,99 +1,91 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": "2.0",
+  "scope": "all",
   "plans": [
     {
-      "planDate": "2026-08-20",
-      "jalaliId": "1405-05-29",
-      "dayLabel": "پنج‌شنبه",
-      "persianDate": "۲۹ مرداد ۱۴۰۵",
-      "title": "نمونه برنامه روزانه",
+      "date": "2026-09-20",
       "published": false,
+      "title": "شروع هفته با تمرکز",
+      "dayLabel": "شنبه",
+      "persianDate": "۲۹ شهریور ۱۴۰۵",
+      "jalaliId": "1405-06-29",
+      "motivationText": "فقط قدم بعدی را با تمرکز انجام بده.",
       "tasks": [
         {
-          "start": "07:00",
-          "end": "08:10",
-          "type": "study",
-          "subject": "روان‌شناسی",
-          "title": "مطالعه فعال",
-          "pages": "۸ تا ۲۱",
+          "type": "STUDY",
+          "title": "مطالعه فعال فصل اول",
+          "subject": "ریاضی",
+          "description": "صفحه ۱۲ تا ۲۵؛ پس از مطالعه، نکته‌ها را بدون کتاب بازیابی کن.",
+          "startTime": "08:00",
+          "endTime": "09:15",
+          "duration": 75,
           "testCount": 0,
-          "note": "مطالعه → بستن کتاب → بازیابی"
+          "note": "خلاصه یک‌صفحه‌ای تهیه شود.",
+          "pages": "۱۲ تا ۲۵",
+          "priority": 0
         },
         {
-          "start": "08:30",
-          "end": "09:15",
-          "type": "test",
-          "subject": "روان‌شناسی",
-          "title": "تست آموزشی",
-          "pages": "۸ تا ۲۱",
-          "testCount": 15,
-          "note": "غلط و نزده را تحلیل کن"
+          "type": "TEST",
+          "title": "تست آموزشی فصل اول",
+          "subject": "ریاضی",
+          "description": "تست‌های آموزشی صفحه ۲۶ تا ۲۹",
+          "startTime": "09:30",
+          "endTime": "10:00",
+          "duration": 30,
+          "testCount": 12,
+          "note": "غلط‌ها و نزده‌ها را علامت بزن.",
+          "examRef": "math-week-1",
+          "conflict": false,
+          "priority": 1
         }
       ]
     },
     {
-      "planDate": "2026-08-21",
-      "jalaliId": "1405-05-30",
-      "dayLabel": "جمعه",
-      "persianDate": "۳۰ مرداد ۱۴۰۵",
-      "title": "روز آزمون نمونه",
+      "date": "2026-09-21",
       "published": false,
+      "title": "مرور و کلاس",
+      "dayLabel": "یکشنبه",
+      "persianDate": "۳۰ شهریور ۱۴۰۵",
       "tasks": [
         {
-          "start": "07:15",
-          "end": "07:45",
-          "type": "review",
-          "subject": "روان‌شناسی",
-          "title": "مرور قبل آزمون",
-          "pages": "۸ تا ۲۱",
+          "type": "CLASS",
+          "title": "کلاس رفع اشکال فصل اول",
+          "subject": "ریاضی",
+          "description": "رفع اشکال و مرور خلاصه‌های روز قبل",
+          "startTime": "08:00",
+          "endTime": "08:40",
+          "duration": 40,
           "testCount": 0,
-          "note": "مطلب جدید نخوان"
-        },
-        {
-          "start": "08:00",
-          "end": "09:00",
-          "type": "exam",
-          "subject": "روان‌شناسی",
-          "title": "آزمون داخل Moshaver",
-          "pages": "۸ تا ۲۱",
-          "testCount": 2,
-          "note": "آزمون از بخش آزمون‌ها اجرا می‌شود"
+          "note": "فقط مباحث علامت‌دار را دوباره بخوان.",
+          "priority": 0
         }
       ]
     }
   ],
   "exams": [
     {
-      "title": "نمونه آزمون زمان‌دار Moshaver",
-      "isoDate": "2026-08-21",
-      "persianDate": "۳۰ مرداد ۱۴۰۵",
-      "status": "upcoming",
-      "published": true,
-      "openAt": "2026-08-21T08:00:00+03:30",
-      "closeAt": "2026-08-21T10:00:00+03:30",
-      "durationMinutes": 60,
+      "title": "آزمون نمونه ریاضی",
+      "externalRef": "math-week-1",
+      "subject": "ریاضی",
+      "published": false,
+      "durationMinutes": 30,
       "maxAttempts": 1,
-      "instructions": "این آزمون یک تلاش دارد. بعد از شروع، تایمر ادامه پیدا می‌کند.",
-      "syllabus": [
-        {
-          "subject": "روان‌شناسی",
-          "description": "درس ۱ — صفحه ۸ تا ۲۱",
-          "required": true,
-          "track": "دوازدهم"
-        }
-      ],
+      "openAt": "2026-09-21T08:45:00.000Z",
+      "closeAt": "2026-09-21T10:00:00.000Z",
+      "instructions": ["زمان را مدیریت کن و پاسخ‌ها را پیش از ثبت نهایی مرور کن."],
+      "syllabus": [{
+        "subject": "ریاضی",
+        "description": "فصل اول",
+        "required": true,
+        "track": "دوازدهم"
+      }],
       "questions": [
         {
-          "question": "این یک سؤال نمونه برای تست جریان JSON است. پاسخ نمونه کدام است؟",
-          "options": ["گزینه A", "گزینه B", "گزینه C", "گزینه D"],
-          "answer": "b",
-          "explanation": "در این فایل نمونه، گزینه B به‌عنوان پاسخ صحیح تعریف شده است."
-        },
-        {
-          "question": "سؤال نمونه دوم برای بررسی چهارگزینه‌ای؟",
-          "options": ["گزینه A", "گزینه B", "گزینه C", "گزینه D"],
-          "answer": "d",
-          "explanation": "در این نمونه، گزینه D پاسخ صحیح است."
+          "text": "حاصل ۲ + ۲ کدام است؟",
+          "options": ["۱", "۲", "۳", "۴"],
+          "correctAnswer": "۴",
+          "explanation": "جمع دو و دو برابر چهار است.",
+          "sortOrder": 0
         }
       ]
     }

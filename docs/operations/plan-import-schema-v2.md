@@ -1,4 +1,4 @@
-# Moshaver JSON Import Guide — schemaVersion 2
+# Moshaver JSON and Excel Import Guide — schemaVersion 2.0
 
 Admin can import plans and timed exams for the **student currently selected in the Admin top bar**. The selected Admin student is authoritative: a copied `studentId` inside the JSON is ignored/overridden so the file cannot silently target the wrong account.
 
@@ -19,23 +19,21 @@ Select student in Admin
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": "2.0",
+  "scope": "all",
   "plans": [
     {
-      "planDate": "2026-08-20",
-      "jalaliId": "1405-05-29",
-      "dayLabel": "پنج‌شنبه",
-      "persianDate": "۲۹ مرداد ۱۴۰۵",
-      "title": "برنامه روزانه",
+      "date": "2026-08-20",
       "published": false,
       "tasks": [
         {
-          "start": "07:00",
-          "end": "08:10",
-          "type": "study",
+          "startTime": "07:00",
+          "endTime": "08:10",
+          "type": "STUDY",
           "subject": "روان‌شناسی",
           "title": "مطالعه فعال درس ۱",
-          "pages": "۸ تا ۲۱",
+          "description": "صفحه ۸ تا ۲۱؛ مطالعه و بازیابی فعال",
+          "duration": 70,
           "testCount": 0,
           "note": "بعد از مطالعه کتاب را ببند و بازیابی کن"
         }
@@ -45,28 +43,15 @@ Select student in Admin
   "exams": [
     {
       "title": "آزمون نمونه",
-      "isoDate": "2026-08-21",
-      "persianDate": "۳۰ مرداد ۱۴۰۵",
-      "status": "upcoming",
-      "published": true,
       "openAt": "2026-08-21T08:00:00+03:30",
       "closeAt": "2026-08-21T10:00:00+03:30",
       "durationMinutes": 60,
       "maxAttempts": 1,
-      "instructions": "بعد از شروع، زمان متوقف نمی‌شود. هر سؤال را با دقت پاسخ بده.",
-      "syllabus": [
-        {
-          "subject": "روان‌شناسی",
-          "description": "درس ۱ — صفحه ۸ تا ۲۱",
-          "required": true,
-          "track": "دوازدهم"
-        }
-      ],
       "questions": [
         {
-          "question": "صورت سؤال نمونه",
+          "text": "صورت سؤال نمونه",
           "options": ["گزینه اول", "گزینه دوم", "گزینه سوم", "گزینه چهارم"],
-          "answer": "b",
+          "correctAnswer": "گزینه دوم",
           "explanation": "توضیح پاسخ صحیح"
         }
       ]
@@ -75,9 +60,9 @@ Select student in Admin
 }
 ```
 
-`correctOption` may be used instead of `answer`. Valid correct answers are `a`, `b`, `c`, `d` (numeric `0`–`3` is also normalized by the importer). Every exam question must have exactly four non-empty options.
+Use the string `"2.0"` for new files. Numeric or string `2` files from the advisor export are accepted and normalized to `"2.0"`. Every exam question must have exactly four distinct, non-empty options, and `correctAnswer` must exactly equal one of those option texts. Legacy `correctOption` values (`a`–`d`) are also converted to the matching option during import.
 
-Task types: `study`, `review`, `test`, `class`, `prayer`, `meal`, `break`, `exam`.
+Task types accepted by the current importer are `STUDY`, `TEST`, `REVIEW`, `EXAM`, `REST`, `CUSTOM`, `CLASS`, `PRAYER`, `MEAL`, and `BREAK` (case-insensitive input is normalized). Use `startTime`/`endTime` in `HH:mm`; `start`/`end` are also accepted for JSON compatibility. Rich plans may also include `motivationText`, task `pages`, `conflict`, `conflictGroup`, and an `examId`/`examRef` that matches an imported exam `ref`.
 
 A day is one plan object. A week is normally seven plan objects. A month is 28–31 plan objects; there is no separate month schema because the Admin calendar groups plan dates automatically.
 
@@ -97,51 +82,26 @@ Preview does not write anything. Commit uses a database transaction. Existing sa
 
 Use **Import as Draft** for large week/month files, inspect Day/Week/Month in Admin, then publish the chosen range. Use **Import + Publish** only when the preview is already final.
 
-See `examples/week-plan-and-exam-v2.json` for a ready-to-edit file.
+See [`examples/week-plan-and-exam-v2.json`](../../examples/week-plan-and-exam-v2.json) for a ready-to-edit, API-compatible file.
 
-## v1.4.1 — Link an exam directly into the daily plan
+## Excel template
 
-To make an exam appear as a runnable card inside the Student **Today / Plan** timeline, give the exam a stable `ref` and use the same value as `examRef` on a task with `type: "exam"`.
+In Admin, select the student first, then choose **نمونه Excel**. The generated workbook is already compatible with this schema and contains a Persian guide sheet plus `Plans` and `Exams` sheets. Do not rename the English sheet names or first-row column names.
 
-```json
-{
-  "plans": [{
-    "planDate": "2026-08-21",
-    "tasks": [
-      {"start":"07:00","end":"08:00","type":"study","subject":"روان‌شناسی","title":"مطالعه درس ۱"},
-      {"start":"08:10","end":"08:35","type":"exam","subject":"روان‌شناسی","title":"آزمون تمرینی درس ۱","examRef":"psy-1"}
-    ]
-  }],
-  "exams": [{
-    "ref":"psy-1",
-    "title":"آزمون تمرینی درس ۱",
-    "isoDate":"2026-08-21",
-    "persianDate":"۳۰ مرداد ۱۴۰۵",
-    "openAt":"2026-08-21T08:10:00+03:30",
-    "closeAt":"2026-08-21T09:00:00+03:30",
-    "durationMinutes":25,
-    "published":true,
-    "questions":[]
-  }]
-}
+For plans, use one row per task. Repeat `planDate` for every task on the same day. Required columns are:
+
+```text
+planDate, published, planTitle, dayLabel, persianDate, jalaliId, motivationText, type, title, subject, description, startTime, endTime, duration, testCount, note, priority, pages, examRef, conflict, conflictGroup
 ```
 
-The Student does not have to switch to the Exams tab. The exam opens from the plan card and the question runner stays in a modal over the same page. Final submission automatically completes the linked exam task.
+For exams, use one row per question. Repeat the exam information for every question. Required columns are:
 
-
-## v1.4.2 — پیام انگیزشی روزانه
-
-هر plan می‌تواند یک متن اختیاری `motivationText` داشته باشد. این متن در صفحه «امروز» و در نمایش برنامه همان روز برای دانش‌آموز دیده می‌شود و مشاور می‌تواند بعداً از «مشخصات روز» آن را تغییر دهد.
-
-```json
-{
-  "planDate": "2026-08-19",
-  "persianDate": "۲۸ مرداد ۱۴۰۵",
-  "title": "برنامه روزانه",
-  "motivationText": "امروز فقط روی قدم بعدی تمرکز کن؛ پیشرفت از همین قدم‌های کوچک ساخته می‌شود.",
-  "published": true,
-  "tasks": []
-}
+```text
+externalRef, published, title, subject, durationMinutes, maxAttempts, openAt, closeAt, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, sortOrder, instructions, syllabusSubject, syllabusDescription, syllabusRequired, syllabusTrack
 ```
 
-نمونه هفت‌روزه آماده در `examples/week-plan-with-motivation.json` قرار دارد.
+`correctAnswer` must be the full text of one of `optionA` through `optionD`, not `A`, `B`, `1`, or `2`.
+
+## Legacy examples
+
+For the current importer, use [`examples/week-plan-and-exam-v2.json`](../../examples/week-plan-and-exam-v2.json) or the Admin-generated JSON/Excel templates. `schemaVersion: 1` is unsupported. Advisor exports using numeric/string `2`, plan `motivationText`, or task `examRef` are accepted for migration and normalized to v2.
