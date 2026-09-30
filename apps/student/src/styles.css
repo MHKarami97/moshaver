@@ -2091,6 +2091,14 @@ input {
   display: grid;
   gap: 14px;
 }
+.plan-intro {
+  border: 1px solid rgb(var(--primary) / 0.18);
+  border-radius: 18px;
+  background: rgb(var(--primary-soft));
+  padding: 14px;
+}
+.plan-intro h1 { margin: 0; font-size: 15px; font-weight: 900; }
+.plan-intro p { margin: 7px 0 0; color: rgb(var(--text-secondary)); font-size: 13px; line-height: 1.8; }
 .plan-toolbar {
   position: relative;
   z-index: 12;

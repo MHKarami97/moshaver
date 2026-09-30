@@ -55,6 +55,8 @@ export function MoreRouterPage({
 }) {
   const { section } = useParams();
   if (!section) return <MoreHub />;
+  if (section === "learning") return <LearningMenu />;
+  if (section === "account") return <AccountMenu />;
   if (section === "audio")
     return (
       <MoreSection title="فهرست صوتی" subtitle="پخش، صف و آرامش امروز">
@@ -119,6 +121,10 @@ function MoreHub() {
           </p>
         </div>
       </header>
+      <MoreGroup title="دسته‌بندی‌ها">
+        <MoreRow to="/more/learning" icon={<BookOpen />} title="یادگیری و برنامه" subtitle="کتاب‌ها، پیشرفت، منابع و گزارش‌ها" tone="blue" />
+        <MoreRow to="/more/account" icon={<Settings />} title="حساب من" subtitle="اعلان‌ها، پروفایل، خانواده و امنیت" tone="neutral" />
+      </MoreGroup>
       {access?.canUseChat ? (
         <section className="more-chat-featured" aria-label="ارتباط با مشاور">
           <MoreRow
@@ -253,6 +259,29 @@ function MoreHub() {
       </MoreGroup>
     </section>
   );
+}
+
+function LearningMenu() {
+  const access = useStudentStore((state) => state.access);
+  return <MoreSection title="یادگیری و برنامه" subtitle="یکی از ابزارهای آموزشی را انتخاب کنید"><MoreGroup title="ابزارها">
+    {access?.mode === "student" ? <MoreRow to="/more/books" icon={<BookOpen />} title="کتاب‌های درسی من" subtitle="کتاب‌های متناسب با پایه و رشته" tone="blue" /> : null}
+    {access?.mode === "student" ? <MoreRow to="/more/insights" icon={<TrendingUp />} title="روند و پیشنهادها" subtitle="تحلیل عملکرد و پیشنهادهای مشاور" tone="blue" /> : null}
+    {access?.canReadLearning ? <MoreRow to="/learning" icon={<BookOpenCheck />} title="پیشرفت و مرور" subtitle="گزارش یادگیری و مرورها" /> : null}
+    {access?.canReadResources ? <MoreRow to="/resources" icon={<LibraryBig />} title="منابع آموزشی" subtitle="ویدئوها و پیوندهای منتشرشده" tone="blue" /> : null}
+    {access?.canUseQuizzes ? <MoreRow to="/quizzes" icon={<ListChecks />} title="آزمونک‌ها" subtitle="تمرین کوتاه و نتیجه فوری" tone="purple" /> : null}
+    {access?.mode === "student" ? <MoreRow to="/more/reports" icon={<MoonStar />} title="گزارش و جبران" subtitle="گزارش شبانه و درخواست جبران" tone="amber" /> : null}
+  </MoreGroup></MoreSection>;
+}
+
+function AccountMenu() {
+  const access = useStudentStore((state) => state.access);
+  return <MoreSection title="حساب و تنظیمات" subtitle="مدیریت حساب و ارتباط‌ها"><MoreGroup title="حساب">
+    <MoreRow to="/notifications" icon={<Bell />} title="اعلان‌ها" subtitle="پیام‌ها و یادآوری‌ها" tone="blue" />
+    <MoreRow to="/more/profile" icon={<CircleUserRound />} title="پروفایل آموزشی" subtitle="مشخصات و ارتباط‌های پرونده" />
+    {access?.mode === "student" ? <MoreRow to="/more/guardian" icon={<UserRoundPlus />} title="انتخاب سرپرست" subtitle="مدیریت سرپرست حساب" tone="amber" /> : null}
+    {access?.canUseChat ? <MoreRow to="/more/chat-profile" icon={<MessageCircle />} title="پروفایل گفتگو" subtitle="نام نمایشی و درباره من" tone="blue" /> : null}
+    <MoreRow to="/more/settings" icon={<Settings />} title="تنظیمات" subtitle="ظاهر، اعلان، داده و امنیت" tone="neutral" />
+  </MoreGroup></MoreSection>;
 }
 
 function MoreSection({

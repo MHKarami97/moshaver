@@ -58,6 +58,8 @@ interface BackendTask {
   duration?: number;
   testCount?: number;
   note?: string;
+  pages?: string;
+  examId?: string;
   priority?: number;
   completedAt?: string | null;
   status?: TaskCompletionStatus;
@@ -70,6 +72,9 @@ interface BackendTask {
 interface BackendPlan {
   id?: string;
   date?: string;
+  title?: string;
+  persianDate?: string;
+  motivationText?: string;
   tasks?: BackendTask[];
 }
 
@@ -462,8 +467,9 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         plan: {
           id: dashboard.plan?.id,
           isoDate: dashboard.plan?.date ?? new Date().toISOString().slice(0, 10),
-          title: 'برنامه امروز',
-          motivationText: dashboard.recommendations?.length ? 'پیشنهادهای امروز آماده است.' : '',
+          title: dashboard.plan?.title || 'برنامه امروز',
+          persianDate: dashboard.plan?.persianDate,
+          motivationText: dashboard.plan?.motivationText || (dashboard.recommendations?.length ? 'پیشنهادهای امروز آماده است.' : ''),
           tasks: sortStudentTasks(tasks.map(mapTask)),
         },
       });
@@ -485,7 +491,9 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         plan: {
           id: plan?.id,
           isoDate: plan?.date ?? date,
-          title: 'برنامه روزانه',
+          title: plan?.title || 'برنامه روزانه',
+          persianDate: plan?.persianDate,
+          motivationText: plan?.motivationText || '',
           tasks: sortStudentTasks(tasks.map(mapTask)),
         },
       });
@@ -789,6 +797,8 @@ function mapTask(task: BackendTask, index: number): StudentTask {
     start: startTime,
     end: endTime,
     testCount: Number(task.testCount || 0),
+    pages: task.pages || undefined,
+    examId: task.examId || undefined,
     note: task.note || task.description || undefined,
     completion: task.completedAt ? {
       status: task.status || 'done',
@@ -801,7 +811,7 @@ function mapTask(task: BackendTask, index: number): StudentTask {
 
 function mapTaskType(type?: string): StudentTask['type'] {
   const normalized = (type || '').toLowerCase();
-  if (normalized === 'study' || normalized === 'review' || normalized === 'test' || normalized === 'exam') return normalized;
+  if (normalized === 'study' || normalized === 'review' || normalized === 'test' || normalized === 'exam' || normalized === 'class' || normalized === 'prayer' || normalized === 'meal' || normalized === 'break') return normalized;
   if (normalized === 'rest') return 'break';
   return 'study';
 }
