@@ -46,6 +46,31 @@ export function unassignExam(examId: string, studentId: string) {
   return api.delete(`/exams/${examId}/assignments/${studentId}`);
 }
 
+export type ExamClassAssignment = {
+  id: string;
+  classId: string;
+  name: string;
+  code: string;
+  schoolYear: string;
+  enrollmentCount: number;
+};
+export function getExamClassAssignments(examId: string) {
+  return api.get<ExamClassAssignment[]>(`/exams/${examId}/class-assignments`);
+}
+export function setExamClassAssignments(examId: string, classIds: string[]) {
+  return api.put<ExamClassAssignment[]>(`/exams/${examId}/class-assignments`, { classIds });
+}
+export type ExamAudienceRules = {
+  gradeIds: number[];
+  educationTypeIds: string[];
+  trackIds: string[];
+  learnerProfiles: string[];
+  independentTypes: string[];
+};
+export function setExamAudienceRules(examId: string, body: ExamAudienceRules) {
+  return api.put<ExamAudienceRules>(`/exams/${examId}/audience-rules`, body);
+}
+
 export function reviewRetryRequest(
   requestId: string,
   status: "approved" | "rejected",
@@ -77,4 +102,18 @@ export function getExamAttemptHistory(studentId: string) {
 
 export function getExamAttemptDetail(studentId: string, attemptId: string) {
   return api.get<AttemptDetail>(`/students/${studentId}/exam-attempts/${attemptId}`);
+}
+export type ExamAnalytics = {
+  attempts: number;
+  averagePercent: number | null;
+  byGrade: Array<{ grade: string; attempts: number; averagePercent: number }>;
+  questions: Array<{
+    id: string;
+    text: string;
+    accuracy: number | null;
+    responses: Record<string, number>;
+  }>;
+};
+export function getExamAnalytics(examId: string) {
+  return api.get<ExamAnalytics>(`/exams/${examId}/analytics`);
 }

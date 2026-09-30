@@ -13,7 +13,13 @@ import {
 import { useSearchParams } from "react-router-dom";
 import type { Plan, PlanTask, Student } from "../../../shared/types/domain";
 import { useStudentSelection } from "../../../shared/hooks/useStudentSelection";
-import { addDays, educationLabel, fa, normalizePersianText, todayIso } from "../../../shared/lib/utils";
+import {
+  addDays,
+  educationLabel,
+  fa,
+  normalizePersianText,
+  todayIso,
+} from "../../../shared/lib/utils";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { DataTransferWorkspace } from "../../../shared/ui/data-transfer";
 import { DatePicker } from "../../../shared/ui/date-picker";
@@ -71,9 +77,11 @@ import { PlannerMoreMenu } from "../components/PlannerMoreMenu";
 import { PlanTemplateLibrary } from "../components/PlanTemplateLibrary";
 import { PlannerFilterPopover } from "../components/PlannerFilterPopover";
 import { useAuth } from "../../auth";
+import { listOrganizations, type PortalOrganization } from "../../access/api/access.api";
 
 export function PlannerPage() {
   const auth = useAuth();
+  const isPlatformAdmin = auth.hasRole("PLATFORM_ADMIN");
   const canCreatePlan = auth.can("plans.create");
   const canUpdatePlan = auth.can("plans.update");
   const canCreateTask = auth.can("tasks.create");
@@ -89,9 +97,16 @@ export function PlannerPage() {
   const canManage = canQuickAdd && canUpdateTask;
   const canShare = auth.can("education.share") && auth.can("plans.create");
   const canHistory = auth.can("education.share");
-  const canTransfer = auth.can("import.preview") || auth.can("import.commit") || auth.can("export.read");
+  const canTransfer =
+    auth.can("import.preview") || auth.can("import.commit") || auth.can("export.read");
   const organizationId = auth.context?.activeOrganization?.id;
-  const canTemplateRead = auth.can("plan_templates.read") && Boolean(organizationId);
+  const organizations = useQuery({
+    queryKey: ["organizations", "plan-templates"],
+    queryFn: listOrganizations,
+    enabled: isPlatformAdmin && auth.can("plan_templates.read") && !organizationId,
+  });
+  const canTemplateRead =
+    auth.can("plan_templates.read") && (Boolean(organizationId) || isPlatformAdmin);
   const canTemplateManage = auth.can("plan_templates.manage");
   const canTemplatePublish = auth.can("plan_templates.publish");
   const students = useStudentSelection(),
@@ -201,8 +216,15 @@ export function PlannerPage() {
     queryFn: () => getPlannerExams(students.studentId),
   });
   const educationBooks = useQuery({
-    queryKey: ["planner-education-books", students.selectedStudent?.gradeId, students.selectedStudent?.educationTypeId, students.selectedStudent?.trackId],
-    enabled: Boolean(students.selectedStudent?.gradeId && students.selectedStudent?.educationTypeId),
+    queryKey: [
+      "planner-education-books",
+      students.selectedStudent?.gradeId,
+      students.selectedStudent?.educationTypeId,
+      students.selectedStudent?.trackId,
+    ],
+    enabled: Boolean(
+      students.selectedStudent?.gradeId && students.selectedStudent?.educationTypeId,
+    ),
     queryFn: () => getPlannerEducationBooks(students.selectedStudent || {}),
     staleTime: 5 * 60_000,
   });
@@ -596,11 +618,40 @@ export function PlannerPage() {
                 });
               }}
               onTemplates={() => {
-                if (!organizationId) return;
+                const openLibrary = (selectedOrganizationId: string) =>
+                  modal.open({
+                    title: "کتابخانه الگوهای برنامه",
+                    size: "lg",
+                    content: (
+                      <PlanTemplateLibrary
+                        organizationId={selectedOrganizationId}
+                        plans={visiblePlans}
+                        students={students.students}
+                        canManage={canTemplateManage}
+                        canPublish={canTemplatePublish}
+                        canApply={canCreatePlan}
+                        onClose={modal.close}
+                      />
+                    ),
+                  });
+                if (organizationId) {
+                  openLibrary(organizationId);
+                  return;
+                }
+                if (organizations.isLoading) {
+                  notify("در حال دریافت سازمان‌ها…");
+                  return;
+                }
                 modal.open({
-                  title: "کتابخانه الگوهای برنامه",
-                  size: "lg",
-                  content: <PlanTemplateLibrary organizationId={organizationId} plans={visiblePlans} canManage={canTemplateManage} canPublish={canTemplatePublish} onClose={modal.close} />,
+                  title: "انتخاب سازمان برای الگوها",
+                  size: "sm",
+                  content: (
+                    <TemplateOrganizationPicker
+                      organizations={organizations.data ?? []}
+                      onSelect={openLibrary}
+                      onClose={modal.close}
+                    />
+                  ),
                 });
               }}
               canPlan={canPlanSettings}
@@ -713,7 +764,9 @@ export function PlannerPage() {
                 notify("دسترسی حذف فعالیت را ندارید.", "error");
                 return;
               }
-              confirmDelete("حذف فعالیت؟", "این فعالیت از برنامه دانش‌آموز حذف می‌شود.", () => removeTask.mutate(task.id));
+              confirmDelete("حذف فعالیت؟", "این فعالیت از برنامه دانش‌آموز حذف می‌شود.", () =>
+                removeTask.mutate(task.id),
+              );
             }}
             onDuplicateTask={(plan, task) => {
               if (!canCreateTask) {
@@ -721,7 +774,13 @@ export function PlannerPage() {
                 return;
               }
               const start = addMinutes(task.start || "08:00", 30);
-              const duration = Math.max(15, minutesBetween(task.start || "08:00", task.end || addMinutes(task.start || "08:00", 60)));
+              const duration = Math.max(
+                15,
+                minutesBetween(
+                  task.start || "08:00",
+                  task.end || addMinutes(task.start || "08:00", 60),
+                ),
+              );
               void saveTask
                 .mutateAsync({
                   planId: plan.id,
@@ -739,12 +798,19 @@ export function PlannerPage() {
                   },
                 })
                 .then(() => notify("فعالیت ۳۰ دقیقه بعد تکثیر شد.", "success"))
-                .catch((reason) => notify(errorMessage(reason, "تکثیر فعالیت انجام نشد."), "error"));
+                .catch((reason) =>
+                  notify(errorMessage(reason, "تکثیر فعالیت انجام نشد."), "error"),
+                );
             }}
             onMoveTask={(taskId, planDate, start, end) =>
               void ensurePlan(planDate)
                 .then((plan) => moveTask.mutateAsync({ taskId, planId: plan.id, start, end }))
-                .catch((reason) => notify(errorMessage(reason, "جابجایی فعالیت ذخیره نشد و بازگردانده شد."), "error"))
+                .catch((reason) =>
+                  notify(
+                    errorMessage(reason, "جابجایی فعالیت ذخیره نشد و بازگردانده شد."),
+                    "error",
+                  ),
+                )
             }
             onEditPlan={(plan) => openPlan(plan.planDate, plan)}
             onDuplicatePlan={openDuplicate}
@@ -835,40 +901,67 @@ function PlanShareHistory({ onClose }: { onClose: () => void }) {
     queryFn: getPlanShareHistory,
   });
   if (history.isLoading)
-    return <p role="status" className="p-4 text-center text-sm text-slate-500">در حال دریافت تاریخچه…</p>;
+    return (
+      <p role="status" className="p-4 text-center text-sm text-slate-500">
+        در حال دریافت تاریخچه…
+      </p>
+    );
   if (history.isError)
     return (
       <div className="grid gap-3 p-3 text-center">
-        <p role="alert" className="text-sm text-rose-700">دریافت تاریخچه اشتراک‌گذاری انجام نشد.</p>
-        <Button variant="soft" onClick={() => void history.refetch()}>تلاش دوباره</Button>
+        <p role="alert" className="text-sm text-rose-700">
+          دریافت تاریخچه اشتراک‌گذاری انجام نشد.
+        </p>
+        <Button variant="soft" onClick={() => void history.refetch()}>
+          تلاش دوباره
+        </Button>
       </div>
     );
   if (!history.data?.length)
     return (
       <div className="grid gap-3 p-3 text-center">
         <p className="text-sm text-slate-500">هنوز اشتراک‌گذاری گروهی ثبت نشده است.</p>
-        <Button variant="ghost" onClick={onClose}>بستن</Button>
+        <Button variant="ghost" onClick={onClose}>
+          بستن
+        </Button>
       </div>
     );
   return (
     <div className="grid max-h-[65vh] gap-2 overflow-y-auto p-1">
       {history.data.map((entry) => {
         const metadata = entry.metadata || {};
-        const targets = Array.isArray(metadata.targetStudentIds) ? metadata.targetStudentIds.length : 0;
+        const targets = Array.isArray(metadata.targetStudentIds)
+          ? metadata.targetStudentIds.length
+          : 0;
         return (
-          <article key={entry.id} className="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+          <article
+            key={entry.id}
+            className="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <strong>{metadata.sourceFrom || "—"} تا {metadata.sourceTo || "—"}</strong>
-              <time className="text-xs text-slate-500">{new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.createdAt))}</time>
+              <strong>
+                {metadata.sourceFrom || "—"} تا {metadata.sourceTo || "—"}
+              </strong>
+              <time className="text-xs text-slate-500">
+                {new Intl.DateTimeFormat("fa-IR", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(entry.createdAt))}
+              </time>
             </div>
             <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              {fa(targets)} دانش‌آموز · {fa(Number(metadata.copied || 0))} کپی · {fa(Number(metadata.skipped || 0))} بدون تغییر
+              {fa(targets)} دانش‌آموز · {fa(Number(metadata.copied || 0))} کپی ·{" "}
+              {fa(Number(metadata.skipped || 0))} بدون تغییر
               {metadata.conflictPolicy === "overwrite" ? " · جایگزینی مجاز" : " · حفظ برنامه موجود"}
             </p>
           </article>
         );
       })}
-      <div className="pt-2 text-left"><Button variant="ghost" onClick={onClose}>بستن</Button></div>
+      <div className="pt-2 text-left">
+        <Button variant="ghost" onClick={onClose}>
+          بستن
+        </Button>
+      </div>
     </div>
   );
 }
@@ -902,7 +995,18 @@ function SharePlanForm({
     sourceTo: string;
     targetStartDate: string;
     conflictPolicy: "skip" | "overwrite";
-  }): Promise<{ summary: { targetCount: number; copiedPlanCount: number; existingPlanCount: number; emptyDestinationDayCount: number; timeConflictCount: number; examCollisionCount: number; overCapacityDayCount: number; proposedMinutes: number } }>;
+  }): Promise<{
+    summary: {
+      targetCount: number;
+      copiedPlanCount: number;
+      existingPlanCount: number;
+      emptyDestinationDayCount: number;
+      timeConflictCount: number;
+      examCollisionCount: number;
+      overCapacityDayCount: number;
+      proposedMinutes: number;
+    };
+  }>;
 }) {
   const choices = students.filter(
     (student) =>
@@ -924,16 +1028,48 @@ function SharePlanForm({
   const [conflictPolicy, setConflictPolicy] = useState<"skip" | "overwrite">("skip");
   const [overwriteAcknowledged, setOverwriteAcknowledged] = useState(false);
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState<{ summary: { targetCount: number; copiedPlanCount: number; existingPlanCount: number; emptyDestinationDayCount: number; timeConflictCount: number; examCollisionCount: number; overCapacityDayCount: number; proposedMinutes: number } } | null>(null);
+  const [preview, setPreview] = useState<{
+    summary: {
+      targetCount: number;
+      copiedPlanCount: number;
+      existingPlanCount: number;
+      emptyDestinationDayCount: number;
+      timeConflictCount: number;
+      examCollisionCount: number;
+      overCapacityDayCount: number;
+      proposedMinutes: number;
+    };
+  } | null>(null);
   const [previewing, setPreviewing] = useState(false);
-  const filterValues = (key: "grade" | "educationType" | "track" | "organization") =>
-    [...new Set(choices.map((student) => key === "grade" ? student.grade || String(student.gradeId || "") : key === "educationType" ? student.educationTypeId || "" : key === "track" ? student.trackId || student.major || "" : student.organization?.name || student.organizations?.map((item) => item.name).join("، ") || "").filter(Boolean))];
-  const visibleChoices = choices.filter((student) =>
-    normalizePersianText(`${student.name} ${student.grade || ""} ${student.major || ""} ${student.username || student.user?.username || ""}`).includes(normalizePersianText(query)) &&
-    (!grade || (student.grade || String(student.gradeId || "")) === grade) &&
-    (!educationType || student.educationTypeId === educationType) &&
-    (!track || (student.trackId || student.major || "") === track) &&
-    (!organization || (student.organization?.name || student.organizations?.map((item) => item.name).join("، ") || "") === organization),
+  const filterValues = (key: "grade" | "educationType" | "track" | "organization") => [
+    ...new Set(
+      choices
+        .map((student) =>
+          key === "grade"
+            ? student.grade || String(student.gradeId || "")
+            : key === "educationType"
+              ? student.educationTypeId || ""
+              : key === "track"
+                ? student.trackId || student.major || ""
+                : student.organization?.name ||
+                  student.organizations?.map((item) => item.name).join("، ") ||
+                  "",
+        )
+        .filter(Boolean),
+    ),
+  ];
+  const visibleChoices = choices.filter(
+    (student) =>
+      normalizePersianText(
+        `${student.name} ${student.grade || ""} ${student.major || ""} ${student.username || student.user?.username || ""}`,
+      ).includes(normalizePersianText(query)) &&
+      (!grade || (student.grade || String(student.gradeId || "")) === grade) &&
+      (!educationType || student.educationTypeId === educationType) &&
+      (!track || (student.trackId || student.major || "") === track) &&
+      (!organization ||
+        (student.organization?.name ||
+          student.organizations?.map((item) => item.name).join("، ") ||
+          "") === organization),
   );
   const toggle = (id: string) =>
     setTargetStudentIds((current) =>
@@ -977,11 +1113,30 @@ function SharePlanForm({
           placeholder="جستجو بر اساس نام، پایه یا رشته…"
         />
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {[[grade, setGrade, "پایه", "grade"], [educationType, setEducationType, "نوع آموزش", "educationType"], [track, setTrack, "رشته / مسیر", "track"], [organization, setOrganization, "سازمان", "organization"]].map(([value, setValue, label, key]) => (
-            <label key={String(key)} className="grid gap-1 text-xs text-slate-600 dark:text-slate-300">{String(label)}
-              <select value={String(value)} onChange={(event) => (setValue as (value: string) => void)(event.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+          {[
+            [grade, setGrade, "پایه", "grade"],
+            [educationType, setEducationType, "نوع آموزش", "educationType"],
+            [track, setTrack, "رشته / مسیر", "track"],
+            [organization, setOrganization, "سازمان", "organization"],
+          ].map(([value, setValue, label, key]) => (
+            <label
+              key={String(key)}
+              className="grid gap-1 text-xs text-slate-600 dark:text-slate-300"
+            >
+              {String(label)}
+              <select
+                value={String(value)}
+                onChange={(event) => (setValue as (value: string) => void)(event.target.value)}
+                className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+              >
                 <option value="">همه</option>
-                {filterValues(key as "grade" | "educationType" | "track" | "organization").map((item) => <option key={item} value={item}>{key === "educationType" || key === "track" ? educationLabel(item) : item}</option>)}
+                {filterValues(key as "grade" | "educationType" | "track" | "organization").map(
+                  (item) => (
+                    <option key={item} value={item}>
+                      {key === "educationType" || key === "track" ? educationLabel(item) : item}
+                    </option>
+                  ),
+                )}
               </select>
             </label>
           ))}
@@ -1134,7 +1289,9 @@ function SharePlanForm({
             />
             <span>
               <strong>متوجه هستم که برنامه‌های موجود مقصد جایگزین می‌شوند.</strong>
-              <small className="mt-1 block">فعالیت‌های انجام‌شده همچنان توسط سرور محافظت می‌شوند و جایگزین نخواهند شد.</small>
+              <small className="mt-1 block">
+                فعالیت‌های انجام‌شده همچنان توسط سرور محافظت می‌شوند و جایگزین نخواهند شد.
+              </small>
             </span>
           </label>
         ) : null}
@@ -1145,13 +1302,30 @@ function SharePlanForm({
         </p>
       ) : null}
       {preview ? (
-        <section className="grid gap-1 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100" aria-live="polite">
+        <section
+          className="grid gap-1 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100"
+          aria-live="polite"
+        >
           <strong>پیش‌نمایش اشتراک‌گذاری</strong>
-          <span>{fa(preview.summary.targetCount)} دانش‌آموز · {fa(preview.summary.copiedPlanCount)} برنامه مقصد</span>
-          <span>{fa(preview.summary.existingPlanCount)} برنامه موجود · {fa(preview.summary.emptyDestinationDayCount)} روز خالی</span>
-          <span>{fa(preview.summary.timeConflictCount)} تداخل زمانی · {fa(preview.summary.examCollisionCount)} تداخل آزمون · {fa(preview.summary.overCapacityDayCount)} روز فراتر از ظرفیت</span>
-          <span>بار پیشنهادی: {fa(Math.round(preview.summary.proposedMinutes / 60 * 10) / 10)} ساعت</span>
-          {preview.summary.existingPlanCount ? <small>در حالت پیش‌فرض، برنامه‌های موجود بدون تغییر باقی می‌مانند.</small> : null}
+          <span>
+            {fa(preview.summary.targetCount)} دانش‌آموز · {fa(preview.summary.copiedPlanCount)}{" "}
+            برنامه مقصد
+          </span>
+          <span>
+            {fa(preview.summary.existingPlanCount)} برنامه موجود ·{" "}
+            {fa(preview.summary.emptyDestinationDayCount)} روز خالی
+          </span>
+          <span>
+            {fa(preview.summary.timeConflictCount)} تداخل زمانی ·{" "}
+            {fa(preview.summary.examCollisionCount)} تداخل آزمون ·{" "}
+            {fa(preview.summary.overCapacityDayCount)} روز فراتر از ظرفیت
+          </span>
+          <span>
+            بار پیشنهادی: {fa(Math.round((preview.summary.proposedMinutes / 60) * 10) / 10)} ساعت
+          </span>
+          {preview.summary.existingPlanCount ? (
+            <small>در حالت پیش‌فرض، برنامه‌های موجود بدون تغییر باقی می‌مانند.</small>
+          ) : null}
         </section>
       ) : null}
       {sourceFrom > sourceTo ? (
@@ -1176,18 +1350,82 @@ function SharePlanForm({
           onClick={() => {
             setError("");
             setPreviewing(true);
-            void onPreview({ targetStudentIds, sourceFrom, sourceTo, targetStartDate, conflictPolicy })
+            void onPreview({
+              targetStudentIds,
+              sourceFrom,
+              sourceTo,
+              targetStartDate,
+              conflictPolicy,
+            })
               .then(setPreview)
-              .catch((reason) => setError(errorMessage(reason, "پیش‌نمایش اشتراک‌گذاری انجام نشد.")))
+              .catch((reason) =>
+                setError(errorMessage(reason, "پیش‌نمایش اشتراک‌گذاری انجام نشد.")),
+              )
               .finally(() => setPreviewing(false));
           }}
         >
           پیش‌نمایش
         </Button>
-        <Button type="submit" disabled={busy || !targetStudentIds.length || sourceFrom > sourceTo || (conflictPolicy === "overwrite" && !overwriteAcknowledged)}>
+        <Button
+          type="submit"
+          disabled={
+            busy ||
+            !targetStudentIds.length ||
+            sourceFrom > sourceTo ||
+            (conflictPolicy === "overwrite" && !overwriteAcknowledged)
+          }
+        >
           {busy ? "در حال اشتراک…" : "اشتراک برنامه"}
         </Button>
       </div>
     </form>
+  );
+}
+
+function TemplateOrganizationPicker({
+  organizations,
+  onSelect,
+  onClose,
+}: {
+  organizations: PortalOrganization[];
+  onSelect: (organizationId: string) => void;
+  onClose: () => void;
+}) {
+  if (!organizations.length)
+    return (
+      <div className="grid gap-4">
+        <EmptyState title="سازمانی برای الگوها وجود ندارد" />
+        <div className="flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            بستن
+          </Button>
+        </div>
+      </div>
+    );
+
+  return (
+    <div className="grid gap-3">
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        الگوهای برنامه متعلق به یک سازمان هستند. سازمان موردنظر را انتخاب کنید.
+      </p>
+      <div className="grid max-h-80 gap-2 overflow-y-auto">
+        {organizations.map((organization) => (
+          <Button
+            key={organization.id}
+            variant="soft"
+            className="justify-between"
+            onClick={() => onSelect(organization.id)}
+          >
+            <span>{organization.name}</span>
+            <span className="text-xs text-slate-500">{organization.type}</span>
+          </Button>
+        ))}
+      </div>
+      <div className="flex justify-end">
+        <Button variant="ghost" onClick={onClose}>
+          انصراف
+        </Button>
+      </div>
+    </div>
   );
 }

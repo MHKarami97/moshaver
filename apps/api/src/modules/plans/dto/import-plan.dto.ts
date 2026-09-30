@@ -1,4 +1,14 @@
-import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, Matches, ValidateNested } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Min,
+  ValidateNested,
+} from "class-validator";
 import { Type } from "class-transformer";
 import { TaskType } from "../../../database/entities/task.entity";
 
@@ -83,4 +93,6 @@ export class ImportPlanDto {
   @IsOptional() @IsString() persianDate?: string;
   @IsOptional() @IsString() jalaliId?: string;
   @IsOptional() @IsString() motivationText?: string;
+  @IsOptional() @IsString() templateId?: string;
+  @IsOptional() @IsInt() @Min(1) templateVersion?: number;
 }

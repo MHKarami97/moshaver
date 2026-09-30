@@ -1,9 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { BookOpen, Plus, WandSparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useStudentSelection } from "../../../shared/hooks/useStudentSelection";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useModal } from "../../../shared/ui/modal";
+import { Button, Card } from "../../../shared/ui/ui";
 import { notify } from "../../../shared/ui/notifications";
 import {
   createExamQuestion,
@@ -16,6 +18,7 @@ import { QuestionEditor } from "../components/QuestionEditor";
 import { QuestionsList } from "../components/QuestionsList";
 import { QuestionsSelector } from "../components/QuestionsSelector";
 import { QuestionBankPanel } from "../components/QuestionBankPanel";
+import { ExamAssignmentManager } from "../../exams/components/ExamAssignmentManager";
 import {
   emptyQuestion,
   questionDraft,
@@ -24,6 +27,7 @@ import {
   questionNumber,
   questionPayload,
 } from "../model/question-model";
+import type { QuestionDraft } from "../model/question-model";
 export function QuestionsPage() {
   const [params, setParams] = useSearchParams();
   const auth = useAuth();
@@ -64,17 +68,17 @@ export function QuestionsPage() {
     Math.max(0, ...(questions.data || []).map((item, index) => questionNumber(item, index + 1))) +
     1;
   const add = useMutation({
-    mutationFn: () =>
-      editingId
-        ? updateQuestion(editingId, questionPayload(form))
-        : createExamQuestion(examId, questionPayload(form)),
-    onSuccess: () => {
+    mutationFn: ({ id, draft }: { id?: string; draft: QuestionDraft }) =>
+      id
+        ? updateQuestion(id, questionPayload(draft))
+        : createExamQuestion(examId, questionPayload(draft)),
+    onSuccess: (_, variables) => {
       setForm({
         ...emptyQuestion(),
         sortOrder: nextSortOrder + (editingId ? 0 : 1),
       });
       setEditingId("");
-      notify(editingId ? "سؤال ویرایش شد." : "سؤال افزوده شد.");
+      notify(variables.id ? "سؤال ویرایش شد." : "سؤال افزوده شد.");
       setSubmitted(false);
       void qc.invalidateQueries({ queryKey: ["exam-questions", examId] });
       void qc.invalidateQueries({ queryKey: ["question-bank-exams"] });
@@ -127,6 +131,37 @@ export function QuestionsPage() {
       },
       { replace: true },
     );
+  const openQuestionEditor = (question?: Parameters<typeof questionDraft>[0], index = 0) => {
+    const isEditing = Boolean(question?.id);
+    setEditingId(question?.id || "");
+    setForm(
+      question ? questionDraft(question, index) : { ...emptyQuestion(), sortOrder: nextSortOrder },
+    );
+    setSubmitted(false);
+    modal.open({
+      title: isEditing ? "ویرایش سؤال" : "سؤال جدید",
+      description: selectedExam?.title || "آزمون",
+      size: "xl",
+      content: (
+        <QuestionEditorModal
+          initial={
+            question
+              ? questionDraft(question, index)
+              : { ...emptyQuestion(), sortOrder: nextSortOrder }
+          }
+          editingId={question?.id || ""}
+          disabled={!examId}
+          nextSortOrder={nextSortOrder}
+          busy={add.isPending}
+          onCancel={modal.close}
+          onSave={async (draft) => {
+            await add.mutateAsync({ id: question?.id, draft });
+            modal.close();
+          }}
+        />
+      ),
+    });
+  };
   return (
     <div className="grid gap-5">
       <QuestionsSelector
@@ -156,29 +191,76 @@ export function QuestionsPage() {
         selectedExam={selectedExam}
         questionCount={questions.data?.length || 0}
       />
-      {auth.can("question_bank.manage") ? <QuestionBankPanel /> : null}
-      <section className="grid min-h-0 gap-4 lg:h-[calc(100vh-15.5rem)] lg:grid-cols-[minmax(330px,400px)_minmax(0,1fr)]">
-        {canCreate || canUpdate ? (
-          <QuestionEditor
-            editingId={editingId}
-            form={form}
-            setForm={setForm}
-            submitted={submitted}
-            validationError={validationError}
-            busy={add.isPending}
-            disabled={!examId}
-            nextSortOrder={nextSortOrder}
-            onCancel={() => {
-              setEditingId("");
-              setForm({ ...emptyQuestion(), sortOrder: nextSortOrder });
-              setSubmitted(false);
-            }}
-            onSubmit={() => {
-              setSubmitted(true);
-              if (!validationError && examId) add.mutate();
-            }}
-          />
-        ) : null}
+      {selectedExam && auth.can("exams.assign") ? (
+        <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
+          <div>
+            <strong className="text-sm">مخاطبان آزمون</strong>
+            <p className="text-xs text-slate-500">
+              سؤال‌ها دسترسی مستقل ندارند و از مخاطبان «{selectedExam.title}» استفاده می‌کنند.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="soft"
+            onClick={() =>
+              modal.open({
+                title: `مخاطبان آزمون: ${selectedExam.title}`,
+                description: "تخصیص مستقیم، کلاس و قواعد گروه هدف در یک محل مدیریت می‌شوند.",
+                size: "xl",
+                content: (
+                  <ExamAssignmentManager
+                    examId={selectedExam.id}
+                    initialRules={selectedExam.audienceRules}
+                    students={students.students}
+                  />
+                ),
+              })
+            }
+          >
+            مدیریت مخاطبان
+          </Button>
+        </Card>
+      ) : null}
+      {auth.can("question_bank.manage") ? (
+        <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
+          <div>
+            <strong className="text-sm">بانک سؤال</strong>
+            <p className="text-xs text-slate-500">
+              منابع قابل‌استفادهٔ مجدد و ساخت متوازن آزمون را در یک پنجره مدیریت کنید.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="soft"
+            onClick={() =>
+              modal.open({
+                title: "بانک سؤال و ساخت آزمون",
+                description: "سؤال‌های مستقل را مدیریت کنید یا ترکیب متوازن را پیش‌نمایش بگیرید.",
+                size: "xl",
+                content: <QuestionBankPanel />,
+              })
+            }
+          >
+            <BookOpen size={15} />
+            باز کردن بانک <WandSparkles size={14} />
+          </Button>
+        </Card>
+      ) : null}
+      <section className="grid min-h-0 gap-3">
+        <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
+          <div>
+            <strong className="text-sm">فهرست سؤال‌ها</strong>
+            <p className="text-xs text-slate-500">
+              برای تمرکز بهتر، ایجاد و ویرایش در پنجره جداگانه انجام می‌شود.
+            </p>
+          </div>
+          {canCreate ? (
+            <Button size="sm" disabled={!examId} onClick={() => openQuestionEditor()}>
+              <Plus size={15} />
+              سؤال جدید
+            </Button>
+          ) : null}
+        </Card>
         <QuestionsList
           examId={examId}
           items={visibleQuestions}
@@ -228,13 +310,10 @@ export function QuestionsPage() {
               })
           }
           onCopy={(q, index) => {
-            setEditingId("");
-            setForm({ ...questionDraft(q, index), sortOrder: nextSortOrder });
-            setSubmitted(false);
+            openQuestionEditor({ ...q, id: "" }, index);
           }}
           onEdit={(q, index) => {
-            setEditingId(q.id || "");
-            setForm(questionDraft(q, index));
+            openQuestionEditor(q, index);
           }}
           onDelete={(q) =>
             q.id &&
@@ -254,5 +333,44 @@ export function QuestionsPage() {
         />
       </section>
     </div>
+  );
+}
+
+function QuestionEditorModal({
+  initial,
+  editingId,
+  disabled,
+  nextSortOrder,
+  busy,
+  onCancel,
+  onSave,
+}: {
+  initial: QuestionDraft;
+  editingId: string;
+  disabled: boolean;
+  nextSortOrder: number;
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (draft: QuestionDraft) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const [submitted, setSubmitted] = useState(false);
+  const validationError = questionError(draft);
+  return (
+    <QuestionEditor
+      editingId={editingId}
+      form={draft}
+      setForm={setDraft}
+      submitted={submitted}
+      validationError={validationError}
+      busy={busy}
+      disabled={disabled}
+      nextSortOrder={nextSortOrder}
+      onCancel={onCancel}
+      onSubmit={() => {
+        setSubmitted(true);
+        if (!validationError) void onSave(draft);
+      }}
+    />
   );
 }

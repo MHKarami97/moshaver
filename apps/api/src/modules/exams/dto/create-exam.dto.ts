@@ -1,4 +1,17 @@
-import { IsArray, IsBoolean, IsDateString, IsIn, IsNumber, IsObject, IsOptional, IsString, IsUUID, Min, ValidateNested } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+  ValidateNested,
+} from "class-validator";
 import { Type } from "class-transformer";
 import { PartialType } from "@nestjs/mapped-types";
 
@@ -116,14 +129,18 @@ export class CreateExamDto {
   mode?: "konkur" | "mock" | "practice" | "quiz" | "diagnostic";
 
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsIn(["draft", "scheduled", "cancelled"]) lifecycleStatus?: "draft" | "scheduled" | "cancelled";
-  @IsOptional() @IsIn(["free", "section_only", "sequential"]) navigationMode?: "free" | "section_only" | "sequential";
-  @IsOptional() @IsIn(["whole_exam", "per_section"]) timerMode?: "whole_exam" | "per_section";
+  @IsOptional() @IsIn(["draft", "scheduled", "cancelled"]) lifecycleStatus?:
+    "draft" | "scheduled" | "cancelled";
+  @IsOptional() @IsIn(["free", "section_only", "sequential"]) navigationMode?:
+    "free" | "section_only" | "sequential";
+  @IsOptional() @IsIn(["whole_exam", "per_section"]) timerMode?:
+    "whole_exam" | "per_section";
   @IsOptional() @IsBoolean() allowResume?: boolean;
   @IsOptional() @IsBoolean() allowLateStart?: boolean;
   @IsOptional() @IsBoolean() allowPracticeAfterDeadline?: boolean;
   @IsOptional() @IsBoolean() autoSubmitOnTimeout?: boolean;
-  @IsOptional() @IsIn(["single_session", "allow_resume"]) sessionPolicy?: "single_session" | "allow_resume";
+  @IsOptional() @IsIn(["single_session", "allow_resume"]) sessionPolicy?:
+    "single_session" | "allow_resume";
   @IsOptional() @IsBoolean() integrityMonitoring?: boolean;
   @IsOptional() @IsDateString() latestStartAt?: string;
   @IsOptional() @IsDateString() answerKeyReleaseAt?: string;
@@ -141,7 +158,12 @@ export class CreateExamDto {
 
   @IsOptional()
   @IsObject()
-  scoring?: { correct: number; wrong: number; unanswered: number; negativeMarking: boolean };
+  scoring?: {
+    correct: number;
+    wrong: number;
+    unanswered: number;
+    negativeMarking: boolean;
+  };
 
   @IsOptional()
   @IsIn(["immediate", "scheduled", "manual"])
@@ -157,7 +179,12 @@ export class CreateExamDto {
 
   @IsOptional()
   @IsArray()
-  sections?: Array<{ id: string; name: string; questionIds: string[]; allocatedMinutes?: number }>;
+  sections?: Array<{
+    id: string;
+    name: string;
+    questionIds: string[];
+    allocatedMinutes?: number;
+  }>;
 
   @IsOptional()
   @IsArray()
@@ -168,4 +195,20 @@ export class CreateExamDto {
 
 export class UpdateExamDto extends PartialType(CreateExamDto) {}
 
-export class AssignExamDto { @IsArray() @IsUUID("4", { each: true }) studentIds!: string[]; }
+export class AssignExamDto {
+  @IsArray() @IsUUID("4", { each: true }) studentIds!: string[];
+}
+export class ExamClassAssignmentsDto {
+  @IsArray() @IsUUID("4", { each: true }) classIds!: string[];
+}
+export class ExamAudienceRulesDto {
+  @IsArray() @IsInt({ each: true }) @Min(1, { each: true }) gradeIds!: number[];
+  @IsArray() @IsString({ each: true }) educationTypeIds!: string[];
+  @IsArray() @IsString({ each: true }) trackIds!: string[];
+  @IsArray()
+  @IsIn(["school", "independent"], { each: true })
+  learnerProfiles!: string[];
+  @IsArray()
+  @IsIn(["adult", "gap_year", "homeschool", "other"], { each: true })
+  independentTypes!: string[];
+}

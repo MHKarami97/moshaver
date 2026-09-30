@@ -139,11 +139,21 @@ export class StudentAdministrationService {
         "ORGANIZATION_FORBIDDEN",
         "به این سازمان دسترسی ندارید.",
       );
-    const education = this.catalog.validateSelection(
-      dto.gradeId,
-      dto.educationTypeId,
-      dto.trackId,
-    );
+    const profile = dto.learnerProfile ?? "school";
+    if (profile === "independent" && !dto.independentType)
+      throw new ApiException(
+        422,
+        "INDEPENDENT_TYPE_REQUIRED",
+        "نوع یادگیرنده مستقل را انتخاب کنید.",
+      );
+    const education =
+      profile === "school"
+        ? this.catalog.validateSelection(
+            dto.gradeId!,
+            dto.educationTypeId!,
+            dto.trackId,
+          )
+        : null;
     return this.dataSource.transaction(async (manager) => {
       const username = dto.username.trim().toLowerCase();
       if (await manager.findOne(User, { where: { username } }))
@@ -166,11 +176,16 @@ export class StudentAdministrationService {
         manager.create(Student, {
           user,
           name: dto.name,
-          gradeId: education.gradeId,
-          educationTypeId: education.educationTypeId,
-          trackId: education.trackId,
-          grade: education.gradeLabel,
-          major: education.trackLabel,
+          learnerProfile: profile,
+          independentType:
+            profile === "independent" ? dto.independentType! : null,
+          learningLevel:
+            profile === "independent" ? dto.learningLevel?.trim() || "" : "",
+          gradeId: education?.gradeId ?? null,
+          educationTypeId: education?.educationTypeId ?? "independent",
+          trackId: education?.trackId ?? "independent",
+          grade: education?.gradeLabel ?? "",
+          major: education?.trackLabel ?? "",
           targetUniversity: "",
           targetField: "",
           targetRank: "",
@@ -203,24 +218,39 @@ export class StudentAdministrationService {
   }
   async update(actor: AuthenticatedUser, id: string, dto: UpdateStudentDto) {
     await this.get(actor, id, "students.update");
+    const existing = await this.students.findOneByOrFail({ id });
+    const profile = dto.learnerProfile ?? existing.learnerProfile;
+    const independentType =
+      dto.independentType ?? existing.independentType ?? undefined;
     const hasEducationUpdate =
       dto.gradeId !== undefined ||
       dto.educationTypeId !== undefined ||
       dto.trackId !== undefined;
-    if (hasEducationUpdate && (!dto.gradeId || !dto.educationTypeId)) {
+    if (
+      profile === "school" &&
+      hasEducationUpdate &&
+      (!dto.gradeId || !dto.educationTypeId)
+    ) {
       throw new ApiException(
         422,
         "INVALID_EDUCATION_SELECTION",
         "پایه و نوع آموزش باید با هم ارسال شوند.",
       );
     }
-    const education = hasEducationUpdate
-      ? this.catalog.validateSelection(
-          dto.gradeId!,
-          dto.educationTypeId!,
-          dto.trackId,
-        )
-      : null;
+    if (profile === "independent" && !independentType)
+      throw new ApiException(
+        422,
+        "INDEPENDENT_TYPE_REQUIRED",
+        "نوع یادگیرنده مستقل را انتخاب کنید.",
+      );
+    const education =
+      profile === "school" && hasEducationUpdate
+        ? this.catalog.validateSelection(
+            dto.gradeId!,
+            dto.educationTypeId!,
+            dto.trackId,
+          )
+        : null;
     return this.legacy
       .update(id, {
         ...dto,
@@ -233,6 +263,23 @@ export class StudentAdministrationService {
               major: education.trackLabel,
             }
           : {}),
+        ...(profile === "independent"
+          ? {
+              learnerProfile: profile,
+              independentType,
+              learningLevel:
+                dto.learningLevel?.trim() ?? existing.learningLevel ?? "",
+              gradeId: null,
+              educationTypeId: "independent",
+              trackId: "independent",
+              grade: "",
+              major: "",
+            }
+          : {
+              learnerProfile: "school",
+              independentType: null,
+              learningLevel: "",
+            }),
       })
       .then((student) => this.project(student!));
   }
@@ -370,6 +417,9 @@ export class StudentAdministrationService {
       id: student.id,
       name: student.name,
       gradeId: student.gradeId,
+      learnerProfile: student.learnerProfile,
+      independentType: student.independentType,
+      learningLevel: student.learningLevel,
       educationTypeId: student.educationTypeId,
       trackId: student.trackId,
       grade: student.grade,

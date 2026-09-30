@@ -1,4 +1,12 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { Question } from "./question.entity";
 import { ExamAttempt } from "./exam-attempt.entity";
 import { ExamAssignment } from "./exam-assignment.entity";
@@ -30,6 +38,20 @@ export class Exam {
 
   @Column({ default: false })
   published!: boolean;
+
+  /** Server-resolved cohort targeting; direct assignments remain supported. */
+  @Column({
+    type: "simple-json",
+    default:
+      '{"gradeIds":[],"educationTypeIds":[],"trackIds":[],"learnerProfiles":[],"independentTypes":[]}',
+  })
+  audienceRules!: {
+    gradeIds: number[];
+    educationTypeIds: string[];
+    trackIds: string[];
+    learnerProfiles: string[];
+    independentTypes: string[];
+  };
 
   @Column({ default: "standard" })
   mode!: "standard" | "konkur" | "mock" | "practice" | "quiz" | "diagnostic";
@@ -67,8 +89,16 @@ export class Exam {
   @Column({ default: true })
   allowBackNavigation!: boolean;
 
-  @Column({ type: "simple-json", default: '{"correct":1,"wrong":0,"unanswered":0,"negativeMarking":false}' })
-  scoring!: { correct: number; wrong: number; unanswered: number; negativeMarking: boolean };
+  @Column({
+    type: "simple-json",
+    default: '{"correct":1,"wrong":0,"unanswered":0,"negativeMarking":false}',
+  })
+  scoring!: {
+    correct: number;
+    wrong: number;
+    unanswered: number;
+    negativeMarking: boolean;
+  };
 
   @Column({ default: "immediate" })
   resultPolicy!: "immediate" | "scheduled" | "manual";
@@ -92,7 +122,14 @@ export class Exam {
   resultsReleased!: boolean;
 
   @Column({ type: "simple-json", default: "[]" })
-  sections!: Array<{ id: string; name: string; order?: number; questionIds: string[]; allocatedMinutes?: number; navigationMode?: "free" | "section_only" | "sequential" }>;
+  sections!: Array<{
+    id: string;
+    name: string;
+    order?: number;
+    questionIds: string[];
+    allocatedMinutes?: number;
+    navigationMode?: "free" | "section_only" | "sequential";
+  }>;
 
   @Column({ type: "datetime", nullable: true })
   startTime?: Date | null;

@@ -57,8 +57,9 @@ export function PlannerMoreMenu({
       )}
     >
       <div className="space-y-1">
-        {canPlan ? <button
-          className="
+        {canPlan ? (
+          <button
+            className="
             block
             w-full
             rounded-xl
@@ -70,16 +71,18 @@ export function PlannerMoreMenu({
             hover:bg-slate-100
             dark:hover:bg-slate-800
           "
-          onClick={() => {
-            onPlan();
-            onClose();
-          }}
-        >
-          تنظیمات برنامه روز
-        </button> : null}
+            onClick={() => {
+              onPlan();
+              onClose();
+            }}
+          >
+            تنظیمات برنامه روز
+          </button>
+        ) : null}
 
-        {canPublish ? <button
-          className="
+        {canPublish ? (
+          <button
+            className="
             block
             w-full
             rounded-xl
@@ -91,16 +94,18 @@ export function PlannerMoreMenu({
             hover:bg-slate-100
             dark:hover:bg-slate-800
           "
-          onClick={() => {
-            onPublish(true);
-            onClose();
-          }}
-        >
-          انتشار بازه
-        </button> : null}
+            onClick={() => {
+              onPublish(true);
+              onClose();
+            }}
+          >
+            انتشار بازه
+          </button>
+        ) : null}
 
-        {canPublish ? <button
-          className="
+        {canPublish ? (
+          <button
+            className="
             block
             w-full
             rounded-xl
@@ -112,16 +117,18 @@ export function PlannerMoreMenu({
             hover:bg-slate-100
             dark:hover:bg-slate-800
           "
-          onClick={() => {
-            onPublish(false);
-            onClose();
-          }}
-        >
-          پیش‌نویس کردن بازه
-        </button> : null}
+            onClick={() => {
+              onPublish(false);
+              onClose();
+            }}
+          >
+            پیش‌نویس کردن بازه
+          </button>
+        ) : null}
 
-        {canTransfer ? <button
-          className="
+        {canTransfer ? (
+          <button
+            className="
             block
             w-full
             rounded-xl
@@ -133,54 +140,38 @@ export function PlannerMoreMenu({
             hover:bg-slate-100
             dark:hover:bg-slate-800
           "
-          onClick={() => {
-            onTransfer();
-            onClose();
-          }}
-        >
-          ورود / خروج JSON
-        </button> : null}
+            onClick={() => {
+              onTransfer();
+              onClose();
+            }}
+          >
+            ورود / خروج JSON
+          </button>
+        ) : null}
 
-        {canHistory ? <button
-          className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={() => {
-            onHistory();
-            onClose();
-          }}
-        >
-          تاریخچه اشتراک‌گذاری
-        </button> : null}
+        {canHistory ? (
+          <button
+            className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => {
+              onHistory();
+              onClose();
+            }}
+          >
+            تاریخچه اشتراک‌گذاری
+          </button>
+        ) : null}
 
-        {canTemplates ? <button
-          className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
-          onClick={() => {
-            onTemplates();
-            onClose();
-          }}
-        >
-          کتابخانه الگوهای برنامه
-        </button> : null}
-
-        <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
-
-        <button
-          className="
-            block
-            w-full
-            rounded-xl
-            px-3
-            py-2
-            text-right
-            text-xs
-            text-slate-400
-            transition
-            hover:bg-slate-100
-            dark:hover:bg-slate-800
-          "
-          onClick={onClose}
-        >
-          بستن
-        </button>
+        {canTemplates ? (
+          <button
+            className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={() => {
+              onTemplates();
+              onClose();
+            }}
+          >
+            کتابخانه الگوهای برنامه
+          </button>
+        ) : null}
       </div>
     </ViewportPopover>
   );

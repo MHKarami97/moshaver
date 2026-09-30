@@ -13,7 +13,13 @@ import { DataSource, In } from "typeorm";
 import { Organization } from "../../database/entities/organization.entity";
 import { Mistake } from "../../database/entities/mistake.entity";
 import { ExamScoringService } from "./exam-scoring.service";
-import { ExamRetryRequest, RetryRequestStatus } from "../../database/entities/exam-retry-request.entity";
+import {
+  ExamRetryRequest,
+  RetryRequestStatus,
+} from "../../database/entities/exam-retry-request.entity";
+import { ExamClassAssignment } from "../../database/entities/exam-class-assignment.entity";
+import { EducationClass } from "../../database/entities/education-class.entity";
+import { EducationClassEnrollment } from "../../database/entities/education-class-enrollment.entity";
 
 type QuestionInput = CreateQuestionDto & {
   question?: string;
@@ -44,6 +50,15 @@ export class ExamsService {
     @Optional()
     @InjectRepository(ExamRetryRequest)
     private readonly retryRequests?: Repository<ExamRetryRequest>,
+    @Optional()
+    @InjectRepository(ExamClassAssignment)
+    private readonly classAssignments?: Repository<ExamClassAssignment>,
+    @Optional()
+    @InjectRepository(EducationClass)
+    private readonly classes?: Repository<EducationClass>,
+    @Optional()
+    @InjectRepository(EducationClassEnrollment)
+    private readonly classEnrollments?: Repository<EducationClassEnrollment>,
   ) {}
 
   async list(includeAnswers = true) {
@@ -85,25 +100,103 @@ export class ExamsService {
     return question.exam.id;
   }
 
+  async analytics(examId: string) {
+    const exam = await this.exams.findOne({
+      where: { id: examId },
+      relations: { questions: true },
+    });
+    if (!exam) throw new ApiException(404, "EXAM_NOT_FOUND", "آزمون یافت نشد.");
+    const attempts = await this.attempts.find({
+      where: { exam: { id: examId }, status: In(["submitted", "expired"]) },
+      relations: { student: true },
+    });
+    const byGrade = new Map<string, { attempts: number; total: number }>();
+    for (const attempt of attempts) {
+      const grade = attempt.student.grade || "نامشخص";
+      const row = byGrade.get(grade) || { attempts: 0, total: 0 };
+      row.attempts++;
+      row.total += attempt.percentage ?? 0;
+      byGrade.set(grade, row);
+    }
+    const questions = exam.questions.map((question) => {
+      let correct = 0;
+      let blank = 0;
+      const responses: Record<string, number> = {
+        a: 0,
+        b: 0,
+        c: 0,
+        d: 0,
+        blank: 0,
+      };
+      for (const attempt of attempts) {
+        const selected = this.answerKey(
+          question.options,
+          attempt.answers.find((answer) => answer.questionId === question.id)
+            ?.selectedOption || "",
+        );
+        if (!selected) {
+          blank++;
+          responses.blank++;
+        } else {
+          responses[selected] = (responses[selected] || 0) + 1;
+          if (
+            selected ===
+            this.answerKey(question.options, question.correctAnswer)
+          )
+            correct++;
+        }
+      }
+      return {
+        id: question.id,
+        text: question.text,
+        attempts: attempts.length,
+        correct,
+        blank,
+        accuracy: attempts.length
+          ? Math.round((correct / attempts.length) * 100)
+          : null,
+        responses,
+      };
+    });
+    return {
+      exam: { id: exam.id, title: exam.title },
+      attempts: attempts.length,
+      averagePercent: attempts.length
+        ? Math.round(
+            attempts.reduce(
+              (sum, attempt) => sum + (attempt.percentage ?? 0),
+              0,
+            ) / attempts.length,
+          )
+        : null,
+      byGrade: [...byGrade.entries()].map(([grade, value]) => ({
+        grade,
+        attempts: value.attempts,
+        averagePercent: Math.round(value.total / value.attempts),
+      })),
+      questions,
+    };
+  }
+
   async listForStudent(userId: string) {
     const student = await this.studentForUser(userId);
-    const assigned = this.assignments
-      ? await this.assignments.find({
-          where: { student: { id: student.id } },
-          relations: { exam: true },
-        })
-      : [];
-    const ids = assigned.map((item) => item.exam.id);
-    if (this.assignments && !ids.length) return [];
     const exams = await this.exams.find({
-      where: this.assignments
-        ? { id: In(ids), published: true }
-        : { published: true },
-      relations: { questions: true, attempts: { student: true }, syllabus: true },
+      where: { published: true },
+      relations: {
+        questions: true,
+        attempts: { student: true },
+        syllabus: true,
+      },
     });
+    const visible = await this.visibleForStudent(exams, student);
     const bonuses = await this.retryBonuses(student.id);
-    return exams.map((exam) =>
-      this.publicExam(exam, false, student.id, exam.attemptLimit + (bonuses.get(exam.id) || 0)),
+    return visible.map((exam) =>
+      this.publicExam(
+        exam,
+        false,
+        student.id,
+        exam.attemptLimit + (bonuses.get(exam.id) || 0),
+      ),
     );
   }
 
@@ -120,11 +213,20 @@ export class ExamsService {
       where: this.assignments
         ? { id: In(ids), published: true }
         : { published: true },
-      relations: { questions: true, attempts: { student: true }, syllabus: true },
+      relations: {
+        questions: true,
+        attempts: { student: true },
+        syllabus: true,
+      },
     });
     const bonuses = await this.retryBonuses(studentId);
     return exams.map((exam) =>
-      this.publicExam(exam, false, studentId, exam.attemptLimit + (bonuses.get(exam.id) || 0)),
+      this.publicExam(
+        exam,
+        false,
+        studentId,
+        exam.attemptLimit + (bonuses.get(exam.id) || 0),
+      ),
     );
   }
 
@@ -133,11 +235,19 @@ export class ExamsService {
     await this.requireAssignment(examId, student.id);
     const exam = await this.exams.findOne({
       where: { id: examId, published: true },
-      relations: { questions: true, attempts: { student: true }, syllabus: true },
+      relations: {
+        questions: true,
+        attempts: { student: true },
+        syllabus: true,
+      },
     });
     if (!exam)
       throw new ApiException(404, "EXAM_NOT_FOUND", "آزمون در دسترس نیست.");
-    const allowedAttempts = await this.allowedAttempts(exam.id, student.id, exam.attemptLimit);
+    const allowedAttempts = await this.allowedAttempts(
+      exam.id,
+      student.id,
+      exam.attemptLimit,
+    );
     return this.publicExam(exam, false, student.id, allowedAttempts);
   }
 
@@ -401,7 +511,11 @@ export class ExamsService {
     const used = await this.attempts.count({
       where: { exam: { id: examId }, student: { id: student.id } },
     });
-    const allowedAttempts = await this.allowedAttempts(examId, student.id, exam.attemptLimit);
+    const allowedAttempts = await this.allowedAttempts(
+      examId,
+      student.id,
+      exam.attemptLimit,
+    );
     if (used >= allowedAttempts)
       throw new ApiException(
         409,
@@ -819,7 +933,21 @@ export class ExamsService {
     }));
   }
 
-  private publicExam(exam: Exam, includeAnswers = true, studentId?: string, allowedAttempts = exam.attemptLimit) {
+  private answerKey(options: string[], answer: string) {
+    const normalized = answer.trim().toLowerCase();
+    const keys = ["a", "b", "c", "d"];
+    if (keys.includes(normalized) && keys.indexOf(normalized) < options.length)
+      return normalized;
+    const index = options.indexOf(answer);
+    return index >= 0 ? keys[index] : "";
+  }
+
+  private publicExam(
+    exam: Exam,
+    includeAnswers = true,
+    studentId?: string,
+    allowedAttempts = exam.attemptLimit,
+  ) {
     const studentAttempts = studentId
       ? (exam.attempts || [])
           .filter((attempt) => attempt.student?.id === studentId)
@@ -922,7 +1050,13 @@ export class ExamsService {
       rankingReleaseAt: exam.rankingReleaseAt?.toISOString() || null,
       resultsReleased: exam.resultsReleased,
       sections: exam.sections || [],
-      syllabus: (exam.syllabus || []).map((item) => ({ id: item.id, subject: item.subject, description: item.description, required: item.required, track: item.track })),
+      syllabus: (exam.syllabus || []).map((item) => ({
+        id: item.id,
+        subject: item.subject,
+        description: item.description,
+        required: item.required,
+        track: item.track,
+      })),
       duration: exam.duration,
       durationMinutes: exam.duration,
       attemptLimit: exam.attemptLimit,
@@ -938,6 +1072,7 @@ export class ExamsService {
         exam.startTime?.toISOString().slice(0, 10) ||
         new Date().toISOString().slice(0, 10),
       published: exam.published,
+      audienceRules: this.normalizedAudienceRules(exam.audienceRules),
       questions: includeAnswers
         ? exam.questions?.map((question) => this.publicQuestion(question)) || []
         : undefined,
@@ -973,10 +1108,18 @@ export class ExamsService {
     };
   }
 
-  private async allowedAttempts(examId: string, studentId: string, base: number) {
+  private async allowedAttempts(
+    examId: string,
+    studentId: string,
+    base: number,
+  ) {
     if (!this.retryRequests) return base;
     const bonus = await this.retryRequests.count({
-      where: { exam: { id: examId }, student: { id: studentId }, status: RetryRequestStatus.APPROVED },
+      where: {
+        exam: { id: examId },
+        student: { id: studentId },
+        status: RetryRequestStatus.APPROVED,
+      },
     });
     return base + bonus;
   }
@@ -985,10 +1128,14 @@ export class ExamsService {
     const bonuses = new Map<string, number>();
     if (!this.retryRequests) return bonuses;
     const rows = await this.retryRequests.find({
-      where: { student: { id: studentId }, status: RetryRequestStatus.APPROVED },
+      where: {
+        student: { id: studentId },
+        status: RetryRequestStatus.APPROVED,
+      },
       relations: { exam: true },
     });
-    for (const row of rows) bonuses.set(row.exam.id, (bonuses.get(row.exam.id) || 0) + 1);
+    for (const row of rows)
+      bonuses.set(row.exam.id, (bonuses.get(row.exam.id) || 0) + 1);
     return bonuses;
   }
 
@@ -1057,18 +1204,16 @@ export class ExamsService {
   }
 
   importQuestions(examId: string, questions: CreateExamDto["questions"] = []) {
-    return this.exams
-      .findOneByOrFail({ id: examId })
-      .then((exam) =>
-        this.questions.save(
-          questions.map((question) =>
-            this.questions.create({
-              ...this.normalizeQuestion(question),
-              exam,
-            }),
-          ),
+    return this.exams.findOneByOrFail({ id: examId }).then((exam) =>
+      this.questions.save(
+        questions.map((question) =>
+          this.questions.create({
+            ...this.normalizeQuestion(question),
+            exam,
+          }),
         ),
-      );
+      ),
+    );
   }
 
   async assign(examId: string, studentIds: string[], actorUserId: string) {
@@ -1169,15 +1314,178 @@ export class ExamsService {
 
   private async requireAssignment(examId: string, studentId: string) {
     if (!this.assignments) return;
-    const assignment = await this.assignments.findOne({
-      where: { exam: { id: examId }, student: { id: studentId } },
-    });
-    if (!assignment)
+    const direct = this.assignments
+      ? await this.assignments.findOne({
+          where: { exam: { id: examId }, student: { id: studentId } },
+        })
+      : null;
+    if (direct) return;
+    const student = await this.students.findOneByOrFail({ id: studentId });
+    const exam = await this.exams.findOneBy({ id: examId });
+    if (!exam || !(await this.visibleForStudent([exam], student)).length)
       throw new ApiException(
         404,
         "EXAM_NOT_ASSIGNED",
         "آزمون برای این دانش‌آموز در دسترس نیست.",
       );
+  }
+
+  async setAudienceRules(examId: string, rules: Exam["audienceRules"]) {
+    const exam = await this.exams.findOneByOrFail({ id: examId });
+    exam.audienceRules = {
+      gradeIds: [...new Set(rules.gradeIds)].sort((a, b) => a - b),
+      educationTypeIds: [
+        ...new Set(
+          rules.educationTypeIds.map((value) => value.trim()).filter(Boolean),
+        ),
+      ].sort(),
+      trackIds: [
+        ...new Set(rules.trackIds.map((value) => value.trim()).filter(Boolean)),
+      ].sort(),
+      learnerProfiles: [...new Set(rules.learnerProfiles)].sort(),
+      independentTypes: [...new Set(rules.independentTypes)].sort(),
+    };
+    return this.exams.save(exam).then((row) => row.audienceRules);
+  }
+
+  async setClassAssignments(examId: string, classIds: string[]) {
+    if (!this.classAssignments || !this.classes || !this.dataSource)
+      throw new ApiException(
+        503,
+        "CLASS_ASSIGNMENTS_UNAVAILABLE",
+        "تخصیص کلاسی در دسترس نیست.",
+      );
+    const unique = [...new Set(classIds)];
+    const [exam, classrooms] = await Promise.all([
+      this.exams.findOne({
+        where: { id: examId },
+        relations: { organization: true },
+      }),
+      unique.length
+        ? this.classes.find({
+            where: { id: In(unique) },
+            relations: { organization: true },
+          })
+        : [],
+    ]);
+    if (
+      !exam ||
+      classrooms.length !== unique.length ||
+      classrooms.some(
+        (item) =>
+          item.status !== "ACTIVE" ||
+          item.organization?.id !== exam.organization?.id,
+      )
+    )
+      throw new ApiException(
+        404,
+        "CLASS_NOT_FOUND",
+        "کلاس انتخاب‌شده در دسترس نیست.",
+      );
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(ExamClassAssignment, { exam: { id: examId } });
+      if (classrooms.length)
+        await manager.save(
+          ExamClassAssignment,
+          classrooms.map((classroom) =>
+            manager.create(ExamClassAssignment, { exam, classroom }),
+          ),
+        );
+    });
+    return this.listClassAssignments(examId);
+  }
+
+  async listClassAssignments(examId: string) {
+    if (!this.classAssignments)
+      throw new ApiException(
+        503,
+        "CLASS_ASSIGNMENTS_UNAVAILABLE",
+        "تخصیص کلاسی در دسترس نیست.",
+      );
+    return this.classAssignments
+      .find({
+        where: { exam: { id: examId } },
+        relations: { classroom: { enrollments: true } },
+        order: { createdAt: "DESC" },
+      })
+      .then((rows) =>
+        rows.map((row) => ({
+          id: row.id,
+          classId: row.classroom.id,
+          name: row.classroom.name,
+          code: row.classroom.code,
+          schoolYear: row.classroom.schoolYear,
+          enrollmentCount: row.classroom.enrollments.length,
+        })),
+      );
+  }
+
+  private async visibleForStudent(exams: Exam[], student: Student) {
+    if (!this.assignments) return exams;
+    const direct = await this.assignments.find({
+      where: { student: { id: student.id } },
+      relations: { exam: true },
+    });
+    const directIds = new Set(direct.map((row) => row.exam.id));
+    const classRows = this.classEnrollments
+      ? await this.classEnrollments.find({
+          where: {
+            student: { id: student.id },
+            classroom: { status: "ACTIVE" },
+          },
+          relations: { classroom: true },
+        })
+      : [];
+    const classIds = new Set(classRows.map((row) => row.classroom.id));
+    const mappedClasses =
+      this.classAssignments && classIds.size
+        ? await this.classAssignments.find({
+            where: { classroom: { id: In([...classIds]) } },
+            relations: { exam: true },
+          })
+        : [];
+    const classExamIds = new Set(mappedClasses.map((row) => row.exam.id));
+    return exams.filter(
+      (exam) =>
+        directIds.has(exam.id) ||
+        classExamIds.has(exam.id) ||
+        this.matchesAudienceRules(student, exam.audienceRules),
+    );
+  }
+
+  private matchesAudienceRules(
+    student: Student,
+    rules?: Exam["audienceRules"],
+  ) {
+    const value = this.normalizedAudienceRules(rules);
+    const configured =
+      value.gradeIds?.length ||
+      value.educationTypeIds?.length ||
+      value.trackIds?.length ||
+      value.learnerProfiles?.length ||
+      value.independentTypes?.length;
+    if (!configured) return false;
+    return (
+      (!value.gradeIds.length ||
+        value.gradeIds.includes(student.gradeId || 0)) &&
+      (!value.educationTypeIds.length ||
+        value.educationTypeIds.includes(student.educationTypeId)) &&
+      (!value.trackIds.length || value.trackIds.includes(student.trackId)) &&
+      (!value.learnerProfiles.length ||
+        value.learnerProfiles.includes(student.learnerProfile || "school")) &&
+      (!value.independentTypes.length ||
+        value.independentTypes.includes(student.independentType || ""))
+    );
+  }
+
+  private normalizedAudienceRules(rules?: Partial<Exam["audienceRules"]>) {
+    return {
+      gradeIds: rules?.gradeIds || [],
+      educationTypeIds: rules?.educationTypeIds || [],
+      trackIds: rules?.trackIds || [],
+      learnerProfiles: rules?.learnerProfiles || [],
+      independentTypes: rules?.independentTypes || [],
+    };
   }
 
   private normalizeQuestion(question: QuestionInput) {

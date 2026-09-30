@@ -1,6 +1,18 @@
-import { CheckCircle2, Pencil, Search } from "lucide-react";
+import { CheckCircle2, Pencil, Search, Trash2 } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input } from "../../../shared/ui/ui";
 import type { QuizQuestion } from "../model/quiz.types";
+
+type Props = {
+  items: QuizQuestion[];
+  loading: boolean;
+  error: boolean;
+  search: string;
+  onSearch: (value: string) => void;
+  onRetry: () => void;
+  onEdit: (question: QuizQuestion, index: number) => void;
+  onDelete: (question: QuizQuestion) => void;
+  canManage: boolean;
+};
 export function QuizQuestionsList({
   items,
   loading,
@@ -11,37 +23,36 @@ export function QuizQuestionsList({
   onEdit,
   onDelete,
   canManage,
-}: {
-  items: QuizQuestion[];
-  loading: boolean;
-  error: boolean;
-  search: string;
-  onSearch: (v: string) => void;
-  onRetry: () => void;
-  onEdit: (q: QuizQuestion, i: number) => void;
-  onDelete: (q: QuizQuestion) => void;
-  canManage: boolean;
-}) {
+}: Props) {
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-bold">سؤال‌ها</h3>
-        <Badge tone="blue">{items.length} سؤال</Badge>
+    <Card className="grid gap-3 p-3 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-black">سؤال‌های آزمونک</h3>
+          <p className="text-xs text-slate-500">گزینه درست در هر کارت مشخص است.</p>
+        </div>
+        <Badge tone="blue">{items.length.toLocaleString("fa-IR")} سؤال</Badge>
       </div>
-      <div className="relative mb-3">
-        <Search className="absolute right-3 top-2.5 text-slate-400" size={16} />
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+          size={16}
+        />
         <Input
           className="pr-9"
           type="search"
-          placeholder="جست‌وجوی سؤال…"
+          placeholder="جست‌وجو در متن و گزینه‌ها…"
           value={search}
-          onChange={(e) => onSearch(e.target.value)}
+          onChange={(event) => onSearch(event.target.value)}
         />
       </div>
       {loading ? (
-        <div className="grid gap-2">
-          {[1, 2, 3].map((x) => (
-            <div key={x} className="h-20 animate-pulse rounded-md bg-slate-100" />
+        <div className="grid gap-3 md:grid-cols-2">
+          {[1, 2, 3, 4].map((item) => (
+            <div
+              key={item}
+              className="h-44 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900"
+            />
           ))}
         </div>
       ) : error ? (
@@ -54,36 +65,82 @@ export function QuizQuestionsList({
           }
         />
       ) : items.length ? (
-        <div className="grid max-h-[calc(100dvh-25rem)] gap-2 overflow-y-auto pl-1">
-          {items.map((item, index) => (
-            <article key={item.id} className="rounded-md border p-3">
-              <div className="flex justify-between">
-                <strong>سؤال {index + 1}</strong>
-                {canManage ? (
-                  <div className="flex gap-1">
-                    <Button
-                      className="h-8 px-2"
-                      variant="ghost"
-                      onClick={() => onEdit(item, index)}
-                    >
-                      <Pencil size={14} />
-                    </Button>
-                    <Button variant="danger" className="h-8 px-2" onClick={() => onDelete(item)}>
-                      حذف
-                    </Button>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {items.map((item, index) => {
+            const options =
+              item.options ||
+              [item.option_a, item.option_b, item.option_c, item.option_d].filter(
+                (option): option is string => Boolean(option),
+              );
+            const correct = item.correctOption || item.correct_option || item.correctAnswer;
+            return (
+              <article
+                key={item.id}
+                className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-brand">
+                      سؤال {(index + 1).toLocaleString("fa-IR")}
+                    </span>
+                    <p className="mt-1 text-sm leading-6">
+                      {item.question_text || item.question || item.text}
+                    </p>
                   </div>
+                  {canManage ? (
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        className="h-8 px-2"
+                        variant="ghost"
+                        aria-label="ویرایش سؤال"
+                        onClick={() => onEdit(item, index)}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button
+                        variant="danger"
+                        className="h-8 px-2"
+                        aria-label="حذف سؤال"
+                        onClick={() => onDelete(item)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {options.map((option, optionIndex) => {
+                    const key = ["a", "b", "c", "d"][optionIndex];
+                    const active = correct === key || correct === option;
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${active ? "bg-emerald-50 font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300"}`}
+                      >
+                        {active ? (
+                          <CheckCircle2 size={15} />
+                        ) : (
+                          <span className="grid size-4 place-items-center rounded-full border text-[9px]">
+                            {optionIndex + 1}
+                          </span>
+                        )}
+                        {option}
+                      </div>
+                    );
+                  })}
+                </div>
+                {item.explanation ? (
+                  <details className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+                    <summary className="cursor-pointer font-bold">توضیح پاسخ</summary>
+                    <p className="mt-2 leading-5">{item.explanation}</p>
+                  </details>
                 ) : null}
-              </div>
-              <p className="mt-2 text-sm">{item.question_text || item.question}</p>
-              <span className="mt-2 flex items-center gap-1 text-xs text-emerald-700">
-                <CheckCircle2 size={14} />
-                پاسخ {item.correct_option}
-              </span>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       ) : (
-        <EmptyState title="سؤالی ثبت نشده است." />
+        <EmptyState title="سؤالی برای نمایش نیست." />
       )}
     </Card>
   );

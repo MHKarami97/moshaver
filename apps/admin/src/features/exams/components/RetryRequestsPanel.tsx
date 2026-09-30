@@ -20,34 +20,42 @@ export function RetryRequestsPanel({
           {requests.length} درخواست تلاش مجدد در انتظار بررسی
         </summary>
 
-        <div className="grid gap-2">
+        <div className="divide-y rounded-md border bg-white">
           {requests.map((request) => (
-            <div
-              key={request.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
-            >
-              <div>
-                <strong>{request.examTitle || "آزمون"}</strong>
+            <div key={request.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <strong className="truncate text-sm">{request.examTitle || "آزمون"}</strong>
 
-                <p className="text-xs text-slate-500">
+                  {!onReview && <Badge tone="amber">در انتظار بررسی مشاور</Badge>}
+                </div>
+
+                <p className="truncate text-xs text-slate-500">
                   {request.reason || request.message || "بدون توضیح"}
                 </p>
               </div>
 
-              {onReview ? (
-                <div className="flex gap-2">
-                  <Button onClick={() => onReview(request, "approved")}>
-                    <Check size={15} />
-                    تأیید
+              {onReview && (
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    size="sm"
+                    aria-label="تأیید"
+                    title="تأیید"
+                    onClick={() => onReview(request, "approved")}
+                  >
+                    <Check size={14} />
                   </Button>
 
-                  <Button variant="danger" onClick={() => onReview(request, "rejected")}>
-                    <X size={15} />
-                    رد
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    aria-label="رد"
+                    title="رد"
+                    onClick={() => onReview(request, "rejected")}
+                  >
+                    <X size={14} />
                   </Button>
                 </div>
-              ) : (
-                <Badge tone="amber">در انتظار بررسی مشاور</Badge>
               )}
             </div>
           ))}

@@ -33,6 +33,7 @@ export { SignupThrottle } from "./signup-throttle.entity";
 export { Subject } from "./subject.entity";
 export { StudentSubject } from "./student-subject.entity";
 export { ExamAssignment } from "./exam-assignment.entity";
+export { ExamClassAssignment } from "./exam-class-assignment.entity";
 export { ExamSyllabus } from "./exam-syllabus.entity";
 export { SyllabusProgress } from "./syllabus-progress.entity";
 export { ExamRetryRequest } from "./exam-retry-request.entity";

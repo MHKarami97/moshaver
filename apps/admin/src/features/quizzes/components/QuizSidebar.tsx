@@ -1,6 +1,23 @@
-import { RotateCcw, Search } from "lucide-react";
+import { CalendarClock, CircleHelp, Plus, RotateCcw, Search } from "lucide-react";
 import { Badge, Button, Card, EmptyState, Input, Select } from "../../../shared/ui/ui";
 import type { Quiz } from "../model/quiz.types";
+
+type Props = {
+  quizzes: Quiz[];
+  loading: boolean;
+  error: boolean;
+  selectedId: string;
+  search: string;
+  status: string;
+  onNew: () => void;
+  onSearch: (value: string) => void;
+  onStatus: (value: string) => void;
+  onSelect: (id: string) => void;
+  onRetry: () => void;
+  onClear: () => void;
+  canCreate: boolean;
+};
+
 export function QuizSidebar({
   quizzes,
   loading,
@@ -15,49 +32,50 @@ export function QuizSidebar({
   onRetry,
   onClear,
   canCreate,
-}: {
-  quizzes: Quiz[];
-  loading: boolean;
-  error: boolean;
-  selectedId: string;
-  search: string;
-  status: string;
-  onNew: () => void;
-  onSearch: (v: string) => void;
-  onStatus: (v: string) => void;
-  onSelect: (id: string) => void;
-  onRetry: () => void;
-  onClear: () => void;
-  canCreate: boolean;
-}) {
+}: Props) {
   return (
-    <Card className="self-start lg:sticky lg:top-20">
-      {canCreate ? (
-        <Button className="mb-3 w-full" variant="soft" onClick={onNew}>
-          آزمونک جدید
-        </Button>
-      ) : null}
-      <div className="mb-3 grid gap-2">
+    <Card className="grid gap-3 p-3 sm:p-4">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_auto] lg:items-end">
         <div className="relative">
-          <Search className="absolute right-3 top-2.5 text-slate-400" size={16} />
+          <Search
+            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={16}
+          />
           <Input
             className="pr-9"
             type="search"
-            placeholder="جستجوی آزمونک…"
+            placeholder="جست‌وجو بر اساس نام یا درس…"
             value={search}
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={(event) => onSearch(event.target.value)}
           />
         </div>
-        <Select value={status} onChange={(e) => onStatus(e.target.value)}>
+        <Select
+          aria-label="فیلتر وضعیت آزمونک"
+          value={status}
+          onChange={(event) => onStatus(event.target.value)}
+        >
           <option value="all">همه وضعیت‌ها</option>
           <option value="active">فعال</option>
           <option value="inactive">غیرفعال</option>
         </Select>
+        {canCreate ? (
+          <Button onClick={onNew}>
+            <Plus size={16} />
+            آزمونک جدید
+          </Button>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-y py-2 text-xs text-slate-500">
+        <Badge tone="blue">{quizzes.length.toLocaleString("fa-IR")} نتیجه</Badge>
+        <span>برای ویرایش محتوا یا مخاطبان، یک آزمونک را انتخاب کنید.</span>
       </div>
       {loading ? (
-        <div className="grid gap-2">
-          {[1, 2, 3].map((x) => (
-            <div key={x} className="h-16 animate-pulse rounded-md bg-slate-100" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="h-32 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900"
+            />
           ))}
         </div>
       ) : error ? (
@@ -70,36 +88,56 @@ export function QuizSidebar({
           }
         />
       ) : quizzes.length ? (
-        <div className="grid max-h-[calc(100dvh-21rem)] gap-2 overflow-y-auto">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {quizzes.map((item) => (
             <button
               key={item.id}
-              className={`rounded-md border p-3 text-right ${selectedId === item.id ? "border-brand bg-indigo-50" : ""}`}
+              type="button"
               onClick={() => onSelect(item.id)}
+              className={`grid min-h-36 content-between gap-3 rounded-xl border p-4 text-right transition focus:outline-none focus:ring-2 focus:ring-brand ${selectedId === item.id ? "border-brand bg-brand/5 shadow-sm" : "border-slate-200 bg-white hover:border-brand/50 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
             >
-              <strong>{item.title}</strong>
-              <span className="mt-1 flex justify-between text-xs text-slate-500">
-                <span>{item.subject || "بدون درس"}</span>
+              <div className="flex items-start justify-between gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                  <CircleHelp size={17} />
+                </span>
                 <Badge tone={item.active ? "green" : "neutral"}>
                   {item.active ? "فعال" : "غیرفعال"}
                 </Badge>
-              </span>
-              <span className="mt-1 block text-xs text-slate-400">
-                {item.questions?.length || 0} سؤال
-                {item.exam?.title ? ` • ${item.exam.title}` : ""}
-              </span>
+              </div>
+              <div className="min-w-0">
+                <strong className="block truncate text-sm">{item.title}</strong>
+                <p className="mt-1 truncate text-xs text-slate-500">{item.subject || "بدون درس"}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <span>{item.questions?.length.toLocaleString("fa-IR") || "۰"} سؤال</span>
+                <span>{item.durationMinutes.toLocaleString("fa-IR")} دقیقه</span>
+                {item.openAt ? (
+                  <span className="flex items-center gap-1">
+                    <CalendarClock size={12} />
+                    زمان‌بندی‌شده
+                  </span>
+                ) : null}
+              </div>
             </button>
           ))}
         </div>
       ) : (
         <EmptyState
           title={
-            search || status !== "all" ? "آزمونکی با این فیلتر پیدا نشد." : "آزمونکی ثبت نشده است."
+            search || status !== "all"
+              ? "آزمونکی با این فیلتر پیدا نشد."
+              : "هنوز آزمونکی ثبت نشده است."
           }
           action={
             search || status !== "all" ? (
               <Button variant="ghost" onClick={onClear}>
-                <RotateCcw size={15} /> پاک‌کردن فیلترها
+                <RotateCcw size={15} />
+                پاک‌کردن فیلترها
+              </Button>
+            ) : canCreate ? (
+              <Button onClick={onNew}>
+                <Plus size={15} />
+                ساخت اولین آزمونک
               </Button>
             ) : undefined
           }

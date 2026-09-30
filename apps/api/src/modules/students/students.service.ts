@@ -142,6 +142,9 @@ export class StudentsService {
     await this.students.update(id, {
       name: dto.name ?? student.name,
       gradeId: dto.gradeId ?? student.gradeId,
+      learnerProfile: dto.learnerProfile ?? student.learnerProfile,
+      independentType: dto.independentType ?? student.independentType,
+      learningLevel: dto.learningLevel ?? student.learningLevel,
       educationTypeId: dto.educationTypeId ?? student.educationTypeId,
       trackId: dto.trackId ?? student.trackId,
       grade: dto.grade ?? student.grade,

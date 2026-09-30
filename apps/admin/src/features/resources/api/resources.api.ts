@@ -17,11 +17,21 @@ export type ResourceInput = Omit<LearningResource, "id" | "assignments" | "updat
 };
 
 export const listResources = () => api.get<LearningResource[]>("/learning-resources");
-export type ResourceStudent = Pick<Student, "id" | "name" | "grade" | "major" | "gradeId" | "educationTypeId" | "trackId" | "accountStatus">;
+export type ResourceStudent = Pick<
+  Student,
+  | "id"
+  | "name"
+  | "grade"
+  | "major"
+  | "gradeId"
+  | "educationTypeId"
+  | "trackId"
+  | "learnerProfile"
+  | "independentType"
+  | "accountStatus"
+>;
 export const listResourceStudents = () =>
-  api.get<ResourceStudent[]>(
-    "/learning-resources/assignable-students",
-  );
+  api.get<ResourceStudent[]>("/learning-resources/assignable-students");
 export const createResource = (body: ResourceInput) =>
   api.post<LearningResource>("/learning-resources", body);
 export const updateResource = (id: string, body: ResourceInput) =>

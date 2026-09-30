@@ -11,6 +11,8 @@ export type StudentAllocationCandidate = {
   major?: string | null;
   educationTypeId?: string | null;
   trackId?: string | null;
+  learnerProfile?: "school" | "independent" | null;
+  independentType?: string | null;
 };
 
 export function StudentAllocationControl({
@@ -18,16 +20,21 @@ export function StudentAllocationControl({
   selectedIds,
   onChange,
   label = "دانش‌آموزان",
+  classes = [],
 }: {
   students: StudentAllocationCandidate[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   label?: string;
+  classes?: Array<{ id: string; name: string; status?: string; students: Array<{ id: string }> }>;
 }) {
   const [search, setSearch] = useState("");
   const [grade, setGrade] = useState("");
   const [educationType, setEducationType] = useState("");
   const [track, setTrack] = useState("");
+  const [learnerProfile, setLearnerProfile] = useState<"" | "school" | "independent">("");
+  const [independentType, setIndependentType] = useState("");
+  const [classId, setClassId] = useState("");
   const visible = useMemo(
     () =>
       students.filter(
@@ -35,11 +42,27 @@ export function StudentAllocationControl({
           (!grade || String(student.gradeId || student.grade || "") === grade) &&
           (!educationType || student.educationTypeId === educationType) &&
           (!track || student.trackId === track || student.major === track) &&
+          (!learnerProfile || student.learnerProfile === learnerProfile) &&
+          (!independentType || student.independentType === independentType) &&
+          (!classId ||
+            classes
+              .find((item) => item.id === classId)
+              ?.students.some((item) => item.id === student.id)) &&
           `${student.name} ${student.grade || ""} ${student.major || ""}`
             .toLocaleLowerCase("fa")
             .includes(search.trim().toLocaleLowerCase("fa")),
       ),
-    [educationType, grade, search, students, track],
+    [
+      classId,
+      classes,
+      educationType,
+      grade,
+      independentType,
+      learnerProfile,
+      search,
+      students,
+      track,
+    ],
   );
   const toggle = (id: string) =>
     onChange(
@@ -62,7 +85,7 @@ export function StudentAllocationControl({
           placeholder="جست‌وجوی نام، پایه یا رشته"
         />
       </label>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
           aria-label="فیلتر پایه"
@@ -84,6 +107,63 @@ export function StudentAllocationControl({
               </option>
             ))}
         </select>
+        <select
+          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
+          aria-label="نوع یادگیرنده"
+          value={learnerProfile}
+          onChange={(event) => {
+            setLearnerProfile(event.target.value as "" | "school" | "independent");
+            if (event.target.value === "independent") setClassId("");
+            else setIndependentType("");
+          }}
+        >
+          <option value="">همه یادگیرندگان</option>
+          <option value="school">دانش‌آموز مدرسه</option>
+          <option value="independent">یادگیرنده مستقل</option>
+        </select>
+        <select
+          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
+          aria-label="نوع یادگیرنده مستقل"
+          value={independentType}
+          disabled={learnerProfile === "school"}
+          onChange={(event) => {
+            setIndependentType(event.target.value);
+            if (event.target.value) {
+              setLearnerProfile("independent");
+              setClassId("");
+            }
+          }}
+        >
+          <option value="">همه نوع‌های مستقل</option>
+          {[
+            ["adult", "بزرگسال"],
+            ["gap_year", "سال فاصله"],
+            ["homeschool", "آموزش خانگی"],
+            ["other", "سایر"],
+          ].map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {classes.length ? (
+          <select
+            className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
+            aria-label="فیلتر کلاس"
+            value={classId}
+            disabled={learnerProfile === "independent"}
+            onChange={(event) => setClassId(event.target.value)}
+          >
+            <option value="">همه کلاس‌ها</option>
+            {classes
+              .filter((item) => !item.status || item.status === "ACTIVE")
+              .map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+          </select>
+        ) : null}
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
           aria-label="فیلتر نوع آموزش"
@@ -155,7 +235,9 @@ export function StudentAllocationControl({
             <span className="min-w-0">
               <strong className="block truncate text-sm">{student.name}</strong>
               <small className="block truncate text-xs text-slate-500">
-                {student.grade || "پایه نامشخص"} · {student.major || "رشته نامشخص"}
+                {student.learnerProfile === "independent"
+                  ? `یادگیرنده مستقل${student.independentType ? ` · ${student.independentType}` : ""}`
+                  : `${student.grade || "پایه نامشخص"} · ${student.major || "رشته نامشخص"}`}
               </small>
             </span>
           </label>

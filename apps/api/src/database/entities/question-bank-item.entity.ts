@@ -20,6 +20,10 @@ export class QuestionBankItem {
   @Column({ default: "" }) difficulty!: string;
   @Column({ default: "" }) source!: string;
   @Column({ type: "simple-json", default: "[]" }) tags!: string[];
+  /** Exam and quiz banks are isolated source collections. */
+  @Index() @Column({ type: "varchar", default: "exam" }) bankType!: "exam" | "quiz";
+  /** A quiz-bank copy retains its source without linking future edits. */
+  @Index() @Column({ type: "varchar", nullable: true }) sourceQuestionBankItemId?: string | null;
   @Column({ type: "datetime", nullable: true }) archivedAt?: Date | null;
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;

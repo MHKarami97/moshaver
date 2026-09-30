@@ -1,4 +1,14 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from "typeorm";
 import { User } from "./user.entity";
 import { Plan } from "./plan.entity";
 import { ExamAttempt } from "./exam-attempt.entity";
@@ -11,7 +21,10 @@ export class Student {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @OneToOne(() => User, (user) => user.student, { nullable: true, onDelete: "SET NULL" })
+  @OneToOne(() => User, (user) => user.student, {
+    nullable: true,
+    onDelete: "SET NULL",
+  })
   @JoinColumn()
   user?: User | null;
 
@@ -24,6 +37,15 @@ export class Student {
 
   @Column({ type: "integer", nullable: true })
   gradeId?: number | null;
+
+  @Column({ length: 24, default: "school" })
+  learnerProfile!: "school" | "independent";
+
+  @Column({ type: "varchar", length: 32, nullable: true })
+  independentType?: "adult" | "gap_year" | "homeschool" | "other" | null;
+
+  @Column({ length: 120, default: "" })
+  learningLevel!: string;
 
   @Column({ length: 40, default: "general" })
   educationTypeId!: string;

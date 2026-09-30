@@ -18,6 +18,9 @@ import { useExamsData } from "../hooks/useExamsData";
 import { makeExamDraft } from "../model/exam-model";
 import type { BulkExamAction, RetryRequest } from "../model/exam.types";
 import { useAuth } from "../../auth";
+import { useQuery } from "@tanstack/react-query";
+import { getExamAnalytics, type ExamAnalytics } from "../api/exams.api";
+import { Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
 
 export function ExamsPage() {
   const modal = useModal();
@@ -214,7 +217,7 @@ export function ExamsPage() {
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4 sm:gap-5">
       <ExamsHeader
         students={filters.students.students}
         studentId={filters.students.studentId}
@@ -251,11 +254,6 @@ export function ExamsPage() {
         }
       />
 
-      <RetryRequestsPanel
-        requests={data.pendingRetries}
-        onReview={auth.can("retry_requests.moderate") ? openRetryReview : undefined}
-      />
-
       <ExamFilters
         exams={data.exams.data ?? []}
         pendingRetryCount={data.pendingRetries.length}
@@ -269,6 +267,13 @@ export function ExamsPage() {
         onClear={filters.clearFilters}
         onBulk={runBulk}
       />
+
+      {data.pendingRetries.length ? (
+        <RetryRequestsPanel
+          requests={data.pendingRetries}
+          onReview={auth.can("retry_requests.moderate") ? openRetryReview : undefined}
+        />
+      ) : null}
 
       <ExamList
         exams={data.exams.data ?? []}
@@ -289,8 +294,23 @@ export function ExamsPage() {
                   description: "حذف تخصیص پس از شروع آزمون برای حفظ داده های تلاش مسدود است.",
                   size: "lg",
                   content: (
-                    <ExamAssignmentManager examId={exam.id} students={filters.students.students} />
+                    <ExamAssignmentManager
+                      examId={exam.id}
+                      initialRules={exam.audienceRules}
+                      students={filters.students.students}
+                    />
                   ),
+                })
+            : undefined
+        }
+        onAnalytics={
+          auth.can("exams.read")
+            ? (exam) =>
+                modal.open({
+                  title: `تحلیل آزمون: ${exam.title}`,
+                  description: "بر پایه تلاش‌های ارسال‌شده و منقضی‌شده.",
+                  size: "xl",
+                  content: <ExamAnalyticsPanel examId={exam.id} />,
                 })
             : undefined
         }
@@ -308,5 +328,65 @@ export function ExamsPage() {
         showQuestions={auth.can("questions.read")}
       />
     </div>
+  );
+}
+
+function ExamAnalyticsPanel({ examId }: { examId: string }) {
+  const analytics = useQuery({
+    queryKey: ["exam-analytics", examId],
+    queryFn: () => getExamAnalytics(examId),
+  });
+  if (analytics.isLoading) return <LoadingState label="در حال محاسبه تحلیل آزمون…" />;
+  if (analytics.isError || !analytics.data)
+    return <EmptyState title="دریافت تحلیل آزمون ناموفق بود." />;
+  return <ExamAnalyticsView value={analytics.data} />;
+}
+function ExamAnalyticsView({ value }: { value: ExamAnalytics }) {
+  return (
+    <Card className="grid gap-3 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <strong className="text-sm">نتیجه کلی</strong>
+          <p className="text-xs text-slate-500">تنها تلاش‌های ارسال‌شده و منقضی‌شده</p>
+        </div>
+        <strong className="rounded-lg bg-brand/10 px-2 py-1 text-xs text-brand">
+          {value.attempts.toLocaleString("fa-IR")} تلاش ·{" "}
+          {value.averagePercent === null ? "—" : `${value.averagePercent.toLocaleString("fa-IR")}٪`}
+        </strong>
+      </div>
+      {value.byGrade.length ? (
+        <div className="flex flex-wrap gap-2">
+          {value.byGrade.map((row) => (
+            <span key={row.grade} className="rounded-lg border px-2 py-1 text-xs">
+              {row.grade}: {row.averagePercent.toLocaleString("fa-IR")}٪ (
+              {row.attempts.toLocaleString("fa-IR")})
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="grid gap-2">
+        {value.questions.map((question, index) => (
+          <article key={question.id} className="grid gap-1 rounded-xl border p-2.5">
+            <div className="flex items-start justify-between gap-3">
+              <strong className="text-sm">
+                {(index + 1).toLocaleString("fa-IR")}. {question.text}
+              </strong>
+              <span className="shrink-0 text-xs text-slate-500">
+                {question.accuracy === null
+                  ? "بدون تلاش"
+                  : `${question.accuracy.toLocaleString("fa-IR")}٪ درست`}
+              </span>
+            </div>
+            <small className="text-xs text-slate-500">
+              الف: {(question.responses.a || 0).toLocaleString("fa-IR")} · ب:{" "}
+              {(question.responses.b || 0).toLocaleString("fa-IR")} · ج:{" "}
+              {(question.responses.c || 0).toLocaleString("fa-IR")} · د:{" "}
+              {(question.responses.d || 0).toLocaleString("fa-IR")} · سفید:{" "}
+              {(question.responses.blank || 0).toLocaleString("fa-IR")}
+            </small>
+          </article>
+        ))}
+      </div>
+    </Card>
   );
 }

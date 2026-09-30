@@ -18,6 +18,10 @@ import { useLocale } from "./locale";
 import { useModal } from "./modal";
 import { Button, Card, Field, Textarea } from "./ui";
 import { downloadTransferWorkbook, readTransferWorkbook } from "../lib/data-transfer-xlsx";
+import {
+  QuestionBankDataTransfer,
+  type QuestionBankTransferPayload,
+} from "./question-bank-data-transfer";
 
 export type TransferPreview = {
   schemaVersion?: number;
@@ -42,7 +46,8 @@ type ImportResult = {
   skippedExams?: number;
   published?: boolean;
 };
-type Props = {
+type AssessmentTransferProps = {
+  variant?: undefined;
   studentId: string;
   scope: "all" | "plans" | "exams";
   title: string;
@@ -56,10 +61,24 @@ type Props = {
   canCommit?: boolean;
   canExport?: boolean;
 };
+type QuestionBankTransferProps = {
+  variant: "question-bank";
+  bankType: "exam" | "quiz";
+  canManage?: boolean;
+  load: (kind: "export" | "template") => Promise<QuestionBankTransferPayload>;
+  readWorkbook: (file: File, bankType: "exam" | "quiz") => Promise<QuestionBankTransferPayload>;
+  writeWorkbook: (data: QuestionBankTransferPayload, filename: string) => Promise<void>;
+  onImport: (data: QuestionBankTransferPayload) => Promise<{ created: number }>;
+  onImported: () => void;
+};
+type Props = AssessmentTransferProps | QuestionBankTransferProps;
 type Tab = "import" | "export";
 type ConflictPolicy = "stop" | "skip" | "replace";
 
 export function DataTransferWorkspace(props: Props) {
+  if (props.variant === "question-bank") {
+    return <QuestionBankDataTransfer {...props} />;
+  }
   const modal = useModal(),
     { formatDate } = useLocale(),
     fileRef = useRef<HTMLInputElement>(null);
@@ -126,7 +145,7 @@ export function DataTransferWorkspace(props: Props) {
 
   async function loadFile(file?: File) {
     if (!file) return;
-    if (!props.studentId) {
+    if (!(props as AssessmentTransferProps).studentId) {
       modal.open({
         title: "دانش‌آموز را انتخاب کنید",
         description: "پیش از بارگذاری فایل، دانش‌آموز مقصد را انتخاب کنید.",
@@ -520,7 +539,7 @@ export function DataTransferWorkspace(props: Props) {
   );
 }
 
-function scopePayload(data: Record<string, unknown>, scope: Props["scope"]) {
+function scopePayload(data: Record<string, unknown>, scope: AssessmentTransferProps["scope"]) {
   return {
     ...data,
     plans: scope === "exams" ? [] : Array.isArray(data.plans) ? data.plans : [],

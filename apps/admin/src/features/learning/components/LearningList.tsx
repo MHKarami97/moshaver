@@ -1,8 +1,7 @@
-import { Card, EmptyState } from "../../../shared/ui/ui";
+import { AdminList } from "../../../shared/ui/admin-list";
 import type { LearningItem } from "../model/learning-model";
 import { LearningFilters } from "./LearningFilters";
 import { LearningRow } from "./LearningRow";
-import { LearningSkeleton } from "./LearningSkeleton";
 import type { LearningFilter } from "../model/learning.types";
 
 export function LearningList({
@@ -31,34 +30,35 @@ export function LearningList({
   onDelete?: (item: LearningItem) => void;
 }) {
   return (
-    <Card className="min-w-0 p-3 sm:p-4">
-      <LearningFilters
-        search={search}
-        filter={filter}
-        resultCount={items.length}
-        onSearchChange={onSearchChange}
-        onFilterChange={onFilterChange}
-      />
-
-      {loading ? (
-        <LearningSkeleton />
-      ) : items.length ? (
-        <div className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto pl-1">
-          {items.map((item) => (
-            <LearningRow
-              key={item.id}
-              item={item}
-              formatDate={formatDate}
-              onEdit={onEdit ? () => onEdit(item) : undefined}
-              onReview={onReview ? () => onReview(item) : undefined}
-              onHistory={() => onHistory(item)}
-              onDelete={onDelete ? () => onDelete(item) : undefined}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="موردی با این جستجو و فیلتر پیدا نشد." />
-      )}
-    </Card>
+    <AdminList
+      label="منابع یادگیری"
+      description="موارد را جست‌وجو، فیلتر و برای بازبینی یا ویرایش انتخاب کنید."
+      items={items}
+      loading={loading}
+      emptyTitle="موردی با این جست‌وجو و فیلتر پیدا نشد."
+      toolbar={
+        <LearningFilters
+          search={search}
+          filter={filter}
+          resultCount={items.length}
+          onSearchChange={onSearchChange}
+          onFilterChange={onFilterChange}
+        />
+      }
+    >
+      <div className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto pl-1">
+        {items.map((item) => (
+          <LearningRow
+            key={item.id}
+            item={item}
+            formatDate={formatDate}
+            onEdit={onEdit ? () => onEdit(item) : undefined}
+            onReview={onReview ? () => onReview(item) : undefined}
+            onHistory={() => onHistory(item)}
+            onDelete={onDelete ? () => onDelete(item) : undefined}
+          />
+        ))}
+      </div>
+    </AdminList>
   );
 }

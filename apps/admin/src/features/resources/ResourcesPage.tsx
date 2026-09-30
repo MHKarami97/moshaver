@@ -22,6 +22,7 @@ import { educationLabel } from "../../shared/lib/utils";
 import { notify } from "../../shared/ui/notifications";
 import { useModal } from "../../shared/ui/modal";
 import { StudentAllocationControl } from "../../shared/ui/student-allocation-control";
+import { listClasses } from "../education/api/classes.api";
 import { Badge, Button, Card, EmptyState, Input, LoadingState, Textarea } from "../../shared/ui/ui";
 import {
   createResource,
@@ -59,6 +60,11 @@ export function ResourcesPage() {
     queryKey: ["students", "resource-picker"],
     queryFn: listResourceStudents,
     enabled: canManage,
+  });
+  const classes = useQuery({
+    queryKey: ["classes", "resource-picker"],
+    queryFn: () => listClasses(),
+    enabled: canManage && auth.can("classes.read"),
   });
   const [form, setForm] = useState<ResourceInput>(empty),
     [editing, setEditing] = useState<string | null>(null),
@@ -188,6 +194,7 @@ export function ResourcesPage() {
         <ResourceEditorModal
           initialDraft={draft}
           students={students.data || []}
+          classes={classes.data || []}
           saving={save.isPending}
           editing={!!item}
           onClose={modal.close}
@@ -218,7 +225,7 @@ export function ResourcesPage() {
     if (confirmed) remove.mutate(resource.id);
   };
   if (!canManage) return <EmptyState title="دسترسی مدیریت منابع آموزشی ندارید." />;
-  if (resources.isLoading || students.isLoading)
+  if (resources.isLoading || students.isLoading || classes.isLoading)
     return <LoadingState label="در حال آماده‌سازی منابع آموزشی…" />;
   if (resources.isError || students.isError)
     return (
@@ -683,6 +690,7 @@ export function ResourcesPage() {
 function ResourceEditorModal({
   initialDraft,
   students,
+  classes,
   saving,
   editing,
   onClose,
@@ -690,6 +698,7 @@ function ResourceEditorModal({
 }: {
   initialDraft: ResourceInput;
   students: Awaited<ReturnType<typeof listResourceStudents>>;
+  classes: Parameters<typeof StudentAllocationControl>[0]["classes"];
   saving: boolean;
   editing: boolean;
   onClose: () => void;
@@ -888,6 +897,7 @@ function ResourceEditorModal({
         students={students}
         selectedIds={draft.studentIds}
         onChange={(studentIds) => setDraft({ ...draft, studentIds })}
+        classes={classes}
       />
       <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
         <Button type="button" variant="ghost" onClick={onClose}>

@@ -22,13 +22,29 @@ export function StudentPicker({
     [grade, setGrade] = useState(""),
     [educationType, setEducationType] = useState(""),
     [track, setTrack] = useState(""),
+    [learnerProfile, setLearnerProfile] = useState<"" | "school" | "independent">(""),
     [expanded, setExpanded] = useState(false);
   const selected = students.find((student) => student.id === value) || null;
   const recentIds = readRecentIds();
   const recent = recentIds.flatMap((id) => students.find((student) => student.id === id) || []);
-  const grades = useMemo(() => [...new Set(students.map((student) => student.grade || String(student.gradeId || "")).filter(Boolean))], [students]);
-  const educationTypes = useMemo(() => [...new Set(students.map((student) => student.educationTypeId || "").filter(Boolean))], [students]);
-  const tracks = useMemo(() => [...new Set(students.map((student) => student.trackId || student.major || "").filter(Boolean))], [students]);
+  const grades = useMemo(
+    () => [
+      ...new Set(
+        students.map((student) => student.grade || String(student.gradeId || "")).filter(Boolean),
+      ),
+    ],
+    [students],
+  );
+  const educationTypes = useMemo(
+    () => [...new Set(students.map((student) => student.educationTypeId || "").filter(Boolean))],
+    [students],
+  );
+  const tracks = useMemo(
+    () => [
+      ...new Set(students.map((student) => student.trackId || student.major || "").filter(Boolean)),
+    ],
+    [students],
+  );
   const filtered = useMemo(() => {
     const term = normalizePersianText(query);
     return students.filter((student) => {
@@ -62,10 +78,11 @@ export function StudentPicker({
           (filter === "inactive" && !active)) &&
         (!grade || (student.grade || String(student.gradeId || "")) === grade) &&
         (!educationType || student.educationTypeId === educationType) &&
-        (!track || (student.trackId || student.major || "") === track)
+        (!track || (student.trackId || student.major || "") === track) &&
+        (!learnerProfile || student.learnerProfile === learnerProfile)
       );
     });
-  }, [educationType, filter, grade, query, students, track]);
+  }, [educationType, filter, grade, learnerProfile, query, students, track]);
   const visible = expanded ? filtered : filtered.slice(0, 40);
 
   function choose(id: string) {
@@ -180,10 +197,56 @@ export function StudentPicker({
             </button>
           ))}
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-1">
-          <select aria-label="فیلتر پایه" value={grade} onChange={(event) => setGrade(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه پایه‌ها</option>{grades.map((item) => <option key={item}>{item}</option>)}</select>
-          <select aria-label="فیلتر نوع آموزش" value={educationType} onChange={(event) => setEducationType(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه نوع‌ها</option>{educationTypes.map((item) => <option key={item} value={item}>{educationLabel(item)}</option>)}</select>
-          <select aria-label="فیلتر رشته یا مسیر" value={track} onChange={(event) => setTrack(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه مسیرها</option>{tracks.map((item) => <option key={item} value={item}>{educationLabel(item)}</option>)}</select>
+        <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
+          <select
+            aria-label="فیلتر پایه"
+            value={grade}
+            onChange={(event) => setGrade(event.target.value)}
+            className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"
+          >
+            <option value="">همه پایه‌ها</option>
+            {grades.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+          <select
+            aria-label="فیلتر نوع آموزش"
+            value={educationType}
+            onChange={(event) => setEducationType(event.target.value)}
+            className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"
+          >
+            <option value="">همه نوع‌ها</option>
+            {educationTypes.map((item) => (
+              <option key={item} value={item}>
+                {educationLabel(item)}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="فیلتر رشته یا مسیر"
+            value={track}
+            onChange={(event) => setTrack(event.target.value)}
+            className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"
+          >
+            <option value="">همه مسیرها</option>
+            {tracks.map((item) => (
+              <option key={item} value={item}>
+                {educationLabel(item)}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="نوع یادگیرنده"
+            value={learnerProfile}
+            onChange={(event) =>
+              setLearnerProfile(event.target.value as "" | "school" | "independent")
+            }
+            className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"
+          >
+            <option value="">همه یادگیرندگان</option>
+            <option value="school">مدرسه‌ای</option>
+            <option value="independent">مستقل</option>
+          </select>
         </div>
       </div>
       {!query && filter === "all" && recent.length ? (
@@ -292,7 +355,11 @@ function StudentOption({
       <span className="min-w-0 flex-1">
         <strong className="block truncate text-sm">{student.name}</strong>
         <small className="block truncate text-[10px] text-slate-400">
-          {[student.user?.username || student.username, student.grade, student.major]
+          {[
+            student.user?.username || student.username,
+            student.learnerProfile === "independent" ? "یادگیرنده مستقل" : student.grade,
+            student.learnerProfile === "independent" ? student.learningLevel : student.major,
+          ]
             .filter(Boolean)
             .join(" · ") || "بدون جزئیات"}
         </small>

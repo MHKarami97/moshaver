@@ -29,8 +29,29 @@ export class QuestionBankController {
   @Get() @RequireCapabilities("question_bank.manage") list(
     @CurrentUser() u: AuthenticatedUser,
     @Query("organizationId") org?: string,
+    @Query("bankType") bankType?: "exam" | "quiz",
   ) {
-    return this.service.list(this.c(u), org).then(ok);
+    return this.service.list(this.c(u), org, bankType).then(ok);
+  }
+  @Get("template") @RequireCapabilities("question_bank.manage") template(
+    @CurrentUser() u: AuthenticatedUser,
+    @Query("bankType") bankType?: "exam" | "quiz",
+  ) {
+    return this.service.template(this.c(u), bankType).then(ok);
+  }
+  @Get("export") @RequireCapabilities("question_bank.manage") export(
+    @CurrentUser() u: AuthenticatedUser,
+    @Query("organizationId") org?: string,
+    @Query("bankType") bankType?: "exam" | "quiz",
+  ) {
+    return this.service.export(this.c(u), org, bankType).then(ok);
+  }
+  @Post("import") @RequireCapabilities("question_bank.manage") import(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body()
+    body: { bankType?: "exam" | "quiz"; questions?: Record<string, unknown>[] },
+  ) {
+    return this.service.import(this.c(u), body).then(ok);
   }
   @Post() @RequireCapabilities("question_bank.manage") create(
     @CurrentUser() u: AuthenticatedUser,
@@ -61,9 +82,24 @@ export class QuestionBankController {
     if (!body.examId) throw new Error("examId is required");
     return this.service.copyToExam(this.c(u), id, body.examId).then(ok);
   }
+  @Post("copy-exam-items-to-quiz-bank")
+  @RequireCapabilities("question_bank.manage")
+  copyExamItemsToQuizBank(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body() body: { itemIds?: string[] },
+  ) {
+    if (!Array.isArray(body.itemIds) || !body.itemIds.length)
+      throw new Error("itemIds is required");
+    return this.service
+      .copyExamItemsToQuizBank(this.c(u), body.itemIds)
+      .then(ok);
+  }
   @Post("generate/exam")
   @RequireCapabilities("question_bank.manage", "questions.create")
-  generateExam(@CurrentUser() u: AuthenticatedUser, @Body() body: GenerateExamFromBankDto) {
+  generateExam(
+    @CurrentUser() u: AuthenticatedUser,
+    @Body() body: GenerateExamFromBankDto,
+  ) {
     return this.service.generateExam(this.c(u), body).then(ok);
   }
   @Post(":id/add-to-quiz")

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from "@nestjs/common";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -15,6 +16,8 @@ import { UserRole } from "../../database/entities/user.entity";
 import { AuthenticatedUser } from "../auth";
 import {
   AssignExamDto,
+  ExamAudienceRulesDto,
+  ExamClassAssignmentsDto,
   CreateExamDto,
   CreateQuestionDto,
   UpdateExamDto,
@@ -129,6 +132,15 @@ export class ExamsController {
     await this.requireExamScope(user, id, "questions.read");
     return this.exams.questionsForExam(id).then(ok);
   }
+  @Get("exams/:id/analytics")
+  @RequireCapabilities("exams.read")
+  async analytics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+  ) {
+    await this.requireExamScope(user, id, "exams.read");
+    return this.exams.analytics(id).then(ok);
+  }
   @Get("question-bank/exams")
   @RequireCapabilities("questions.read")
   questionBankExams(@CurrentUser() user: AuthenticatedUser) {
@@ -207,6 +219,38 @@ export class ExamsController {
   ) {
     await this.requireExamScope(user, id, "exams.read");
     return ok(await this.exams.assignmentsForExam(id));
+  }
+
+  @Get("exams/:id/class-assignments")
+  @RequireCapabilities("exams.read")
+  async classAssignments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+  ) {
+    await this.requireExamScope(user, id, "exams.read");
+    return this.exams.listClassAssignments(id).then(ok);
+  }
+
+  @Put("exams/:id/class-assignments")
+  @RequireCapabilities("exams.assign")
+  async setClassAssignments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+    @Body() dto: ExamClassAssignmentsDto,
+  ) {
+    await this.requireExamScope(user, id, "exams.assign");
+    return this.exams.setClassAssignments(id, dto.classIds).then(ok);
+  }
+
+  @Put("exams/:id/audience-rules")
+  @RequireCapabilities("exams.assign")
+  async setAudienceRules(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+    @Body() dto: ExamAudienceRulesDto,
+  ) {
+    await this.requireExamScope(user, id, "exams.assign");
+    return this.exams.setAudienceRules(id, dto).then(ok);
   }
 
   @Delete("exams/:id/assignments/:studentId")

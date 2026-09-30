@@ -5,7 +5,20 @@ import { UserRelationship } from "../../database/entities/user-relationship.enti
 import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { AuthorizationService } from "./authorization.service";
 import { Student } from "../../database/entities/student.entity";
+import { Permission } from "../../database/entities/permission.entity";
 
 @Global()
-@Module({ imports: [TypeOrmModule.forFeature([UserRoleAssignment, OrganizationMembership, UserRelationship, Student])], providers: [AuthorizationService], exports: [AuthorizationService] })
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      UserRoleAssignment,
+      OrganizationMembership,
+      UserRelationship,
+      Student,
+      Permission,
+    ]),
+  ],
+  providers: [AuthorizationService],
+  exports: [AuthorizationService],
+})
 export class AuthorizationModule {}

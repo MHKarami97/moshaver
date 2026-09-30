@@ -45,6 +45,9 @@ export interface Student {
   user?: { id: string; username?: string; role?: Role };
   username?: string;
   gradeId?: number | null;
+  learnerProfile?: "school" | "independent";
+  independentType?: "adult" | "gap_year" | "homeschool" | "other" | null;
+  learningLevel?: string;
   educationTypeId?: string;
   trackId?: string;
   grade?: string;
@@ -137,6 +140,13 @@ export interface Exam {
   durationMinutes?: number;
   maxAttempts?: number;
   published?: boolean;
+  audienceRules?: {
+    gradeIds: number[];
+    educationTypeIds: string[];
+    trackIds: string[];
+    learnerProfiles: string[];
+    independentTypes: string[];
+  };
   subject?: string;
   subjects?: string[];
   organization?: { id: string; name: string } | null;

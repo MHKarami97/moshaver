@@ -24,6 +24,7 @@ describe("admin navigation metadata", () => {
       "questions",
       "quizzes",
       "subjects",
+      "classes",
       "resources",
       "communication/live",
       "communication/chat",
@@ -59,8 +60,8 @@ describe("admin navigation metadata", () => {
     ]);
   });
 
-  it("keeps the eight education sections and their route capabilities in one registry", () => {
-    expect(educationNavigation).toHaveLength(8);
+  it("keeps the nine education sections and their route capabilities in one registry", () => {
+    expect(educationNavigation).toHaveLength(9);
     expect(educationNavigation.map((item) => item.path)).toEqual([
       "education",
       "planner",
@@ -69,6 +70,7 @@ describe("admin navigation metadata", () => {
       "questions",
       "quizzes",
       "subjects",
+      "classes",
       "resources",
     ]);
     expect(educationCapabilities).toEqual([
@@ -78,6 +80,7 @@ describe("admin navigation metadata", () => {
       "questions.read",
       "quizzes.read",
       "subjects.read",
+      "classes.read",
       "learning_resources.manage",
     ]);
   });

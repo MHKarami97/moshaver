@@ -25,12 +25,18 @@ export class PlansService {
   }
 
   async studentIdForPlan(id: string) {
-    const plan = await this.plans.findOneOrFail({ where: { id }, relations: { student: true } });
+    const plan = await this.plans.findOneOrFail({
+      where: { id },
+      relations: { student: true },
+    });
     return plan.student.id;
   }
 
   async studentIdForTask(id: string) {
-    const task = await this.tasks.findOneOrFail({ where: { id }, relations: { plan: { student: true } } });
+    const task = await this.tasks.findOneOrFail({
+      where: { id },
+      relations: { plan: { student: true } },
+    });
     return task.plan.student.id;
   }
 
@@ -38,10 +44,17 @@ export class PlansService {
     const warnings: string[] = [];
     if (!dto.tasks?.length) warnings.push("هیچ فعالیتی در برنامه نیست.");
     for (const [index, task] of (dto.tasks || []).entries()) {
-      if (!task.startTime || !task.endTime) warnings.push(`فعالیت ${index + 1} زمان شروع یا پایان ندارد.`);
-      if (task.startTime && task.endTime && task.startTime >= task.endTime) warnings.push(`فعالیت ${index + 1} بازه زمانی نامعتبر دارد.`);
+      if (!task.startTime || !task.endTime)
+        warnings.push(`فعالیت ${index + 1} زمان شروع یا پایان ندارد.`);
+      if (task.startTime && task.endTime && task.startTime >= task.endTime)
+        warnings.push(`فعالیت ${index + 1} بازه زمانی نامعتبر دارد.`);
     }
-    return { valid: true, plan: dto, warnings, summary: { taskCount: dto.tasks?.length || 0, date: dto.date } };
+    return {
+      valid: true,
+      plan: dto,
+      warnings,
+      summary: { taskCount: dto.tasks?.length || 0, date: dto.date },
+    };
   }
 
   async importPlan(dto: ImportPlanDto) {
@@ -52,7 +65,10 @@ export class PlansService {
     const date = dto.date || dto.planDate;
     if (!date) throw new Error("Plan date is required.");
     const student = await this.students.findOneByOrFail({ id: dto.studentId });
-    const existing = await this.plans.findOne({ where: { student: { id: dto.studentId }, date }, relations: { tasks: true } });
+    const existing = await this.plans.findOne({
+      where: { student: { id: dto.studentId }, date },
+      relations: { tasks: true },
+    });
     if (existing) {
       await this.tasks.delete({ plan: { id: existing.id } });
       existing.status = dto.publish ? PlanStatus.PUBLISHED : existing.status;
@@ -74,10 +90,14 @@ export class PlansService {
   }
 
   async updatePlan(id: string, body: Partial<ImportPlanDto>) {
-    const plan = await this.plans.findOneOrFail({ where: { id }, relations: { tasks: true, student: true } });
+    const plan = await this.plans.findOneOrFail({
+      where: { id },
+      relations: { tasks: true, student: true },
+    });
     const date = body.date || body.planDate;
     if (date) plan.date = date;
-    if (typeof body.publish === "boolean") plan.status = body.publish ? PlanStatus.PUBLISHED : PlanStatus.DRAFT;
+    if (typeof body.publish === "boolean")
+      plan.status = body.publish ? PlanStatus.PUBLISHED : PlanStatus.DRAFT;
     Object.assign(plan, this.planValues(body, plan));
     await this.plans.save(plan);
     return this.findPresentedPlan(id);
@@ -89,7 +109,10 @@ export class PlansService {
   }
 
   async duplicatePlan(id: string, planDate: string) {
-    const source = await this.plans.findOneOrFail({ where: { id }, relations: { tasks: true, student: true } });
+    const source = await this.plans.findOneOrFail({
+      where: { id },
+      relations: { tasks: true, student: true },
+    });
     return this.upsertPlan({
       studentId: source.student.id,
       date: planDate,
@@ -116,28 +139,48 @@ export class PlansService {
 
   async addTask(planId: string, body: ImportPlanDto["tasks"][number]) {
     const plan = await this.plans.findOneOrFail({ where: { id: planId } });
-    await this.tasks.save(this.tasks.create({ ...this.taskValues(body), plan }));
+    await this.tasks.save(
+      this.tasks.create({ ...this.taskValues(body), plan }),
+    );
     return this.findPresentedPlan(planId);
   }
 
-  async updateTask(id: string, body: Partial<ImportPlanDto["tasks"][number]> & { planId?: string }) {
-    const task = await this.tasks.findOneOrFail({ where: { id }, relations: { plan: true } });
+  async updateTask(
+    id: string,
+    body: Partial<ImportPlanDto["tasks"][number]> & { planId?: string },
+  ) {
+    const task = await this.tasks.findOneOrFail({
+      where: { id },
+      relations: { plan: true },
+    });
     const previousPlanId = task.plan.id;
     if (body.planId && body.planId !== previousPlanId)
-      task.plan = await this.plans.findOneOrFail({ where: { id: body.planId } });
+      task.plan = await this.plans.findOneOrFail({
+        where: { id: body.planId },
+      });
     Object.assign(task, this.taskValues(body, task));
     await this.tasks.save(task);
     return this.findPresentedPlan(task.plan.id);
   }
 
   async deleteTask(id: string) {
-    const task = await this.tasks.findOneOrFail({ where: { id }, relations: { plan: true } });
+    const task = await this.tasks.findOneOrFail({
+      where: { id },
+      relations: { plan: true },
+    });
     await this.tasks.delete(id);
     return this.findPresentedPlan(task.plan.id);
   }
 
-  async publishRange(studentId: string, from: string, to: string, published: boolean) {
-    const plans = await this.plans.find({ where: { student: { id: studentId }, date: Between(from, to) } });
+  async publishRange(
+    studentId: string,
+    from: string,
+    to: string,
+    published: boolean,
+  ) {
+    const plans = await this.plans.find({
+      where: { student: { id: studentId }, date: Between(from, to) },
+    });
     for (const plan of plans) {
       plan.status = published ? PlanStatus.PUBLISHED : PlanStatus.DRAFT;
     }
@@ -145,11 +188,21 @@ export class PlansService {
     return { updated: plans.length };
   }
 
-  async importPayload(body: { studentId: string; data?: unknown; publishImported?: boolean }) {
+  async importPayload(body: {
+    studentId: string;
+    data?: unknown;
+    publishImported?: boolean;
+  }) {
     const imported = normalizeImportPayload(body);
     const results = [];
     for (const plan of imported.plans) {
-      results.push(await this.upsertPlan({ ...plan, studentId: body.studentId, publish: body.publishImported }));
+      results.push(
+        await this.upsertPlan({
+          ...plan,
+          studentId: body.studentId,
+          publish: body.publishImported,
+        }),
+      );
     }
     return { importedPlans: results.length, plans: results };
   }
@@ -159,8 +212,16 @@ export class PlansService {
     return {
       valid: true,
       errors: [],
-      warnings: imported.plans.length ? [] : ["هیچ برنامه‌ای برای وارد کردن پیدا نشد."],
-      summary: { planCount: imported.plans.length, taskCount: imported.plans.reduce((sum, plan) => sum + plan.tasks.length, 0) },
+      warnings: imported.plans.length
+        ? []
+        : ["هیچ برنامه‌ای برای وارد کردن پیدا نشد."],
+      summary: {
+        planCount: imported.plans.length,
+        taskCount: imported.plans.reduce(
+          (sum, plan) => sum + plan.tasks.length,
+          0,
+        ),
+      },
       normalized: imported,
     };
   }
@@ -173,7 +234,10 @@ export class PlansService {
     );
   }
 
-  private taskValues(task: Partial<ImportPlanDto["tasks"][number]>, current?: Task) {
+  private taskValues(
+    task: Partial<ImportPlanDto["tasks"][number]>,
+    current?: Task,
+  ) {
     const start = task.startTime ?? task.start ?? current?.startTime ?? "";
     const end = task.endTime ?? task.end ?? current?.endTime ?? "";
     this.assertTaskTimeRange(start, end);
@@ -185,14 +249,20 @@ export class PlansService {
       startTime: start,
       endTime: end,
       // A supplied duration is never authoritative when the range is known.
-      duration: start && end ? durationMinutes(start, end) : Number(task.duration ?? current?.duration ?? 0),
+      duration:
+        start && end
+          ? durationMinutes(start, end)
+          : Number(task.duration ?? current?.duration ?? 0),
       testCount: Number(task.testCount ?? current?.testCount ?? 0),
       note: task.note ?? current?.note ?? "",
       priority: Number(task.priority ?? current?.priority ?? 0),
       pages: task.pages ?? current?.pages ?? "",
       examRef: task.examRef ?? current?.examRef ?? "",
       examId: task.examId ?? current?.examId ?? "",
-      conflict: typeof task.conflict === "boolean" ? task.conflict : current?.conflict ?? false,
+      conflict:
+        typeof task.conflict === "boolean"
+          ? task.conflict
+          : (current?.conflict ?? false),
       conflictGroup: task.conflictGroup ?? current?.conflictGroup ?? "",
     };
   }
@@ -200,9 +270,17 @@ export class PlansService {
   private assertTaskTimeRange(start: string, end: string) {
     const time = /^([01]\d|2[0-3]):[0-5]\d$/;
     if ((start && !time.test(start)) || (end && !time.test(end)))
-      throw new ApiException(400, "INVALID_TASK_TIME", "زمان فعالیت باید با قالب HH:mm باشد.");
+      throw new ApiException(
+        400,
+        "INVALID_TASK_TIME",
+        "زمان فعالیت باید با قالب HH:mm باشد.",
+      );
     if (start && end && durationMinutes(start, end) <= 0)
-      throw new ApiException(400, "INVALID_TASK_TIME_RANGE", "زمان پایان باید بعد از زمان شروع باشد.");
+      throw new ApiException(
+        400,
+        "INVALID_TASK_TIME_RANGE",
+        "زمان پایان باید بعد از زمان شروع باشد.",
+      );
   }
 
   private planValues(dto: Partial<ImportPlanDto>, current?: Plan) {
@@ -212,16 +290,25 @@ export class PlansService {
       persianDate: dto.persianDate ?? current?.persianDate ?? "",
       jalaliId: dto.jalaliId ?? current?.jalaliId ?? "",
       motivationText: dto.motivationText ?? current?.motivationText ?? "",
+      templateId: dto.templateId ?? current?.templateId ?? null,
+      templateVersion: dto.templateVersion ?? current?.templateVersion ?? null,
     };
   }
 
   private async findPresentedPlan(id: string) {
-    const plan = await this.plans.findOneOrFail({ where: { id }, relations: { tasks: true } });
+    const plan = await this.plans.findOneOrFail({
+      where: { id },
+      relations: { tasks: true },
+    });
     return this.presentPlan(plan);
   }
 
   private presentPlan(plan: Plan) {
-    const tasks = [...(plan.tasks || [])].sort((left, right) => left.priority - right.priority || left.startTime.localeCompare(right.startTime));
+    const tasks = [...(plan.tasks || [])].sort(
+      (left, right) =>
+        left.priority - right.priority ||
+        left.startTime.localeCompare(right.startTime),
+    );
     return {
       id: plan.id,
       date: plan.date,
@@ -238,13 +325,30 @@ export class PlansService {
   }
 }
 
-function normalizeImportPayload(body: { studentId: string; data?: unknown }): { plans: ImportPlanDto[] } {
-  const data = body.data as { plans?: Array<Record<string, unknown>>; date?: string; tasks?: unknown[] } | undefined;
-  const rawPlans = Array.isArray(data?.plans) ? data.plans : data?.date ? [data as Record<string, unknown>] : [];
+function normalizeImportPayload(body: { studentId: string; data?: unknown }): {
+  plans: ImportPlanDto[];
+} {
+  const data = body.data as
+    | {
+        plans?: Array<Record<string, unknown>>;
+        date?: string;
+        tasks?: unknown[];
+      }
+    | undefined;
+  const rawPlans = Array.isArray(data?.plans)
+    ? data.plans
+    : data?.date
+      ? [data as Record<string, unknown>]
+      : [];
   return {
     plans: rawPlans.map((plan) => ({
       studentId: body.studentId,
-      date: String(plan.date || plan.planDate || plan.isoDate || new Date().toISOString().slice(0, 10)),
+      date: String(
+        plan.date ||
+          plan.planDate ||
+          plan.isoDate ||
+          new Date().toISOString().slice(0, 10),
+      ),
       publish: Boolean(plan.publish || plan.published),
       title: String(plan.title || "برنامه روزانه"),
       dayLabel: String(plan.dayLabel || ""),
@@ -282,12 +386,17 @@ function normalizeTasks(value: unknown): ImportPlanDto["tasks"] {
 
 function normalizeTaskType(value: unknown) {
   const normalized = String(value || "STUDY").toUpperCase();
-  return Object.values(TaskType).includes(normalized as TaskType) ? (normalized as TaskType) : TaskType.STUDY;
+  return Object.values(TaskType).includes(normalized as TaskType)
+    ? (normalized as TaskType)
+    : TaskType.STUDY;
 }
 
 function durationMinutes(start?: string, end?: string) {
   if (!start || !end) return 0;
   const [sh = "0", sm = "0"] = start.split(":");
   const [eh = "0", em = "0"] = end.split(":");
-  return Math.max(0, Number(eh) * 60 + Number(em) - (Number(sh) * 60 + Number(sm)));
+  return Math.max(
+    0,
+    Number(eh) * 60 + Number(em) - (Number(sh) * 60 + Number(sm)),
+  );
 }

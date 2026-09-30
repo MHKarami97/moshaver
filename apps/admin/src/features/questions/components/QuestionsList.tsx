@@ -1,199 +1,296 @@
-import { CheckCircle2, Copy, ListChecks, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
-import { Button, Card, EmptyState, Input } from "../../../shared/ui/ui";
+import { CheckCircle2, Copy, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
+import { AdminList } from "../../../shared/ui/admin-list";
+import { Button, Input } from "../../../shared/ui/ui";
 import type { QuestionView } from "../model/question-model";
 import { questionNumber } from "../model/question-model";
-export function QuestionsList({
-  examId,
-  items,
-  total,
-  loading,
-  error,
-  search,
-  setSearch,
-  selected,
-  setSelected,
-  bulkBusy,
-  onBulkDelete,
-  onCopy,
-  onEdit,
-  onDelete,
-  onRetry,
-  canCreate,
-  canUpdate,
-  canDelete,
-}: {
+
+type Props = {
   examId: string;
   items: QuestionView[];
   total: number;
   loading: boolean;
   error: boolean;
   search: string;
-  setSearch: (v: string) => void;
+  setSearch: (value: string) => void;
   selected: string[];
-  setSelected: (v: string[]) => void;
+  setSelected: (value: string[]) => void;
   bulkBusy: boolean;
   onBulkDelete: () => void;
-  onCopy: (q: QuestionView, i: number) => void;
-  onEdit: (q: QuestionView, i: number) => void;
-  onDelete: (q: QuestionView) => void;
+  onCopy: (question: QuestionView, index: number) => void;
+  onEdit: (question: QuestionView, index: number) => void;
+  onDelete: (question: QuestionView) => void;
   onRetry: () => void;
   canCreate: boolean;
   canUpdate: boolean;
   canDelete: boolean;
+};
+
+export function QuestionsList(props: Props) {
+  const {
+    examId,
+    items,
+    total,
+    loading,
+    error,
+    search,
+    setSearch,
+    selected,
+    setSelected,
+    bulkBusy,
+    onBulkDelete,
+    onCopy,
+    onEdit,
+    onDelete,
+    onRetry,
+    canCreate,
+    canUpdate,
+    canDelete,
+  } = props;
+  const visibleIds = items.flatMap((item) => (item.id ? [item.id] : []));
+  const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selected.includes(id));
+  return (
+    <AdminList
+      label="سؤال‌های آزمون"
+      description={`${items.length.toLocaleString("fa-IR")} از ${total.toLocaleString("fa-IR")} سؤال نمایش داده می‌شود.`}
+      items={items}
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      emptyTitle={examId ? "سؤالی برای نمایش نیست." : "ابتدا یک آزمون انتخاب کنید."}
+      toolbar={examId ? <SearchBox search={search} setSearch={setSearch} /> : null}
+      actions={
+        canDelete && items.length ? (
+          <SelectionActions
+            allSelected={allSelected}
+            selected={selected}
+            visibleIds={visibleIds}
+            setSelected={setSelected}
+            bulkBusy={bulkBusy}
+            onBulkDelete={onBulkDelete}
+          />
+        ) : null
+      }
+    >
+      <div className="grid min-h-0 gap-3 xl:grid-cols-2">
+        {items.map((question, index) => (
+          <QuestionCard
+            key={question.id || index}
+            question={question}
+            index={index}
+            selected={selected}
+            setSelected={setSelected}
+            canCreate={canCreate}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+            onCopy={onCopy}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    </AdminList>
+  );
+}
+
+function SearchBox({ search, setSearch }: { search: string; setSearch: (value: string) => void }) {
+  return (
+    <div className="relative">
+      <Search
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+        size={16}
+      />
+      <Input
+        className="pr-9"
+        type="search"
+        placeholder="جست‌وجو در متن، مبحث یا گزینه‌ها…"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+      {search ? (
+        <Button
+          className="absolute left-1 top-1/2 h-8 -translate-y-1/2 px-2"
+          variant="ghost"
+          aria-label="پاک‌کردن جست‌وجو"
+          onClick={() => setSearch("")}
+        >
+          <RotateCcw size={15} />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function SelectionActions({
+  allSelected,
+  selected,
+  visibleIds,
+  setSelected,
+  bulkBusy,
+  onBulkDelete,
+}: {
+  allSelected: boolean;
+  selected: string[];
+  visibleIds: string[];
+  setSelected: (value: string[]) => void;
+  bulkBusy: boolean;
+  onBulkDelete: () => void;
 }) {
   return (
-    <Card className="flex min-h-0 flex-col overflow-hidden">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <ListChecks size={18} />
-        <h3 className="font-bold">سؤال‌های آزمون</h3>
-        <span className="mr-auto text-xs text-slate-500">
-          {items.length} از {total} سؤال
-        </span>
-        {items.length && canDelete ? (
-          <label className="flex items-center gap-1 text-xs">
-            <input
-              type="checkbox"
-              checked={items.every((item) => !!item.id && selected.includes(item.id))}
-              onChange={(e) => {
-                const ids = items.flatMap((item) => (item.id ? [item.id] : []));
-                setSelected(
-                  e.target.checked
-                    ? [...new Set([...selected, ...ids])]
-                    : selected.filter((id) => !ids.includes(id)),
-                );
-              }}
-            />{" "}
-            انتخاب نتایج
-          </label>
-        ) : null}
-        {selected.length && canDelete ? (
-          <Button className="h-8" variant="danger" loading={bulkBusy} onClick={onBulkDelete}>
-            حذف انتخاب‌شده
-          </Button>
-        ) : null}
-      </div>
-      {examId ? (
-        <div className="mb-3 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-2.5 text-slate-400" size={16} />
-            <Input
-              className="pr-9"
-              type="search"
-              placeholder="جست‌وجو در متن، مبحث یا گزینه‌ها…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {search ? (
-            <Button
-              className="px-3"
-              variant="ghost"
-              aria-label="پاک‌کردن جست‌وجو"
-              onClick={() => setSearch("")}
-            >
-              <RotateCcw size={16} />
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {loading ? (
-        <div className="grid gap-2" aria-label="در حال دریافت سؤال‌ها">
-          {[1, 2, 3].map((x) => (
-            <div key={x} className="h-24 animate-pulse rounded-md bg-slate-100" />
-          ))}
-        </div>
-      ) : error ? (
-        <EmptyState
-          title="دریافت سؤال‌ها ناموفق بود؛ اتصال را بررسی و دوباره تلاش کنید."
-          action={
-            <Button variant="soft" onClick={onRetry}>
-              تلاش دوباره
-            </Button>
+    <>
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+        <input
+          type="checkbox"
+          className="size-4 accent-brand"
+          checked={allSelected}
+          onChange={(event) =>
+            setSelected(
+              event.target.checked
+                ? [...new Set([...selected, ...visibleIds])]
+                : selected.filter((id) => !visibleIds.includes(id)),
+            )
           }
         />
-      ) : items.length ? (
-        <div className="grid min-h-0 gap-3 overflow-y-auto pl-1">
-          {items.map((q, index) => (
-            <article key={q.id || index} className="rounded-md border border-slate-200 p-3">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!q.id && selected.includes(q.id)}
-                    onChange={(e) =>
-                      q.id &&
-                      setSelected(
-                        e.target.checked
-                          ? [...new Set([...selected, q.id])]
-                          : selected.filter((id) => id !== q.id),
-                      )
-                    }
-                  />
-                  <strong>سؤال {questionNumber(q, index + 1).toLocaleString("fa-IR")}</strong>
-                </label>
-                {q.id && (canCreate || canUpdate || canDelete) ? (
-                  <div className="flex gap-1">
-                    {canCreate ? (
-                      <Button
-                        className="h-8 px-2"
-                        variant="ghost"
-                        title="ساخت کپی برای ویرایش"
-                        aria-label="کپی سؤال"
-                        onClick={() => onCopy(q, index)}
-                      >
-                        <Copy size={14} />
-                      </Button>
-                    ) : null}
-                    {canUpdate ? (
-                      <Button className="h-8 px-2" variant="ghost" onClick={() => onEdit(q, index)}>
-                        <Pencil size={14} />
-                      </Button>
-                    ) : null}
-                    {canDelete ? (
-                      <Button className="h-8 px-2" variant="danger" onClick={() => onDelete(q)}>
-                        <Trash2 size={14} />
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-              <p className="mt-2 text-sm leading-7">{q.question || q.text}</p>
-              <div className="mt-3 grid gap-2">
-                {(
-                  q.options ||
-                  [q.option_a, q.option_b, q.option_c, q.option_d].filter((o): o is string => !!o)
-                ).map((option, optionIndex) => {
-                  const key = ["a", "b", "c", "d"][optionIndex];
-                  const active = (q.correctOption || q.correct_option || q.correctAnswer) === key;
-                  return (
-                    <div
-                      key={key}
-                      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${active ? "bg-emerald-50 text-emerald-800" : "bg-slate-50"}`}
-                    >
-                      {active ? <CheckCircle2 size={15} /> : <span className="size-[15px]" />}
-                      {option}
-                    </div>
-                  );
-                })}
-              </div>
-              {q.explanation || q.hint ? (
-                <details className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                  <summary className="cursor-pointer font-semibold">توضیح و راهنمای مرور</summary>
-                  {q.explanation ? <p className="mt-2">{q.explanation}</p> : null}
-                  {q.hint ? <p className="mt-2 text-xs">راهنما: {q.hint}</p> : null}
-                </details>
-              ) : null}
-              {[q.book, q.chapter, q.lesson, q.topic].some(Boolean) ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  {[q.book, q.chapter, q.lesson, q.topic].filter(Boolean).join(" • ")}
-                </p>
-              ) : null}
-            </article>
-          ))}
+        انتخاب نتایج
+      </label>
+      {selected.length ? (
+        <Button size="sm" variant="danger" loading={bulkBusy} onClick={onBulkDelete}>
+          <Trash2 size={14} />
+          حذف {selected.length.toLocaleString("fa-IR")} سؤال
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
+function QuestionCard({
+  question,
+  index,
+  selected,
+  setSelected,
+  canCreate,
+  canUpdate,
+  canDelete,
+  onCopy,
+  onEdit,
+  onDelete,
+}: {
+  question: QuestionView;
+  index: number;
+  selected: string[];
+  setSelected: (value: string[]) => void;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  onCopy: (question: QuestionView, index: number) => void;
+  onEdit: (question: QuestionView, index: number) => void;
+  onDelete: (question: QuestionView) => void;
+}) {
+  const options =
+    question.options ||
+    [question.option_a, question.option_b, question.option_c, question.option_d].filter(
+      (option): option is string => Boolean(option),
+    );
+  const correct = question.correctOption || question.correct_option || question.correctAnswer;
+  return (
+    <article className="grid gap-3 rounded-xl border border-slate-200 p-3 shadow-sm transition hover:border-brand/40 dark:border-slate-800">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {canDelete && question.id ? (
+            <input
+              type="checkbox"
+              className="size-4 accent-brand"
+              checked={selected.includes(question.id)}
+              onChange={(event) =>
+                setSelected(
+                  event.target.checked
+                    ? [...new Set([...selected, question.id!])]
+                    : selected.filter((id) => id !== question.id),
+                )
+              }
+            />
+          ) : null}
+          <span className="text-xs font-bold text-brand">
+            سؤال {questionNumber(question, index + 1).toLocaleString("fa-IR")}
+          </span>
         </div>
+        {question.id && (canCreate || canUpdate || canDelete) ? (
+          <div className="flex shrink-0 gap-1">
+            {canCreate ? (
+              <Button
+                className="h-8 px-2"
+                variant="ghost"
+                title="ساخت کپی برای ویرایش"
+                aria-label="کپی سؤال"
+                onClick={() => onCopy(question, index)}
+              >
+                <Copy size={14} />
+              </Button>
+            ) : null}
+            {canUpdate ? (
+              <Button
+                className="h-8 px-2"
+                variant="ghost"
+                aria-label="ویرایش سؤال"
+                onClick={() => onEdit(question, index)}
+              >
+                <Pencil size={14} />
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                className="h-8 px-2"
+                variant="danger"
+                aria-label="حذف سؤال"
+                onClick={() => onDelete(question)}
+              >
+                <Trash2 size={14} />
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <p className="text-sm leading-7">{question.question || question.text}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {options.map((option, optionIndex) => (
+          <Option
+            key={optionIndex}
+            index={optionIndex}
+            value={option}
+            active={correct === ["a", "b", "c", "d"][optionIndex] || correct === option}
+          />
+        ))}
+      </div>
+      {question.explanation || question.hint ? (
+        <details className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <summary className="cursor-pointer font-semibold">توضیح و راهنمای مرور</summary>
+          {question.explanation ? <p className="mt-2">{question.explanation}</p> : null}
+          {question.hint ? <p className="mt-2 text-xs">راهنما: {question.hint}</p> : null}
+        </details>
+      ) : null}
+      {[question.book, question.chapter, question.lesson, question.topic].some(Boolean) ? (
+        <p className="text-xs text-slate-500">
+          {[question.book, question.chapter, question.lesson, question.topic]
+            .filter(Boolean)
+            .join(" • ")}
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
+function Option({ index, value, active }: { index: number; value: string; active: boolean }) {
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${active ? "bg-emerald-50 font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-slate-50 dark:bg-slate-900"}`}
+    >
+      {active ? (
+        <CheckCircle2 size={15} />
       ) : (
-        <EmptyState title={examId ? "سؤالی برای نمایش نیست." : "ابتدا یک آزمون انتخاب کنید."} />
+        <span className="grid size-4 place-items-center rounded-full border text-[9px]">
+          {index + 1}
+        </span>
       )}
-    </Card>
+      {value}
+    </div>
   );
 }

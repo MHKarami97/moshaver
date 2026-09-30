@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 import type { Exam } from "../../../shared/types/domain";
+import { AssessmentMetric, AssessmentWorkspaceIntro } from "../../../shared/ui/assessment-workspace-intro";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { Button, Card, Field, Select } from "../../../shared/ui/ui";
 export function QuestionsSelector({
@@ -31,15 +33,7 @@ export function QuestionsSelector({
 }) {
   return (
     <>
-      <header className="flex justify-end">
-        {examId && showExamsLink ? (
-          <Link
-            to={`/admin/exams${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ""}`}
-          >
-            <Button variant="soft">بازگشت به آزمون‌ها</Button>
-          </Link>
-        ) : null}
-      </header>
+      <AssessmentWorkspaceIntro icon={<BookOpen size={20} />} title="سؤال‌های آزمون" description="سؤال‌ها را در یک جریان امن بسازید، بازبینی کنید و به آزمون متصل کنید." actions={examId && showExamsLink ? <Link to={`/admin/exams${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ""}`}><Button variant="soft">بازگشت به آزمون‌ها</Button></Link> : null} metrics={selectedExam ? <><AssessmentMetric>{questionCount || selectedExam.delivery?.questionCount || 0} سؤال</AssessmentMetric><AssessmentMetric>{selectedExam.published ? "منتشر" : "پیش‌نویس"}</AssessmentMetric></> : null} />
       <Card className="sticky top-16 z-10 shadow-sm">
         <div className={`grid gap-3 ${showStudentPicker ? "md:grid-cols-2" : ""}`}>
           {showStudentPicker ? (

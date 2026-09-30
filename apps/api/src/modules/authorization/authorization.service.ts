@@ -1,5 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { buildAuthorizationContext, canAccessOrganization, hasCapability } from "@moshaver/cmb-authorization";
+import {
+  buildAuthorizationContext,
+  canAccessOrganization,
+  hasCapability,
+} from "@moshaver/cmb-authorization";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, Repository } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
@@ -13,6 +17,7 @@ import {
 } from "../../database/entities/user-relationship.entity";
 import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { Student } from "../../database/entities/student.entity";
+import { Permission } from "../../database/entities/permission.entity";
 
 export type UserContext = {
   id: string;
@@ -36,14 +41,20 @@ export class AuthorizationService {
     private readonly relationships: Repository<UserRelationship>,
     @InjectRepository(Student)
     private readonly students: Repository<Student>,
+    @InjectRepository(Permission)
+    private readonly permissions?: Repository<Permission>,
   ) {}
 
-  async enrich(base: {
-    id: string;
-    username: string;
-    sessionId: string;
-    role: string;
-  }, requestedRole?: string, requestedOrganizationId?: string): Promise<UserContext> {
+  async enrich(
+    base: {
+      id: string;
+      username: string;
+      sessionId: string;
+      role: string;
+    },
+    requestedRole?: string,
+    requestedOrganizationId?: string,
+  ): Promise<UserContext> {
     const [assignments, memberships] = await Promise.all([
       this.assignments.find({
         where: { user: { id: base.id } },
@@ -57,11 +68,16 @@ export class AuthorizationService {
         relations: { organization: true },
       }),
     ]);
-    const activeMembershipIds = new Set(memberships.map((membership) => membership.id));
+    const activeMembershipIds = new Set(
+      memberships.map((membership) => membership.id),
+    );
     const activeAssignments = assignments.filter(
       (assignment) =>
         !assignment.role.organizationScoped ||
-        Boolean(assignment.membership?.id && activeMembershipIds.has(assignment.membership.id)),
+        Boolean(
+          assignment.membership?.id &&
+          activeMembershipIds.has(assignment.membership.id),
+        ),
     );
     // A legacy discriminator is never authority. Accounts without an explicit
     // role assignment keep no effective role/capability until provisioned.
@@ -74,15 +90,49 @@ export class AuthorizationService {
       ),
     ];
     if (requestedRole && !allRoles.includes(requestedRole))
-      throw new ApiException(403, "WORK_CONTEXT_FORBIDDEN", "زمینه کاری انتخاب‌شده در دسترس نیست.");
-    if (requestedOrganizationId && !memberships.some((item) => item.organization.id === requestedOrganizationId) && !allRoles.includes("PLATFORM_ADMIN"))
-      throw new ApiException(403, "ORGANIZATION_FORBIDDEN", "به این سازمان دسترسی ندارید.");
-    return buildAuthorizationContext(
+      throw new ApiException(
+        403,
+        "WORK_CONTEXT_FORBIDDEN",
+        "زمینه کاری انتخاب‌شده در دسترس نیست.",
+      );
+    if (
+      requestedOrganizationId &&
+      !memberships.some(
+        (item) => item.organization.id === requestedOrganizationId,
+      ) &&
+      !allRoles.includes("PLATFORM_ADMIN")
+    )
+      throw new ApiException(
+        403,
+        "ORGANIZATION_FORBIDDEN",
+        "به این سازمان دسترسی ندارید.",
+      );
+    const context = buildAuthorizationContext(
       base,
-      activeAssignments.map((item) => ({ role: item.role.code, organizationScoped: item.role.organizationScoped, organizationId: item.membership?.organization?.id, capabilities: item.role.permissions.map((rp) => rp.permission.code) })),
-      memberships.map((item) => ({ id: item.id, organizationId: item.organization.id })),
+      activeAssignments.map((item) => ({
+        role: item.role.code,
+        organizationScoped: item.role.organizationScoped,
+        organizationId: item.membership?.organization?.id,
+        capabilities: item.role.permissions.map((rp) => rp.permission.code),
+      })),
+      memberships.map((item) => ({
+        id: item.id,
+        organizationId: item.organization.id,
+      })),
       { requestedRole, requestedOrganizationId },
     );
+    if (!context.roles.includes("PLATFORM_ADMIN") || !this.permissions)
+      return context;
+    const permissions = await this.permissions.find({ select: { code: true } });
+    return {
+      ...context,
+      capabilities: [
+        ...new Set([
+          ...context.capabilities,
+          ...permissions.map((item) => item.code),
+        ]),
+      ].sort(),
+    };
   }
 
   hasCapability(context: UserContext, capability: string) {

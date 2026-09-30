@@ -38,4 +38,27 @@ describe("student education form", () => {
       trackId: "experimental_sciences",
     });
   });
+
+  it("does not invent a school grade for an independent learner", () => {
+    const payload = studentPayload(
+      {
+        ...emptyStudentForm(),
+        name: "آرمان رضایی",
+        username: "arman-rezaei",
+        password: "secure-development-password",
+        learnerProfile: "independent",
+        independentType: "adult",
+        learningLevel: "زبان عمومی",
+      },
+      true,
+    );
+
+    expect(payload).toMatchObject({
+      learnerProfile: "independent",
+      independentType: "adult",
+      learningLevel: "زبان عمومی",
+    });
+    expect(payload.gradeId).toBeUndefined();
+    expect(payload.educationTypeId).toBeUndefined();
+  });
 });

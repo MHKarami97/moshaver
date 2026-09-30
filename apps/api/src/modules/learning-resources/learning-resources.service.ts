@@ -69,6 +69,8 @@ export class LearningResourcesService {
         gradeId,
         educationTypeId,
         trackId,
+        learnerProfile,
+        independentType,
         accountStatus,
       }) => ({
         id,
@@ -78,6 +80,8 @@ export class LearningResourcesService {
         gradeId,
         educationTypeId,
         trackId,
+        learnerProfile,
+        independentType,
         accountStatus,
       }),
     );

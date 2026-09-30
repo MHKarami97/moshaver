@@ -1,4 +1,12 @@
-import { CalendarClock, Pencil, Trash2, Users } from "lucide-react";
+import {
+  CalendarClock,
+  FileQuestion,
+  MoreHorizontal,
+  Pencil,
+  Timer,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Exam } from "../../../shared/types/domain";
 import { useLocale } from "../../../shared/ui/locale";
@@ -20,6 +28,7 @@ export function ExamCard({
   studentId,
   showQuestions = false,
   onManageAssignments,
+  onAnalytics,
 }: {
   exam: Exam;
   checked: boolean;
@@ -33,13 +42,14 @@ export function ExamCard({
   studentId: string;
   showQuestions?: boolean;
   onManageAssignments?: () => void;
+  onAnalytics?: () => void;
 }) {
   const { formatDate, formatDateTime } = useLocale();
 
   const readiness = examReadiness(exam);
 
   return (
-    <article className="rounded-lg border border-slate-200 p-4">
+    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-start gap-3">
         {onCheck ? (
           <input
@@ -62,7 +72,7 @@ export function ExamCard({
         <Badge tone={readiness.tone}>{readiness.label}</Badge>
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
         <Metric label="وضعیت" value={statusLabel(exam.status) || "نامشخص"} />
 
         <Metric label="دقیقه" value={exam.durationMinutes || 120} />
@@ -72,59 +82,74 @@ export function ExamCard({
         <Metric label="تلاش" value={exam.maxAttempts || 1} />
       </div>
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500 dark:bg-slate-900">
         {`${(exam.delivery?.assignmentCount || 0).toLocaleString("fa-IR")} تخصیص • ${(exam.delivery?.attemptCount || 0).toLocaleString("fa-IR")} تلاش • ${(exam.delivery?.notStartedCount || 0).toLocaleString("fa-IR")} شروع نشده`}
       </p>
 
-      <p className="mt-3 text-xs text-slate-500">
-        {formatDateTime(exam.openAt)} → {formatDateTime(exam.closeAt)}
+      <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+        <Timer size={14} /> {formatDateTime(exam.openAt)} تا {formatDateTime(exam.closeAt)}
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {onEdit ? (
-          <Button className="h-8 px-2 text-xs" variant="soft" onClick={onEdit}>
-            <Pencil size={14} />
-            ویرایش
-          </Button>
-        ) : null}
-
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         {showQuestions ? (
           <Link
             to={`/admin/questions?examId=${encodeURIComponent(exam.id)}${studentId ? `&studentId=${encodeURIComponent(studentId)}` : ""}`}
           >
             <Button className="h-8 px-2 text-xs" variant="soft">
+              <FileQuestion size={14} />
               سؤال‌ها
             </Button>
           </Link>
         ) : null}
 
-        {onManageAssignments ? (
-          <Button className="h-8 px-2 text-xs" variant="soft" onClick={onManageAssignments}>
-            <Users size={14} />
-            تخصیص
-          </Button>
-        ) : null}
-
-        {onToggle ? (
-          <Button
-            className="h-8 px-2 text-xs"
-            variant="ghost"
-            loading={toggleBusy}
-            onClick={onToggle}
-          >
-            {exam.published ? "پیش‌نویس" : "انتشار"}
-          </Button>
-        ) : null}
-
-        {onDelete ? (
-          <Button
-            size="icon"
-            variant="danger"
-            aria-label={`حذف آزمون ${exam.title}`}
-            onClick={onDelete}
-          >
-            <Trash2 size={14} />
-          </Button>
+        {onEdit || onManageAssignments || onAnalytics || onToggle || onDelete ? (
+          <details className="relative">
+            <summary className="flex h-8 cursor-pointer list-none items-center gap-1 rounded-lg border px-2 text-xs text-slate-600">
+              <MoreHorizontal size={15} />
+              گزینه‌ها
+            </summary>
+            <div className="absolute left-0 z-10 mt-1 grid min-w-36 gap-1 rounded-xl border bg-white p-1 shadow-lg dark:bg-slate-950">
+              {onEdit ? (
+                <Button className="justify-start" size="sm" variant="ghost" onClick={onEdit}>
+                  <Pencil size={14} />
+                  ویرایش
+                </Button>
+              ) : null}
+              {onManageAssignments ? (
+                <Button
+                  className="justify-start"
+                  size="sm"
+                  variant="ghost"
+                  onClick={onManageAssignments}
+                >
+                  <Users size={14} />
+                  تخصیص
+                </Button>
+              ) : null}
+              {onAnalytics ? (
+                <Button className="justify-start" size="sm" variant="ghost" onClick={onAnalytics}>
+                  تحلیل عملکرد
+                </Button>
+              ) : null}
+              {onToggle ? (
+                <Button
+                  className="justify-start"
+                  size="sm"
+                  variant="ghost"
+                  loading={toggleBusy}
+                  onClick={onToggle}
+                >
+                  {exam.published ? "پیش‌نویس" : "انتشار"}
+                </Button>
+              ) : null}
+              {onDelete ? (
+                <Button className="justify-start" size="sm" variant="danger" onClick={onDelete}>
+                  <Trash2 size={14} />
+                  حذف
+                </Button>
+              ) : null}
+            </div>
+          </details>
         ) : null}
       </div>
 

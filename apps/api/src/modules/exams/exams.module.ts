@@ -12,6 +12,9 @@ import { ExamRetryRequest } from "../../database/entities/exam-retry-request.ent
 import { Mistake } from "../../database/entities/mistake.entity";
 import { Organization } from "../../database/entities/organization.entity";
 import { User } from "../../database/entities/user.entity";
+import { ExamClassAssignment } from "../../database/entities/exam-class-assignment.entity";
+import { EducationClass } from "../../database/entities/education-class.entity";
+import { EducationClassEnrollment } from "../../database/entities/education-class-enrollment.entity";
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { User } from "../../database/entities/user.entity";
       Question,
       ExamAttempt,
       ExamAssignment,
+      ExamClassAssignment,
+      EducationClass,
+      EducationClassEnrollment,
       ExamRetryRequest,
       Student,
       User,
