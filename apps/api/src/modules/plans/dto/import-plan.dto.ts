@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, Matches, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { TaskType } from "../../../database/entities/task.entity";
 
@@ -19,18 +19,22 @@ export class ImportTaskDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "startTime must use HH:mm" })
   startTime?: string;
 
   @IsOptional()
   @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "start must use HH:mm" })
   start?: string;
 
   @IsOptional()
   @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "endTime must use HH:mm" })
   endTime?: string;
 
   @IsOptional()
   @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "end must use HH:mm" })
   end?: string;
 
   @IsOptional()
@@ -45,6 +49,12 @@ export class ImportTaskDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional() @IsString() pages?: string;
+  @IsOptional() @IsString() examRef?: string;
+  @IsOptional() @IsString() examId?: string;
+  @IsOptional() conflict?: boolean;
+  @IsOptional() @IsString() conflictGroup?: string;
 }
 
 export class ImportPlanDto {
@@ -67,4 +77,10 @@ export class ImportPlanDto {
   @IsOptional()
   @IsBoolean()
   publish?: boolean;
+
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() dayLabel?: string;
+  @IsOptional() @IsString() persianDate?: string;
+  @IsOptional() @IsString() jalaliId?: string;
+  @IsOptional() @IsString() motivationText?: string;
 }

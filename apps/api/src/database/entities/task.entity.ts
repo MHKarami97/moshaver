@@ -8,6 +8,10 @@ export enum TaskType {
   EXAM = "EXAM",
   REST = "REST",
   CUSTOM = "CUSTOM",
+  CLASS = "CLASS",
+  PRAYER = "PRAYER",
+  MEAL = "MEAL",
+  BREAK = "BREAK",
 }
 
 @Entity("tasks")
@@ -66,6 +70,12 @@ export class Task {
 
   @Column({ default: "" })
   completionNote!: string;
+
+  @Column({ default: "" }) pages!: string;
+  @Column({ default: "" }) examRef!: string;
+  @Column({ default: "" }) examId!: string;
+  @Column({ default: false }) conflict!: boolean;
+  @Column({ default: "" }) conflictGroup!: string;
 
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;

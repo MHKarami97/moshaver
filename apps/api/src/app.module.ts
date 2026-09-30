@@ -35,6 +35,7 @@ import { RelaxationModule } from "./modules/relaxation/relaxation.module";
 import { CmbPlatformModule } from "./platform/cmb-platform.module";
 import { EducationCatalogModule } from "./modules/education-catalog/education-catalog.module";
 import { EducationSharingModule } from "./modules/education-sharing/education-sharing.module";
+import { PlanTemplatesModule } from "./modules/plan-templates/plan-templates.module";
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { EducationSharingModule } from "./modules/education-sharing/education-sh
     CmbPlatformModule,
     EducationCatalogModule,
     EducationSharingModule,
+    PlanTemplatesModule,
     RelationshipsModule,
     SubjectsModule,
     AssessmentsModule,

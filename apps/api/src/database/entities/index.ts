@@ -8,6 +8,7 @@ export { LearningItem } from "./learning-item.entity";
 export { LearningReview } from "./learning-review.entity";
 export { Notification } from "./notification.entity";
 export { Plan } from "./plan.entity";
+export { PlanTemplate } from "./plan-template.entity";
 export { Question } from "./question.entity";
 export { RecoveryRequest } from "./recovery-request.entity";
 export { Session } from "./session.entity";

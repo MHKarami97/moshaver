@@ -16,6 +16,11 @@ export class AuditLog {
   @Column()
   entity!: string;
 
+  /** Optional tenant scope for records produced by organization workflows. */
+  @Index()
+  @Column({ type: "varchar", nullable: true })
+  organizationId?: string | null;
+
   @Column({ type: "simple-json", nullable: true })
   metadata?: Record<string, unknown> | null;
 

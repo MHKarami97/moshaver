@@ -4,6 +4,7 @@ import { Between, Repository } from "typeorm";
 import { Plan, PlanStatus } from "../../database/entities/plan.entity";
 import { Student } from "../../database/entities/student.entity";
 import { Task, TaskType } from "../../database/entities/task.entity";
+import { ApiException } from "../../common/exceptions/api.exception";
 import { ImportPlanDto } from "./dto/import-plan.dto";
 
 @Injectable()
@@ -55,6 +56,7 @@ export class PlansService {
     if (existing) {
       await this.tasks.delete({ plan: { id: existing.id } });
       existing.status = dto.publish ? PlanStatus.PUBLISHED : existing.status;
+      Object.assign(existing, this.planValues(dto, existing));
       existing.tasks = this.createTasks(dto.tasks || []);
       return this.presentPlan(await this.plans.save(existing));
     }
@@ -64,6 +66,7 @@ export class PlansService {
         student,
         date,
         status: dto.publish ? PlanStatus.PUBLISHED : PlanStatus.DRAFT,
+        ...this.planValues(dto),
         tasks: this.createTasks(dto.tasks || []),
       }),
     );
@@ -75,6 +78,7 @@ export class PlansService {
     const date = body.date || body.planDate;
     if (date) plan.date = date;
     if (typeof body.publish === "boolean") plan.status = body.publish ? PlanStatus.PUBLISHED : PlanStatus.DRAFT;
+    Object.assign(plan, this.planValues(body, plan));
     await this.plans.save(plan);
     return this.findPresentedPlan(id);
   }
@@ -101,6 +105,11 @@ export class PlansService {
         testCount: task.testCount,
         priority: task.priority,
         note: task.note,
+        pages: task.pages,
+        examRef: task.examRef,
+        examId: task.examId,
+        conflict: task.conflict,
+        conflictGroup: task.conflictGroup,
       })),
     });
   }
@@ -167,6 +176,7 @@ export class PlansService {
   private taskValues(task: Partial<ImportPlanDto["tasks"][number]>, current?: Task) {
     const start = task.startTime ?? task.start ?? current?.startTime ?? "";
     const end = task.endTime ?? task.end ?? current?.endTime ?? "";
+    this.assertTaskTimeRange(start, end);
     return {
       type: normalizeTaskType(task.type ?? current?.type),
       title: task.title ?? current?.title ?? "فعالیت",
@@ -174,10 +184,34 @@ export class PlansService {
       description: task.description ?? task.note ?? current?.description ?? "",
       startTime: start,
       endTime: end,
-      duration: Number(task.duration ?? current?.duration ?? durationMinutes(start, end) ?? 0),
+      // A supplied duration is never authoritative when the range is known.
+      duration: start && end ? durationMinutes(start, end) : Number(task.duration ?? current?.duration ?? 0),
       testCount: Number(task.testCount ?? current?.testCount ?? 0),
       note: task.note ?? current?.note ?? "",
       priority: Number(task.priority ?? current?.priority ?? 0),
+      pages: task.pages ?? current?.pages ?? "",
+      examRef: task.examRef ?? current?.examRef ?? "",
+      examId: task.examId ?? current?.examId ?? "",
+      conflict: typeof task.conflict === "boolean" ? task.conflict : current?.conflict ?? false,
+      conflictGroup: task.conflictGroup ?? current?.conflictGroup ?? "",
+    };
+  }
+
+  private assertTaskTimeRange(start: string, end: string) {
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if ((start && !time.test(start)) || (end && !time.test(end)))
+      throw new ApiException(400, "INVALID_TASK_TIME", "زمان فعالیت باید با قالب HH:mm باشد.");
+    if (start && end && durationMinutes(start, end) <= 0)
+      throw new ApiException(400, "INVALID_TASK_TIME_RANGE", "زمان پایان باید بعد از زمان شروع باشد.");
+  }
+
+  private planValues(dto: Partial<ImportPlanDto>, current?: Plan) {
+    return {
+      title: dto.title ?? current?.title ?? "برنامه روزانه",
+      dayLabel: dto.dayLabel ?? current?.dayLabel ?? "",
+      persianDate: dto.persianDate ?? current?.persianDate ?? "",
+      jalaliId: dto.jalaliId ?? current?.jalaliId ?? "",
+      motivationText: dto.motivationText ?? current?.motivationText ?? "",
     };
   }
 
@@ -192,10 +226,13 @@ export class PlansService {
       id: plan.id,
       date: plan.date,
       planDate: plan.date,
-      persianDate: plan.date,
+      persianDate: plan.persianDate || plan.date,
+      dayLabel: plan.dayLabel,
+      jalaliId: plan.jalaliId,
+      motivationText: plan.motivationText,
       status: plan.status,
       published: plan.status === PlanStatus.PUBLISHED,
-      title: "برنامه روزانه",
+      title: plan.title,
       tasks,
     };
   }
@@ -209,6 +246,11 @@ function normalizeImportPayload(body: { studentId: string; data?: unknown }): { 
       studentId: body.studentId,
       date: String(plan.date || plan.planDate || plan.isoDate || new Date().toISOString().slice(0, 10)),
       publish: Boolean(plan.publish || plan.published),
+      title: String(plan.title || "برنامه روزانه"),
+      dayLabel: String(plan.dayLabel || ""),
+      persianDate: String(plan.persianDate || ""),
+      jalaliId: String(plan.jalaliId || ""),
+      motivationText: String(plan.motivationText || ""),
       tasks: normalizeTasks(plan.tasks),
     })),
   };
@@ -229,6 +271,11 @@ function normalizeTasks(value: unknown): ImportPlanDto["tasks"] {
       testCount: Number(item.testCount || item.tests || 0),
       priority: Number(item.priority ?? index),
       note: String(item.note || ""),
+      pages: String(item.pages || ""),
+      examRef: String(item.examRef || item.examId || ""),
+      examId: String(item.examId || ""),
+      conflict: Boolean(item.conflict),
+      conflictGroup: String(item.conflictGroup || ""),
     };
   });
 }

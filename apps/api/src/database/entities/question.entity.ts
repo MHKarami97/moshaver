@@ -48,6 +48,8 @@ export class Question {
   @Column({ default: "" })
   source!: string;
 
+  @Column({ default: 0 }) sortOrder!: number;
+
   @Column({ type: "simple-json", default: "[]" })
   tags!: string[];
 }

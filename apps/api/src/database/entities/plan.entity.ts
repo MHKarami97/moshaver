@@ -23,6 +23,16 @@ export class Plan {
   @Column({ type: "varchar", length: 24, default: PlanStatus.DRAFT })
   status!: PlanStatus;
 
+  @Column({ default: "برنامه روزانه" }) title!: string;
+  @Column({ default: "" }) dayLabel!: string;
+  @Column({ default: "" }) persianDate!: string;
+  @Column({ default: "" }) jalaliId!: string;
+  @Column({ length: 600, default: "" }) motivationText!: string;
+  /** Immutable source when this plan was created from an organization template. */
+  @Index()
+  @Column({ type: "varchar", nullable: true }) templateId?: string | null;
+  @Column({ type: "integer", nullable: true }) templateVersion?: number | null;
+
   @CreateDateColumn()
   createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;

@@ -8,6 +8,7 @@ import { DataSource, In } from "typeorm";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { Exam } from "../../database/entities/exam.entity";
 import { ExamAssignment } from "../../database/entities/exam-assignment.entity";
+import { ExamSyllabus } from "../../database/entities/exam-syllabus.entity";
 import { ImportHistory } from "../../database/entities/import-history.entity";
 import { Organization } from "../../database/entities/organization.entity";
 import { OrganizationMembership } from "../../database/entities/organization-membership.entity";
@@ -30,9 +31,27 @@ type Payload = {
   skipExistingPlans?: unknown;
   skipExistingExams?: unknown;
   sourceName?: string;
+  student?: { id?: string };
   plans?: Array<Record<string, unknown>>;
   exams?: Array<Record<string, unknown>>;
 };
+
+function normalizeTaskType(value: unknown) {
+  const type = String(value || "STUDY").trim().toUpperCase();
+  const aliases: Record<string, TaskType> = {
+    CLASS: TaskType.CLASS,
+    PRAYER: TaskType.PRAYER,
+    MEAL: TaskType.MEAL,
+    BREAK: TaskType.BREAK,
+  };
+  return aliases[type] || type;
+}
+
+function normalizeCorrectAnswer(question: Record<string, unknown>, options: string[]) {
+  const raw = String(question.correctAnswer ?? question.correctOption ?? "").trim();
+  const index = ["a", "b", "c", "d"].indexOf(raw.toLowerCase());
+  return index >= 0 ? options[index] || "" : raw;
+}
 @Injectable()
 export class ImportExportService {
   constructor(
@@ -113,6 +132,7 @@ export class ImportExportService {
         let importedExams = 0;
         let skippedPlans = 0;
         let skippedExams = 0;
+        const importedExamIds = new Map<string, string>();
         for (const p of checked.normalized.plans) {
           let plan = student
             ? await manager.findOne(Plan, {
@@ -153,6 +173,13 @@ export class ImportExportService {
             checked.normalized.publishImported || p.published
               ? PlanStatus.PUBLISHED
               : PlanStatus.DRAFT;
+          Object.assign(plan, {
+            title: p.title,
+            dayLabel: p.dayLabel,
+            persianDate: p.persianDate,
+            jalaliId: p.jalaliId,
+            motivationText: p.motivationText,
+          });
           plan.tasks = p.tasks.map((t) =>
             manager.create(Task, { ...t, type: t.type as TaskType }),
           );
@@ -198,14 +225,24 @@ export class ImportExportService {
             subject: e.subject,
             duration: e.durationMinutes,
             attemptLimit: e.maxAttempts,
+            externalRef: e.externalRef,
+            instructions: e.instructions,
             startTime: e.openAt ? new Date(e.openAt) : null,
             endTime: e.closeAt ? new Date(e.closeAt) : null,
-            published: checked.normalized.publishImported,
+            published: checked.normalized.publishImported || e.published,
             organization,
             createdBy: actor,
             questions: e.questions.map((q) => manager.create(Question, q)),
           });
           const savedExam = await manager.save(Exam, exam);
+          if (e.externalRef) importedExamIds.set(e.externalRef, savedExam.id);
+          if (e.syllabus.length)
+            await manager.save(
+              ExamSyllabus,
+              e.syllabus.map((item) =>
+                manager.create(ExamSyllabus, { ...item, exam: savedExam }),
+              ),
+            );
           if (student)
             await manager.save(
               ExamAssignment,
@@ -216,6 +253,17 @@ export class ImportExportService {
               }),
             );
           importedExams += 1;
+        }
+        if (student && importedExamIds.size) {
+          const linkedTasks = await manager.find(Task, {
+            where: {
+              plan: { student: { id: student.id } },
+              examRef: In([...importedExamIds.keys()]),
+            },
+          });
+          for (const task of linkedTasks)
+            task.examId = importedExamIds.get(task.examRef) || task.examId;
+          if (linkedTasks.length) await manager.save(Task, linkedTasks);
         }
         const history = await manager.save(
           ImportHistory,
@@ -335,7 +383,7 @@ export class ImportExportService {
             where: organizationId
               ? { organization: { id: organizationId } }
               : { id: In(assignedExamIds) },
-            relations: { questions: true },
+            relations: { questions: true, syllabus: true },
           })
         : [];
     return {
@@ -352,6 +400,11 @@ export class ImportExportService {
         studentId: p.student.id,
         date: p.date,
         published: p.status === PlanStatus.PUBLISHED,
+        title: p.title,
+        dayLabel: p.dayLabel,
+        persianDate: p.persianDate,
+        jalaliId: p.jalaliId,
+        motivationText: p.motivationText,
         tasks: p.tasks.map((t) => ({
           type: t.type,
           title: t.title,
@@ -362,20 +415,49 @@ export class ImportExportService {
           testCount: t.testCount,
           note: t.note,
           priority: t.priority,
+          pages: t.pages,
+          examRef: t.examRef,
+          examId: t.examId,
+          conflict: t.conflict,
+          conflictGroup: t.conflictGroup,
         })),
       })),
       exams: exams.map((e) => ({
         title: e.title,
         subject: e.subject,
+        ref: e.externalRef,
         durationMinutes: e.duration,
         maxAttempts: e.attemptLimit,
         openAt: e.startTime,
         closeAt: e.endTime,
+        published: e.published,
+        instructions: e.instructions,
+        syllabus: e.syllabus.map((item) => ({
+          subject: item.subject,
+          description: item.description,
+          required: item.required,
+          track: item.track,
+        })),
         questions: e.questions.map((q) => ({
           text: q.text,
           options: q.options,
           correctAnswer: q.correctAnswer,
           explanation: q.explanation,
+          subject: q.subject,
+          topic: q.topic,
+          book: q.book,
+          grade: q.grade,
+          chapter: q.chapter,
+          lesson: q.lesson,
+          subtopic: q.subtopic,
+          questionType: q.questionType,
+          weight: q.weight,
+          sectionId: q.sectionId,
+          mediaUrl: q.mediaUrl,
+          difficulty: q.difficulty,
+          source: q.source,
+          sortOrder: q.sortOrder,
+          tags: q.tags,
         })),
       })),
     };
@@ -409,7 +491,7 @@ export class ImportExportService {
     const errors: string[] = [],
       warnings: string[] = [],
       conflicts: string[] = [];
-    const schemaVersion = String(payload.schemaVersion || "");
+    const schemaVersion = String(payload.schemaVersion || "") === "2" ? "2.0" : String(payload.schemaVersion || "");
     if (schemaVersion !== "2.0") errors.push("schemaVersion must be 2.0");
     const scope = String(payload.scope || "all");
     if (!["all", "plans", "exams"].includes(scope))
@@ -427,11 +509,12 @@ export class ImportExportService {
       )
     )
       errors.push("Organization is outside the authorized scope.");
+    const selectedStudentId = payload.studentId || payload.student?.id;
     if (
-      payload.studentId &&
+      selectedStudentId &&
       !(await this.authorization.canAccessStudent(
         context,
-        payload.studentId,
+        selectedStudentId,
         "import.preview",
       ))
     )
@@ -442,7 +525,7 @@ export class ImportExportService {
       const tasks = Array.isArray(p.tasks)
         ? p.tasks.map((raw, j) => {
             const t = raw as Record<string, unknown>,
-              type = String(t.type || "STUDY").toUpperCase();
+              type = normalizeTaskType(t.type);
             if (!Object.values(TaskType).includes(type as TaskType))
               errors.push(`plans[${i}].tasks[${j}].type is invalid`);
             const title = String(t.title || "").trim();
@@ -465,10 +548,24 @@ export class ImportExportService {
               testCount: nonNegativeNumber(t.testCount),
               note: String(t.note || ""),
               priority: Number(t.priority ?? j),
+              pages: String(t.pages || ""),
+              examRef: String(t.examRef || t.examId || ""),
+              examId: String(t.examId || ""),
+              conflict: t.conflict === true,
+              conflictGroup: String(t.conflictGroup || ""),
             };
           })
         : [];
-      return { date, published: !!(p.published || p.publish), tasks };
+      return {
+        date,
+        published: !!(p.published || p.publish),
+        title: String(p.title || "برنامه روزانه"),
+        dayLabel: String(p.dayLabel || ""),
+        persianDate: String(p.persianDate || ""),
+        jalaliId: String(p.jalaliId || ""),
+        motivationText: String(p.motivationText || ""),
+        tasks,
+      };
     });
     const exams = (payload.exams || []).map((e, i) => {
       const questions = Array.isArray(e.questions)
@@ -480,14 +577,29 @@ export class ImportExportService {
               options.some((option) => !option.trim()) ||
               new Set(options).size !== 4 ||
               !String(q.text || q.question || "").trim() ||
-              !options.includes(String(q.correctAnswer || ""))
+              !options.includes(normalizeCorrectAnswer(q, options))
             )
               errors.push(`exams[${i}].questions[${j}] is invalid`);
             return {
               text: String(q.text || q.question || ""),
               options,
-              correctAnswer: String(q.correctAnswer || ""),
+              correctAnswer: normalizeCorrectAnswer(q, options),
               explanation: String(q.explanation || ""),
+              sortOrder: Number(q.sortOrder ?? j),
+              subject: String(q.subject || ""),
+              topic: String(q.topic || ""),
+              book: String(q.book || ""),
+              grade: String(q.grade || ""),
+              chapter: String(q.chapter || ""),
+              lesson: String(q.lesson || ""),
+              subtopic: String(q.subtopic || ""),
+              questionType: String(q.questionType || "multiple_choice"),
+              weight: positiveNumber(Number(q.weight ?? 1)),
+              sectionId: String(q.sectionId || ""),
+              mediaUrl: String(q.mediaUrl || ""),
+              difficulty: String(q.difficulty || "medium"),
+              source: String(q.source || ""),
+              tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
             };
           })
         : [];
@@ -519,13 +631,31 @@ export class ImportExportService {
         openAt,
         closeAt,
         questions,
+        externalRef: String(e.ref || e.externalRef || ""),
+        instructions: Array.isArray(e.instructions)
+          ? e.instructions.map(String)
+          : e.instructions
+            ? [String(e.instructions)]
+            : [],
+        syllabus: Array.isArray(e.syllabus)
+          ? e.syllabus.map((item) => {
+              const row = item as Record<string, unknown>;
+              return {
+                subject: String(row.subject || ""),
+                description: String(row.description || ""),
+                required: row.required === true,
+                track: String(row.track || ""),
+              };
+            }).filter((item) => item.subject)
+          : [],
+        published: e.published === true,
       };
     });
     const scopedPlans = scope === "exams" ? [] : plans;
     const scopedExams = scope === "plans" ? [] : exams;
     if (!scopedPlans.length && !scopedExams.length)
       warnings.push("No plans or exams found.");
-    if (scopedPlans.length && !payload.studentId)
+    if (scopedPlans.length && !selectedStudentId)
       errors.push("studentId is required when importing plans");
     if (
       plans.length > 366 ||
@@ -537,10 +667,10 @@ export class ImportExportService {
       exams.reduce((sum, exam) => sum + exam.questions.length, 0) > 10000
     )
       errors.push("Exam import exceeds the supported size.");
-    if (payload.studentId && scopedPlans.length) {
+    if (selectedStudentId && scopedPlans.length) {
       const existing = await this.db.manager.find(Plan, {
         where: {
-          student: { id: payload.studentId },
+          student: { id: selectedStudentId },
           date: In(scopedPlans.map((plan) => plan.date)),
         },
       });
@@ -570,7 +700,7 @@ export class ImportExportService {
       conflicts,
       schemaVersion,
       counts: {
-        students: payload.studentId ? 1 : 0,
+        students: selectedStudentId ? 1 : 0,
         plans: scopedPlans.length,
         tasks: scopedPlans.reduce((n, p) => n + p.tasks.length, 0),
         exams: scopedExams.length,
@@ -579,7 +709,7 @@ export class ImportExportService {
       normalized: {
         schemaVersion,
         organizationId,
-        studentId: payload.studentId || null,
+        studentId: selectedStudentId || null,
         plans: scopedPlans,
         exams: scopedExams,
         publishImported: payload.publishImported === true,

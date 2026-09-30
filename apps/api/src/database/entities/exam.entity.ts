@@ -20,6 +20,8 @@ export class Exam {
   @Column({ default: "" })
   subject!: string;
 
+  @Column({ default: "" }) externalRef!: string;
+
   @Column({ default: 0 })
   duration!: number;
 
