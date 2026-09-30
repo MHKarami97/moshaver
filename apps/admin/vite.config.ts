@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const backendTargets = {
-  local: "http://localhost:4000",
+  local: process.env.MOSHAVER_LOCAL_API_ORIGIN || "http://localhost:4000",
   remote: "https://api.mahakaram.ir",
 } as const;
 

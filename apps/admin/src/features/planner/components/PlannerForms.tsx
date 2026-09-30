@@ -5,6 +5,7 @@ import type { Exam, PlanTask } from "../../../shared/types/domain";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { Button, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
 import type { PlanDraft, TaskDraft } from "../model/planner.types";
+import type { PlannerEducationBook } from "../api/planner.api";
 import { errorMessage, taskTypeLabel, validateTaskDraft } from "../lib/planner-model";
 
 export function PlanForm({
@@ -22,6 +23,17 @@ export function PlanForm({
 }) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
+  const isEmptyDay = !initial.title && !initial.dayLabel && !initial.motivationText;
+  const applyStarter = (kind: "study" | "review") =>
+    setData({
+      ...data,
+      title: kind === "study" ? "برنامه مطالعاتی امروز" : "مرور و جمع‌بندی امروز",
+      dayLabel: kind === "study" ? "روز مطالعه" : "روز مرور",
+      motivationText:
+        kind === "study"
+          ? "با یک هدف کوچک و مشخص شروع کن؛ استمرار از کامل بودن مهم‌تر است."
+          : "مطالب مهم را با آرامش مرور کن و نکات نیازمند تمرین را مشخص کن.",
+    });
   return (
     <form
       className="grid gap-3"
@@ -33,6 +45,18 @@ export function PlanForm({
         );
       }}
     >
+      {isEmptyDay ? (
+        <section className="grid gap-2 rounded-xl border border-dashed border-brand/40 bg-indigo-50/70 p-3 dark:bg-indigo-950/20">
+          <div>
+            <h4 className="text-sm font-black text-slate-900 dark:text-white">شروع تنظیم روز</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300">این روز هنوز عنوان یا پیام ندارد. یک متن آماده انتخاب کنید یا اطلاعات را خودتان وارد کنید.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="soft" className="h-8" onClick={() => applyStarter("study")}>شروع روز مطالعه</Button>
+            <Button type="button" variant="soft" className="h-8" onClick={() => applyStarter("review")}>روز مرور</Button>
+          </div>
+        </section>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="تاریخ ISO">
           <DatePicker
@@ -42,13 +66,13 @@ export function PlanForm({
             onChange={(planDate) => setData({ ...data, planDate })}
           />
         </Field>
-        <Field label="عنوان">
+        <Field label="عنوان برنامه">
           <Input
             value={data.title || ""}
             onChange={(e) => setData({ ...data, title: e.target.value })}
           />
         </Field>
-        <Field label="عنوان روز">
+        <Field label="برچسب نمایش روز">
           <Input
             value={data.dayLabel || ""}
             onChange={(e) => setData({ ...data, dayLabel: e.target.value })}
@@ -97,6 +121,7 @@ export function PlanForm({
 export function TaskForm({
   initial,
   exams,
+  books = [],
   studentId,
   busy,
   onSubmit,
@@ -104,6 +129,7 @@ export function TaskForm({
 }: {
   initial: TaskDraft;
   exams: Exam[];
+  books?: PlannerEducationBook[];
   studentId: string;
   busy: boolean;
   onSubmit: (data: TaskDraft) => void | Promise<void>;
@@ -111,6 +137,7 @@ export function TaskForm({
 }) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
+  const duration = durationLabel(data.start, data.end);
   return (
     <form
       className="grid gap-3"
@@ -127,102 +154,149 @@ export function TaskForm({
         );
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="شروع">
-          <Input
-            required
-            type="time"
-            value={data.start}
-            onChange={(e) => setData({ ...data, start: e.target.value })}
-          />
-        </Field>
-        <Field label="پایان">
-          <Input
-            required
-            type="time"
-            value={data.end}
-            onChange={(e) => setData({ ...data, end: e.target.value })}
-          />
-        </Field>
-        <Field label="نوع">
-          <Select
-            value={data.type}
-            onChange={(e) =>
-              setData({
-                ...data,
-                type: e.target.value,
-                examId: e.target.value === "exam" ? data.examId : "",
-              })
-            }
-          >
-            {["study", "review", "test", "class", "prayer", "meal", "break", "exam"].map((x) => (
-              <option key={x} value={x}>
-                {taskTypeLabel(x)}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="درس">
-          <Input
-            value={data.subject}
-            onChange={(e) => setData({ ...data, subject: e.target.value })}
-          />
-        </Field>
-        <Field label="عنوان">
-          <Input value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
-        </Field>
-        <Field label="صفحات">
-          <Input value={data.pages} onChange={(e) => setData({ ...data, pages: e.target.value })} />
-        </Field>
-        <Field label="تعداد تست">
-          <Input
-            min={0}
-            type="number"
-            value={data.testCount}
-            onChange={(e) => setData({ ...data, testCount: Number(e.target.value) })}
-          />
-        </Field>
-        {data.type === "exam" ? (
-          <div className="grid gap-1">
-            <Field label="آزمون مرتبط">
-              <Select
-                value={data.examId}
-                onChange={(e) => setData({ ...data, examId: e.target.value })}
-              >
-                <option value="">بدون آزمون</option>
-                {exams.map((exam) => (
-                  <option key={exam.id} value={exam.id}>
-                    {exam.persianDate || exam.isoDate} — {exam.title}
-                  </option>
-                ))}
-              </Select>
+      <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+        <div>
+          <h4 className="text-sm font-black">زمان و نوع فعالیت</h4>
+          <p className="text-xs text-slate-500">
+            ابتدا بازه و نوع را مشخص کنید؛ مدت زمان به‌صورت خودکار محاسبه می‌شود.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="شروع">
+            <Input
+              required
+              type="time"
+              value={data.start}
+              onChange={(e) => setData({ ...data, start: e.target.value })}
+            />
+          </Field>
+          <Field label="پایان">
+            <Input
+              required
+              type="time"
+              value={data.end}
+              onChange={(e) => setData({ ...data, end: e.target.value })}
+            />
+          </Field>
+          <p className="self-end pb-1 text-xs font-bold text-brand" aria-live="polite">
+            {duration}
+          </p>
+          <Field label="نوع">
+            <Select
+              value={data.type}
+              onChange={(e) =>
+                setData({
+                  ...data,
+                  type: e.target.value,
+                  examId: e.target.value === "exam" ? data.examId : "",
+                })
+              }
+            >
+              {["study", "review", "test", "class", "prayer", "meal", "break", "exam"].map((x) => (
+                <option key={x} value={x}>
+                  {taskTypeLabel(x)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </section>
+      <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+        <div>
+          <h4 className="text-sm font-black">هدف آموزشی</h4>
+          <p className="text-xs text-slate-500">
+            عنوان کوتاه و درس، برنامه را برای دانش‌آموز قابل فهم می‌کند.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="درس">
+            <Input
+              list="planner-education-books"
+              value={data.subject}
+              onChange={(e) => setData({ ...data, subject: e.target.value })}
+            />
+            {books.length ? <datalist id="planner-education-books">{books.map((book) => <option key={book.id} value={book.titleFa}>{[book.category, book.textbookCode].filter(Boolean).join(" · ")}</option>)}</datalist> : null}
+            {books.length ? <p className="mt-1 text-[11px] text-slate-500">کتاب‌های متناسب با پایه و رشته دانش‌آموز پیشنهاد می‌شوند.</p> : null}
+          </Field>
+          <Field label="عنوان">
+            <Input
+              value={data.title}
+              onChange={(e) => setData({ ...data, title: e.target.value })}
+            />
+          </Field>
+          {data.type === "exam" ? (
+            <div className="grid gap-1">
+              <Field label="آزمون مرتبط">
+                <Select
+                  value={data.examId}
+                  onChange={(e) => setData({ ...data, examId: e.target.value })}
+                >
+                  <option value="">بدون آزمون</option>
+                  {exams.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.persianDate || exam.isoDate} — {exam.title}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {data.examId ? (
+                <Link
+                  className="text-xs font-bold text-brand hover:underline"
+                  to={`/admin/questions?examId=${encodeURIComponent(data.examId)}&studentId=${encodeURIComponent(studentId)}`}
+                >
+                  بازکردن بانک سؤال این آزمون
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </section>
+      <details className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+        <summary className="cursor-pointer text-sm font-bold">جزئیات تکمیلی (اختیاری)</summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="صفحات">
+            <Input
+              value={data.pages}
+              onChange={(e) => setData({ ...data, pages: e.target.value })}
+              placeholder="مثلاً ۱۲ تا ۲۵"
+            />
+          </Field>
+          <Field label="تعداد تست">
+            <Input
+              min={0}
+              type="number"
+              value={data.testCount}
+              onChange={(e) => setData({ ...data, testCount: Number(e.target.value) })}
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="یادداشت">
+              <Textarea
+                rows={3}
+                value={data.note}
+                onChange={(e) => setData({ ...data, note: e.target.value })}
+                placeholder="راهنمای لازم برای انجام فعالیت…"
+              />
             </Field>
-            {data.examId ? (
-              <Link
-                className="text-xs font-bold text-brand hover:underline"
-                to={`/admin/questions?examId=${encodeURIComponent(data.examId)}&studentId=${encodeURIComponent(studentId)}`}
-              >
-                بازکردن بانک سؤال این آزمون
-              </Link>
-            ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      </details>
       {error ? (
         <p role="alert" className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">
           {error}
         </p>
       ) : null}
-      <Field label="یادداشت">
-        <Textarea
-          rows={3}
-          value={data.note}
-          onChange={(e) => setData({ ...data, note: e.target.value })}
-        />
-      </Field>
       <Actions busy={busy} onCancel={onCancel} />
     </form>
   );
+}
+
+function durationLabel(start: string, end: string) {
+  if (!start || !end || end <= start) return "بازه زمانی را کامل کنید";
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  const minutes = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+  return `مدت: ${minutes >= 60 ? `${Math.floor(minutes / 60)} ساعت${minutes % 60 ? ` و ${minutes % 60} دقیقه` : ""}` : `${minutes} دقیقه`}`;
 }
 export function DateAction({
   initial,

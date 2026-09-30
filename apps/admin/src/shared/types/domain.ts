@@ -106,6 +106,9 @@ export interface Plan {
   dayLabel?: string;
   title?: string;
   motivationText?: string;
+  /** Present when this plan was delivered from an organization template. */
+  templateId?: string | null;
+  templateVersion?: number | null;
   published: boolean;
   tasks: PlanTask[];
 }

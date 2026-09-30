@@ -9,4 +9,7 @@ export {
   plannerRange,
   planWarnings,
   comparePlanTasks,
+  DEFAULT_TIMELINE_CONFIG,
+  getTimelineRange,
+  timeToPosition,
 } from "./lib/planner-model";

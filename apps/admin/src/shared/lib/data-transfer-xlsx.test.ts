@@ -11,12 +11,16 @@ describe("Excel data transfer contract", () => {
     expect(parsed.plans).toEqual([
       expect.objectContaining({
         date: "2026-09-20",
+        title: "شنبه؛ شروع با تمرکز",
+        motivationText: "فقط قدم بعدی را انجام بده.",
         tasks: [expect.objectContaining({ title: "مطالعه فصل اول", duration: 60 })],
       }),
     ]);
     expect(parsed.exams).toEqual([
       expect.objectContaining({
         title: "آزمون نمونه ریاضی",
+        externalRef: "math-week-1",
+        instructions: ["با دقت پاسخ دهید."],
         questions: [expect.objectContaining({ correctAnswer: "۴", options: ["۱", "۲", "۳", "۴"] })],
       }),
     ]);

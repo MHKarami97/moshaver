@@ -6,11 +6,25 @@ export function PlannerMoreMenu({
   onPlan,
   onPublish,
   onTransfer,
+  onHistory,
+  onTemplates,
+  canPlan,
+  canPublish,
+  canTransfer,
+  canHistory,
+  canTemplates,
 }: {
   onClose: () => void;
   onPlan: () => void;
   onPublish: (value: boolean) => void;
   onTransfer: () => void;
+  onHistory: () => void;
+  onTemplates: () => void;
+  canPlan: boolean;
+  canPublish: boolean;
+  canTransfer: boolean;
+  canHistory: boolean;
+  canTemplates: boolean;
 }) {
   return (
     <ViewportPopover
@@ -43,7 +57,7 @@ export function PlannerMoreMenu({
       )}
     >
       <div className="space-y-1">
-        <button
+        {canPlan ? <button
           className="
             block
             w-full
@@ -62,9 +76,9 @@ export function PlannerMoreMenu({
           }}
         >
           تنظیمات برنامه روز
-        </button>
+        </button> : null}
 
-        <button
+        {canPublish ? <button
           className="
             block
             w-full
@@ -83,9 +97,9 @@ export function PlannerMoreMenu({
           }}
         >
           انتشار بازه
-        </button>
+        </button> : null}
 
-        <button
+        {canPublish ? <button
           className="
             block
             w-full
@@ -104,9 +118,9 @@ export function PlannerMoreMenu({
           }}
         >
           پیش‌نویس کردن بازه
-        </button>
+        </button> : null}
 
-        <button
+        {canTransfer ? <button
           className="
             block
             w-full
@@ -125,7 +139,27 @@ export function PlannerMoreMenu({
           }}
         >
           ورود / خروج JSON
-        </button>
+        </button> : null}
+
+        {canHistory ? <button
+          className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
+          onClick={() => {
+            onHistory();
+            onClose();
+          }}
+        >
+          تاریخچه اشتراک‌گذاری
+        </button> : null}
+
+        {canTemplates ? <button
+          className="block w-full rounded-xl px-3 py-2 text-right text-sm transition hover:bg-slate-100 dark:hover:bg-slate-800"
+          onClick={() => {
+            onTemplates();
+            onClose();
+          }}
+        >
+          کتابخانه الگوهای برنامه
+        </button> : null}
 
         <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
 

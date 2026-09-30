@@ -32,3 +32,17 @@ export function addDays(iso: string, days: number) {
   date.setDate(date.getDate() + days);
   return date.toISOString().slice(0, 10);
 }
+
+/** Display-only labels; API identifiers remain stable English values. */
+export function educationLabel(value: string) {
+  const labels: Record<string, string> = {
+    general: "عمومی",
+    theoretical: "نظری",
+    technical_vocational: "فنی و حرفه‌ای",
+    kar_danesh: "کاردانش",
+    math_physics: "ریاضی و فیزیک",
+    experimental_sciences: "علوم تجربی",
+    humanities: "علوم انسانی",
+  };
+  return labels[value] || value;
+}

@@ -2,6 +2,49 @@ import type { Plan, PlanTask } from "../../../shared/types/domain";
 import { addDays, normalizePersianText } from "../../../shared/lib/utils";
 import type { PlannerMode, TaskDraft, TaskFilter } from "../model/planner.types";
 
+export type PlannerTimelineConfig = {
+  startHour: number;
+  endHour: number;
+  slotMinutes: number;
+};
+
+/** The shared timeline policy for both Day and Week views. */
+export const DEFAULT_TIMELINE_CONFIG: PlannerTimelineConfig = {
+  startHour: 5,
+  endHour: 23,
+  slotMinutes: 30,
+};
+
+export function minutesToTime(value: number) {
+  const total = Math.max(0, Math.min(24 * 60, Math.round(value)));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+export function snapToSlot(value: number, slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes) {
+  return Math.round(value / slotMinutes) * slotMinutes;
+}
+
+export function getTimelineRange(
+  tasks: Pick<PlanTask, "start" | "end">[] = [],
+  config: PlannerTimelineConfig = DEFAULT_TIMELINE_CONFIG,
+) {
+  let start = config.startHour * 60;
+  let end = config.endHour * 60;
+  for (const task of tasks) {
+    if (task.start && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.start)) start = Math.min(start, Math.floor(timeToMinutes(task.start) / config.slotMinutes) * config.slotMinutes);
+    if (task.end && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.end)) end = Math.max(end, Math.ceil(timeToMinutes(task.end) / config.slotMinutes) * config.slotMinutes);
+  }
+  return { start, end: Math.min(24 * 60, end) };
+}
+
+export function timeToPosition(time: string, rangeStart: number, slotHeight: number, slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes) {
+  return ((timeToMinutes(time) - rangeStart) / slotMinutes) * slotHeight;
+}
+
+export function durationToHeight(start: string, end: string, slotHeight: number, slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes) {
+  return Math.max(Math.max(8, slotHeight - 2), Math.round(Math.max(15, minutesBetween(start, end)) / slotMinutes) * slotHeight - 2);
+}
+
 export function plannerRange(date: string, mode: PlannerMode, locale = "en", calendar = "gregory") {
   if (mode === "day") return { from: date, to: date };
   const d = new Date(`${date}T12:00:00`);

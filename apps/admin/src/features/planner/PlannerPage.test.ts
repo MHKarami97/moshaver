@@ -7,6 +7,9 @@ import {
   optimisticMove,
   plannerRange,
   planWarnings,
+  DEFAULT_TIMELINE_CONFIG,
+  getTimelineRange,
+  timeToPosition,
 } from "./PlannerPage";
 import type { Plan } from "../../shared/types/domain";
 
@@ -116,5 +119,10 @@ describe("planner parity helpers", () => {
       start: "12:00",
       end: "14:00",
     });
+  });
+  it("uses one timeline policy and expands it for persisted early or late tasks", () => {
+    expect(DEFAULT_TIMELINE_CONFIG).toEqual({ startHour: 5, endHour: 23, slotMinutes: 30 });
+    expect(getTimelineRange([{ start: "04:30", end: "05:30" }, { start: "22:30", end: "23:00" }])).toEqual({ start: 270, end: 1380 });
+    expect(timeToPosition("05:30", 300, 42)).toBe(42);
   });
 });

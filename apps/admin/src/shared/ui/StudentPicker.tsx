@@ -1,7 +1,7 @@
 import { AlertTriangle, Check, ChevronDown, Search, UserRound, UsersRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Student } from "../types/domain";
-import { cn, normalizePersianText } from "../lib/utils";
+import { cn, educationLabel, normalizePersianText } from "../lib/utils";
 import { ViewportPopover } from "./popover";
 
 const RECENT_KEY = "admin-recent-student-ids";
@@ -19,10 +19,16 @@ export function StudentPicker({
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState<Filter>("all"),
+    [grade, setGrade] = useState(""),
+    [educationType, setEducationType] = useState(""),
+    [track, setTrack] = useState(""),
     [expanded, setExpanded] = useState(false);
   const selected = students.find((student) => student.id === value) || null;
   const recentIds = readRecentIds();
   const recent = recentIds.flatMap((id) => students.find((student) => student.id === id) || []);
+  const grades = useMemo(() => [...new Set(students.map((student) => student.grade || String(student.gradeId || "")).filter(Boolean))], [students]);
+  const educationTypes = useMemo(() => [...new Set(students.map((student) => student.educationTypeId || "").filter(Boolean))], [students]);
+  const tracks = useMemo(() => [...new Set(students.map((student) => student.trackId || student.major || "").filter(Boolean))], [students]);
   const filtered = useMemo(() => {
     const term = normalizePersianText(query);
     return students.filter((student) => {
@@ -53,10 +59,13 @@ export function StudentPicker({
         (filter === "all" ||
           (filter === "attention" && risk) ||
           (filter === "active" && active) ||
-          (filter === "inactive" && !active))
+          (filter === "inactive" && !active)) &&
+        (!grade || (student.grade || String(student.gradeId || "")) === grade) &&
+        (!educationType || student.educationTypeId === educationType) &&
+        (!track || (student.trackId || student.major || "") === track)
       );
     });
-  }, [filter, query, students]);
+  }, [educationType, filter, grade, query, students, track]);
   const visible = expanded ? filtered : filtered.slice(0, 40);
 
   function choose(id: string) {
@@ -170,6 +179,11 @@ export function StudentPicker({
               {label}
             </button>
           ))}
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-1">
+          <select aria-label="فیلتر پایه" value={grade} onChange={(event) => setGrade(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه پایه‌ها</option>{grades.map((item) => <option key={item}>{item}</option>)}</select>
+          <select aria-label="فیلتر نوع آموزش" value={educationType} onChange={(event) => setEducationType(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه نوع‌ها</option>{educationTypes.map((item) => <option key={item} value={item}>{educationLabel(item)}</option>)}</select>
+          <select aria-label="فیلتر رشته یا مسیر" value={track} onChange={(event) => setTrack(event.target.value)} className="h-8 rounded border bg-white px-1 text-xs dark:bg-slate-900"><option value="">همه مسیرها</option>{tracks.map((item) => <option key={item} value={item}>{educationLabel(item)}</option>)}</select>
         </div>
       </div>
       {!query && filter === "all" && recent.length ? (

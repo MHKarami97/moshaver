@@ -12,6 +12,11 @@ export type TransferPayload = {
 const planHeaders = [
   "planDate",
   "published",
+  "planTitle",
+  "dayLabel",
+  "persianDate",
+  "jalaliId",
+  "motivationText",
   "type",
   "title",
   "subject",
@@ -22,8 +27,14 @@ const planHeaders = [
   "testCount",
   "note",
   "priority",
+  "pages",
+  "examRef",
+  "conflict",
+  "conflictGroup",
 ];
 const examHeaders = [
+  "externalRef",
+  "published",
   "title",
   "subject",
   "durationMinutes",
@@ -37,6 +48,12 @@ const examHeaders = [
   "optionD",
   "correctAnswer",
   "explanation",
+  "sortOrder",
+  "instructions",
+  "syllabusSubject",
+  "syllabusDescription",
+  "syllabusRequired",
+  "syllabusTrack",
 ];
 
 export async function readTransferWorkbook(
@@ -100,6 +117,9 @@ export function examplePayload(scope: Scope): TransferPayload {
             {
               date: "2026-09-20",
               published: false,
+              title: "شنبه؛ شروع با تمرکز",
+              persianDate: "۲۹ شهریور ۱۴۰۵",
+              motivationText: "فقط قدم بعدی را انجام بده.",
               tasks: [
                 {
                   type: "STUDY",
@@ -112,6 +132,7 @@ export function examplePayload(scope: Scope): TransferPayload {
                   testCount: 0,
                   note: "پس از مطالعه مرور شود",
                   priority: 0,
+                  pages: "۸ تا ۲۱",
                 },
               ],
             },
@@ -122,17 +143,22 @@ export function examplePayload(scope: Scope): TransferPayload {
         : [
             {
               title: "آزمون نمونه ریاضی",
+              externalRef: "math-week-1",
+              published: false,
               subject: "ریاضی",
               durationMinutes: 60,
               maxAttempts: 1,
               openAt: "2026-09-21T08:00:00.000Z",
               closeAt: "2026-09-21T10:00:00.000Z",
+              instructions: ["با دقت پاسخ دهید."],
+              syllabus: [{ subject: "ریاضی", description: "فصل اول", required: true, track: "دوازدهم" }],
               questions: [
                 {
                   text: "حاصل ۲ + ۲ کدام است؟",
                   options: ["۱", "۲", "۳", "۴"],
                   correctAnswer: "۴",
                   explanation: "جمع دو و دو برابر چهار است.",
+                  sortOrder: 0,
                 },
               ],
             },
@@ -144,12 +170,24 @@ function readPlans(sheet: Worksheet) {
   const rows = rowsAsObjects(sheet, planHeaders);
   const grouped = new Map<
     string,
-    { date: string; published: boolean; tasks: Array<Record<string, unknown>> }
+    {
+      date: string; published: boolean; title: string; dayLabel: string; persianDate: string;
+      jalaliId: string; motivationText: string; tasks: Array<Record<string, unknown>>;
+    }
   >();
   for (const row of rows) {
     const date = text(row.planDate);
     if (!date && !text(row.title)) continue;
-    const plan = grouped.get(date) || { date, published: truthy(row.published), tasks: [] };
+    const plan = grouped.get(date) || {
+      date,
+      published: truthy(row.published),
+      title: text(row.planTitle),
+      dayLabel: text(row.dayLabel),
+      persianDate: text(row.persianDate),
+      jalaliId: text(row.jalaliId),
+      motivationText: text(row.motivationText),
+      tasks: [],
+    };
     plan.tasks.push({
       type: text(row.type) || "STUDY",
       title: text(row.title),
@@ -161,6 +199,10 @@ function readPlans(sheet: Worksheet) {
       testCount: number(row.testCount),
       note: text(row.note),
       priority: number(row.priority),
+      pages: text(row.pages),
+      examRef: text(row.examRef),
+      conflict: truthy(row.conflict),
+      conflictGroup: text(row.conflictGroup),
     });
     grouped.set(date, plan);
   }
@@ -181,8 +223,20 @@ function readExams(sheet: Worksheet) {
       maxAttempts: number(row.maxAttempts),
       openAt: nullable(row.openAt),
       closeAt: nullable(row.closeAt),
+      externalRef: text(row.externalRef),
+      published: truthy(row.published),
+      instructions: text(row.instructions) ? [text(row.instructions)] : [],
+      syllabus: [],
       questions: [],
     };
+    const syllabusSubject = text(row.syllabusSubject);
+    if (syllabusSubject && !exam.syllabus.some((item: Record<string, unknown>) => item.subject === syllabusSubject))
+      exam.syllabus.push({
+        subject: syllabusSubject,
+        description: text(row.syllabusDescription),
+        required: truthy(row.syllabusRequired),
+        track: text(row.syllabusTrack),
+      });
     const questionText = text(row.questionText);
     if (questionText)
       exam.questions.push({
@@ -190,6 +244,7 @@ function readExams(sheet: Worksheet) {
         options: [text(row.optionA), text(row.optionB), text(row.optionC), text(row.optionD)],
         correctAnswer: text(row.correctAnswer),
         explanation: text(row.explanation),
+        sortOrder: number(row.sortOrder),
       });
     grouped.set(key, exam);
   }
@@ -222,7 +277,8 @@ function addGuide(sheet: Worksheet, scope: Scope) {
     ["تاریخ برنامه", "YYYY-MM-DD"],
     ["زمان فعالیت", "HH:mm"],
     ["زمان آزمون", "ISO-8601 مانند 2026-09-21T08:00:00.000Z"],
-    ["نوع فعالیت", "STUDY, TEST, REVIEW, CLASS, BREAK"],
+    ["نوع فعالیت", "STUDY, TEST, REVIEW, EXAM, REST, CUSTOM, CLASS, PRAYER, MEAL, BREAK"],
+    ["پیوند آزمون", "examRef باید با externalRef آزمون یکسان باشد."],
     ["پاسخ صحیح", "باید دقیقاً با یکی از چهار گزینه برابر باشد."],
   ]);
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -234,13 +290,18 @@ function addPlans(sheet: Worksheet, plans: Array<Record<string, any>>) {
   sheet.columns = planHeaders.map((header) => ({
     header,
     key: header,
-    width: ["title", "description", "note"].includes(header) ? 28 : 16,
+    width: ["title", "planTitle", "description", "note", "motivationText"].includes(header) ? 28 : 16,
   }));
   for (const plan of plans)
     for (const task of plan.tasks || [])
       sheet.addRow({
         planDate: plan.date || plan.planDate,
         published: Boolean(plan.published),
+        planTitle: plan.title,
+        dayLabel: plan.dayLabel,
+        persianDate: plan.persianDate,
+        jalaliId: plan.jalaliId,
+        motivationText: plan.motivationText,
         ...task,
       });
   styleTable(sheet, planHeaders.length);
@@ -254,9 +315,15 @@ function addExams(sheet: Worksheet, exams: Array<Record<string, any>>) {
   }));
   for (const exam of exams) {
     const questions = exam.questions?.length ? exam.questions : [{}];
-    for (const question of questions)
+    const syllabus = exam.syllabus?.length ? exam.syllabus : [{}];
+    const rows = Math.max(questions.length, syllabus.length);
+    for (let index = 0; index < rows; index += 1) {
+      const question = questions[index] || {};
+      const syllabusItem = syllabus[index] || {};
       sheet.addRow({
         title: exam.title,
+        externalRef: exam.externalRef,
+        published: Boolean(exam.published),
         subject: exam.subject,
         durationMinutes: exam.durationMinutes,
         maxAttempts: exam.maxAttempts,
@@ -269,7 +336,14 @@ function addExams(sheet: Worksheet, exams: Array<Record<string, any>>) {
         optionD: question.options?.[3],
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
+        sortOrder: question.sortOrder,
+        instructions: Array.isArray(exam.instructions) ? exam.instructions.join("\n") : exam.instructions,
+        syllabusSubject: syllabusItem.subject,
+        syllabusDescription: syllabusItem.description,
+        syllabusRequired: syllabusItem.required,
+        syllabusTrack: syllabusItem.track,
       });
+    }
   }
   styleTable(sheet, examHeaders.length);
 }
