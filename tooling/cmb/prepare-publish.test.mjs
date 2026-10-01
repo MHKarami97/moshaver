@@ -12,6 +12,7 @@ test("CMB release staging replaces local links without changing source manifests
   try {
     execFileSync(process.execPath, ["tooling/cmb/prepare-publish.mjs", `--out=${out}`], {
       cwd: root,
+      env: { ...process.env, CMB_LICENSE: "UNLICENSED" },
       stdio: "pipe",
     });
     const staged = fs.readdirSync(out).sort();
@@ -29,6 +30,22 @@ test("CMB release staging replaces local links without changing source manifests
     assert.equal(auth.dependencies["@moshaver/cmb-kernel"], "^0.1.0");
     assert.equal(auth.dependencies["@moshaver/cmb-identity"], "^0.1.0");
     assert.ok(fs.existsSync(path.join(out, "cmb-auth", "src", "index.d.ts")));
+  } finally {
+    fs.rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("packages the selected repository license in public artifacts", () => {
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), "cmb-npm-license-"));
+  try {
+    execFileSync(process.execPath, ["tooling/cmb/prepare-publish.mjs", `--out=${out}`], {
+      cwd: root,
+      env: { ...process.env, CMB_LICENSE: "MIT" },
+      stdio: "pipe",
+    });
+    const starter = JSON.parse(fs.readFileSync(path.join(out, "cmb-starter", "package.json"), "utf8"));
+    assert.equal(starter.license, "MIT");
+    assert.ok(fs.existsSync(path.join(out, "cmb-starter", "LICENSE")));
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }
