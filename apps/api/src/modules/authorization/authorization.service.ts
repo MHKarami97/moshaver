@@ -18,6 +18,8 @@ import {
 import { UserRoleAssignment } from "../../database/entities/user-role-assignment.entity";
 import { Student } from "../../database/entities/student.entity";
 import { Permission } from "../../database/entities/permission.entity";
+import { OrganizationStatus } from "../../database/entities/organization.entity";
+import { isCapabilityEnabledForOrganization } from "../organizations/organization-features";
 
 export type UserContext = {
   id: string;
@@ -64,7 +66,7 @@ export class AuthorizationService {
         },
       }),
       this.memberships.find({
-        where: { user: { id: base.id }, status: MembershipStatus.ACTIVE },
+        where: { user: { id: base.id }, status: MembershipStatus.ACTIVE, organization: { status: OrganizationStatus.ACTIVE } },
         relations: { organization: true },
       }),
     ]);
@@ -107,13 +109,22 @@ export class AuthorizationService {
         "ORGANIZATION_FORBIDDEN",
         "به این سازمان دسترسی ندارید.",
       );
+    const featureOrganization = memberships.find((membership) => membership.organization.id === requestedOrganizationId);
+    // Requests normally carry the active organization header. Without one, use
+    // the restrictive union so a multi-organization account cannot bypass an
+    // entitlement simply by omitting its work context.
+    const disabledFeatures = allRoles.includes("PLATFORM_ADMIN")
+      ? []
+      : featureOrganization
+        ? featureOrganization.organization.disabledFeatures ?? []
+        : memberships.flatMap((membership) => membership.organization.disabledFeatures ?? []);
     const context = buildAuthorizationContext(
       base,
       activeAssignments.map((item) => ({
         role: item.role.code,
         organizationScoped: item.role.organizationScoped,
         organizationId: item.membership?.organization?.id,
-        capabilities: item.role.permissions.map((rp) => rp.permission.code),
+        capabilities: item.role.permissions.map((rp) => rp.permission.code).filter((capability) => isCapabilityEnabledForOrganization(capability, disabledFeatures)),
       })),
       memberships.map((item) => ({
         id: item.id,

@@ -11,6 +11,7 @@ import { Student } from "../../database/entities/student.entity";
 import { UserStatus } from "../../database/entities/user.entity";
 import { AuthorizationService } from "../authorization";
 import { MembershipStatus, OrganizationMembership } from "../../database/entities/organization-membership.entity";
+import { OrganizationStatus } from "../../database/entities/organization.entity";
 import { LoginThrottleService } from "./login-throttle.service";
 
 export type AuthenticatedUser = {
@@ -133,7 +134,7 @@ export class AuthService {
     const account = await this.users.findOne({ where: { id: user.id } });
     if (!this.authorization || !this.memberships) throw new ApiException(503, "CONTEXT_UNAVAILABLE", "اطلاعات دسترسی در دسترس نیست.");
     const assignments = await this.authorization.enrich(user as Required<AuthenticatedUser>);
-    const memberships = await this.memberships.find({ where: { user: { id: user.id }, status: MembershipStatus.ACTIVE }, relations: { organization: true } });
+    const memberships = await this.memberships.find({ where: { user: { id: user.id }, status: MembershipStatus.ACTIVE, organization: { status: OrganizationStatus.ACTIVE } }, relations: { organization: true } });
     const organizations = memberships.map((membership) => ({ membershipId: membership.id, id: membership.organization.id, name: membership.organization.name, type: membership.organization.type }));
     const workContexts = await Promise.all(assignments.roles.map(async (role) => {
       const scoped = await this.authorization!.enrich(user as Required<AuthenticatedUser>, role);

@@ -240,6 +240,48 @@ describe("multi-role authorization isolation", () => {
     expect(enriched.capabilities).not.toContain("users.read");
   });
 
+  it("loads memberships only from enabled organizations", async () => {
+    (assignments as any).find.mockResolvedValueOnce([]);
+    (memberships as any).find.mockResolvedValueOnce([]);
+
+    await service.enrich({
+      id: "disabled-organization-member",
+      username: "disabled-organization-member",
+      sessionId: "s",
+      role: "ADMIN",
+    });
+
+    expect((memberships as any).find).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ organization: { status: "ACTIVE" } }),
+      }),
+    );
+  });
+
+  it("removes planner capabilities when that feature is disabled for the selected organization", async () => {
+    (assignments as any).find.mockResolvedValueOnce([
+      {
+        role: {
+          code: "ADVISOR",
+          organizationScoped: true,
+          permissions: [{ permission: { code: "plans.read" } }, { permission: { code: "reports.read" } }],
+        },
+        membership: { id: "m-a", organization: { id: "org-a" } },
+      },
+    ]);
+    (memberships as any).find.mockResolvedValueOnce([
+      { id: "m-a", organization: { id: "org-a", disabledFeatures: ["PLANNER"] } },
+    ]);
+
+    const enriched = await service.enrich(
+      { id: "advisor", username: "advisor", sessionId: "s", role: "ADMIN" },
+      "ADVISOR",
+      "org-a",
+    );
+
+    expect(enriched.capabilities).toEqual(["reports.read"]);
+  });
+
   it("grants an assigned platform admin every declared capability", async () => {
     const platform = new AuthorizationService(
       {

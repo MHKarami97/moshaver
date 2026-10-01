@@ -10,6 +10,7 @@ export class Organization {
   @Index() @Column({ length: 180 }) name!: string;
   @Column({ type: "varchar", length: 32 }) type!: OrganizationType;
   @Column({ type: "varchar", length: 20, default: OrganizationStatus.ACTIVE }) status!: OrganizationStatus;
+  @Column({ type: "simple-json", default: "[]" }) disabledFeatures!: string[];
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;
   @OneToMany(() => OrganizationMembership, (membership) => membership.organization) memberships!: OrganizationMembership[];

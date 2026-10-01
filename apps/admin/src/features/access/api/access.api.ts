@@ -10,7 +10,15 @@ export type PortalUser = {
   isPlatformOwner?: boolean;
   assignments: Array<{ role: RoleCode; organizationId: string | null }>;
 };
-export type PortalOrganization = { id: string; name: string; type: string; status: string };
+export type PortalOrganization = { id: string; name: string; type: string; status: string; disabledFeatures?: string[] };
+export const organizationFeatures = [
+  ["PLANNER", "برنامه‌ریز"], ["LEARNING", "سیستم یادگیری"], ["EXAMS", "آزمون‌ها"],
+  ["QUIZZES", "آزمونک‌ها"], ["QUESTION_BANK", "بانک سؤال"], ["SUBJECTS", "درس‌ها"],
+  ["EDUCATION", "مرکز آموزش و کلاس‌ها"], ["RESOURCES", "منابع آموزشی"], ["CHAT", "گفتگو"],
+  ["REPORTS", "گزارش‌ها"], ["STUDENTS", "مدیریت دانش‌آموزان"], ["FAMILY", "خانه خانواده"],
+  ["ONBOARDING", "ورود دانش‌آموزان"], ["ANALYTICS", "تحلیل و پیشنهادها"], ["IMPORT_EXPORT", "ورود و خروج داده"],
+] as const;
+export type OrganizationFeatureCode = (typeof organizationFeatures)[number][0];
 export type OrganizationMember = {
   id: string;
   user: Pick<PortalUser, "id" | "username" | "firstName" | "lastName" | "status">;
@@ -63,6 +71,10 @@ export const updateOrganization = (
   id: string,
   body: { name?: string; type?: string; status?: string },
 ) => api.patch<PortalOrganization>(`/organizations/${id}`, body);
+export const setOrganizationEnabled = (id: string, enabled: boolean) =>
+  api.patch<PortalOrganization>(`/organizations/${id}/enabled`, { enabled });
+export const setOrganizationFeatures = (id: string, enabledFeatures: OrganizationFeatureCode[]) =>
+  api.patch<PortalOrganization>(`/organizations/${id}/features`, { enabledFeatures });
 export const archiveOrganization = (id: string) => api.delete(`/organizations/${id}`);
 export const listOrganizationMembers = (id: string) =>
   api.get<OrganizationMember[]>(`/organizations/${id}/members`);

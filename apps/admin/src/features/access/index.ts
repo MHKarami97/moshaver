@@ -1,1 +1,2 @@
-export { OrganizationsPage, UsersPage } from "./AccessPage";
+export { OrganizationsPage } from "./OrganizationsPage";
+export { UsersPage } from "./UsersPage";

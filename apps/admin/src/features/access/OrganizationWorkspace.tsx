@@ -18,6 +18,7 @@ import {
 import type { RoleCode } from "../../shared/types/domain";
 import { Button, Card, EmptyState, Field, Select } from "../../shared/ui/ui";
 import { useModal } from "../../shared/ui/modal";
+import { notify } from "../../shared/ui/notifications";
 import { roleLabels } from "../../shared/lib/role-ui";
 import { useAuth } from "../auth";
 import {
@@ -33,6 +34,8 @@ import {
   removeRelationship,
   removeOrganizationMember,
   updateOrganizationMember,
+  type OrganizationMember,
+  type RelationshipStudent,
 } from "./api/access.api";
 
 const roles: Array<{ value: RoleCode; label: string }> = [
@@ -122,14 +125,8 @@ export function OrganizationWorkspace({
   const modal = useModal();
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<RoleCode>("ADVISOR");
-  const [relationUserId, setRelationUserId] = useState("");
-  const [relationStudentId, setRelationStudentId] = useState("");
-  const [relationType, setRelationType] = useState<
-    "GUARDIAN_OF" | "ADVISOR_OF" | "TEACHER_OF" | "MENTOR_OF"
-  >("GUARDIAN_OF");
   const [memberSearch, setMemberSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showLinkForm, setShowLinkForm] = useState(false);
 
   const members = useQuery({
     queryKey: ["organization-members", organizationId],
@@ -182,17 +179,10 @@ export function OrganizationWorkspace({
     onSuccess: refresh,
   });
   const createLink = useMutation({
-    mutationFn: () =>
-      createRelationship({
-        fromUserId: relationUserId,
-        toStudentId: relationStudentId,
-        organizationId,
-        type: relationType,
-      }),
+    mutationFn: (body: Parameters<typeof createRelationship>[0]) => createRelationship(body),
     onSuccess: async () => {
-      setRelationUserId("");
-      setRelationStudentId("");
-      setShowLinkForm(false);
+      modal.close();
+      notify("ارتباط ایجاد شد.");
       await refresh();
     },
   });
@@ -463,79 +453,26 @@ export function OrganizationWorkspace({
             }
             action={
               <Button
-                variant={showLinkForm ? "soft" : "primary"}
-                onClick={() => setShowLinkForm((v) => !v)}
+                onClick={() =>
+                  modal.open({
+                    title: "ارتباط جدید",
+                    description: "فقط اعضای فعال همین سازمان برای ارتباط قابل انتخاب هستند.",
+                    size: "md",
+                    content: (
+                      <RelationshipCreateForm
+                        members={members.data ?? []}
+                        students={relationshipStudents.data ?? []}
+                        onSubmit={(body) => createLink.mutateAsync({ ...body, organizationId })}
+                      />
+                    ),
+                  })
+                }
               >
                 <Link2 size={16} />
-                {showLinkForm ? "بستن" : "ارتباط جدید"}
+                ارتباط جدید
               </Button>
             }
           />
-
-          {showLinkForm ? (
-            <form
-              className="mb-4 grid gap-3 rounded-xl border border-brand/20 bg-brand/5 p-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                createLink.mutate();
-              }}
-            >
-              <Field label="کاربر مرتبط">
-                <Select
-                  required
-                  value={relationUserId}
-                  onChange={(event) => setRelationUserId(event.target.value)}
-                >
-                  <option value="">انتخاب کاربر…</option>
-                  {(users.data ?? [])
-                    .filter((user) =>
-                      user.assignments.some((assignment) => assignment.role !== "STUDENT"),
-                    )
-                    .map((user) => (
-                      <option key={user.id} value={user.id}>
-                        {displayName(user)}
-                      </option>
-                    ))}
-                </Select>
-              </Field>
-              <Field label="دانش‌آموز">
-                <Select
-                  required
-                  value={relationStudentId}
-                  onChange={(event) => setRelationStudentId(event.target.value)}
-                >
-                  <option value="">انتخاب دانش‌آموز…</option>
-                  {(relationshipStudents.data ?? []).map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="نوع ارتباط">
-                <Select
-                  value={relationType}
-                  onChange={(event) => setRelationType(event.target.value as typeof relationType)}
-                >
-                  <option value="GUARDIAN_OF">سرپرست</option>
-                  <option value="ADVISOR_OF">مشاور</option>
-                  <option value="TEACHER_OF">دبیر</option>
-                  <option value="MENTOR_OF">منتور</option>
-                </Select>
-              </Field>
-              <Button
-                loading={createLink.isPending}
-                disabled={!relationUserId || !relationStudentId}
-              >
-                ایجاد ارتباط
-              </Button>
-              {createLink.isError ? (
-                <p role="alert" className="text-sm text-rose-700">
-                  ایجاد ارتباط ناموفق بود.
-                </p>
-              ) : null}
-            </form>
-          ) : null}
 
           {relationships.isLoading ? (
             <div className="grid gap-2">
@@ -666,5 +603,87 @@ export function OrganizationWorkspace({
         </Card>
       </div>
     </div>
+  );
+}
+
+function RelationshipCreateForm({
+  members,
+  students,
+  onSubmit,
+}: {
+  members: OrganizationMember[];
+  students: RelationshipStudent[];
+  onSubmit: (
+    body: Omit<Parameters<typeof createRelationship>[0], "organizationId">,
+  ) => Promise<unknown>;
+}) {
+  const [fromUserId, setFromUserId] = useState("");
+  const [toStudentId, setToStudentId] = useState("");
+  const [type, setType] = useState<Parameters<typeof createRelationship>[0]["type"]>("GUARDIAN_OF");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const eligibleMembers = members.filter(
+    (member) => member.status === "ACTIVE" && member.roles.some((role) => role !== "STUDENT"),
+  );
+
+  return (
+    <form
+      className="grid gap-3"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        setError("");
+        try {
+          await onSubmit({ fromUserId, toStudentId, type });
+        } catch {
+          setError("ایجاد ارتباط ناموفق بود.");
+        } finally {
+          setIsSubmitting(false);
+        }
+      }}
+    >
+      <Field label="کاربر مرتبط">
+        <Select required value={fromUserId} onChange={(event) => setFromUserId(event.target.value)}>
+          <option value="">انتخاب کاربر…</option>
+          {eligibleMembers.map((member) => (
+            <option key={member.user.id} value={member.user.id}>
+              {displayName(member.user)}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="دانش‌آموز">
+        <Select
+          required
+          value={toStudentId}
+          onChange={(event) => setToStudentId(event.target.value)}
+        >
+          <option value="">انتخاب دانش‌آموز…</option>
+          {students.map((student) => (
+            <option key={student.id} value={student.id}>
+              {student.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="نوع ارتباط">
+        <Select value={type} onChange={(event) => setType(event.target.value as typeof type)}>
+          <option value="GUARDIAN_OF">سرپرست</option>
+          <option value="ADVISOR_OF">مشاور</option>
+          <option value="TEACHER_OF">دبیر</option>
+          <option value="MENTOR_OF">منتور</option>
+        </Select>
+      </Field>
+      {error ? (
+        <p role="alert" className="text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex justify-end">
+        <Button loading={isSubmitting} disabled={!fromUserId || !toStudentId}>
+          ایجاد ارتباط
+        </Button>
+      </div>
+    </form>
   );
 }

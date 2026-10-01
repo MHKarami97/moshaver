@@ -1,7 +1,19 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, CheckCircle2, Crown, Pencil, Plus, Search, ShieldCheck, X } from "lucide-react";
+import {
+  Archive,
+  Building2,
+  CheckCircle2,
+  Crown,
+  Pencil,
+  Plus,
+  Power,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
 import { roleLabels } from "../../shared/lib/role-ui";
@@ -23,6 +35,9 @@ import {
   listUsers,
   setUserActive,
   setUserRoles,
+  setOrganizationEnabled,
+  organizationFeatures,
+  setOrganizationFeatures,
   transferPlatformOwnership,
   updateOrganization,
   updateUser,
@@ -68,20 +83,11 @@ export function UsersPage() {
   );
   const [search, setSearch] = useState(() => searchParams.get("q") ?? ""),
     [status, setStatus] = useState(() => searchParams.get("status") ?? "ALL"),
-    [creating, setCreating] = useState(false),
     [selectedUserId, setSelectedUserId] = useState(() => searchParams.get("userId") ?? ""),
     [selectedIds, setSelectedIds] = useState<string[]>([]);
   const users = useQuery({
     queryKey: ["users", organizationId || "platform"],
     queryFn: () => listUsers(organizationId || undefined),
-  });
-  const [draft, setDraft] = useState({
-    username: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    role: "ADVISOR" as RoleCode,
-    organizationId: auth.context?.activeOrganization?.id ?? "",
   });
   const [editing, setEditing] = useState<PortalUser | null>(null);
   const [editDraft, setEditDraft] = useState({
@@ -93,20 +99,9 @@ export function UsersPage() {
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["users"] });
   const create = useMutation({
-    mutationFn: () =>
-      createUser({
-        username: draft.username,
-        password: draft.password,
-        firstName: draft.firstName,
-        lastName: draft.lastName,
-        roleCodes: [draft.role],
-        ...(draft.role !== "PLATFORM_ADMIN"
-          ? { organizationId: draft.organizationId || organizationId }
-          : {}),
-      }),
+    mutationFn: (body: Parameters<typeof createUser>[0]) => createUser(body),
     onSuccess: async () => {
-      setDraft((v) => ({ ...v, username: "", password: "", firstName: "", lastName: "" }));
-      setCreating(false);
+      modal.close();
       notify("حساب کاربری ساخته شد.");
       await refresh();
     },
@@ -220,11 +215,6 @@ export function UsersPage() {
 
   return (
     <div className="grid gap-5">
-      <ManagementPageHeader
-        eyebrow="افراد و دسترسی"
-        title="کاربران و کارکنان"
-        description="جستجو، نقش، سازمان و وضعیت حساب‌ها را از یک فضای کاری یکپارچه مدیریت کنید."
-      />
       {isPlatformOwner ? (
         <Card className="border-brand/25 bg-brand/5 p-4">
           <div className="flex gap-3">
@@ -246,11 +236,26 @@ export function UsersPage() {
               <Button
                 onClick={() => {
                   setEditing(null);
-                  setCreating((value) => !value);
+                  modal.open({
+                    title: "ساخت حساب جدید",
+                    description: "حساب را از ابتدا با نقش و محدوده درست ایجاد کنید.",
+                    size: "lg",
+                    content: (
+                      <UserCreateForm
+                        organizations={organizations.data || []}
+                        defaultOrganizationId={
+                          organizationId || auth.context?.activeOrganization?.id || ""
+                        }
+                        isPlatform={isPlatform}
+                        allowPlatform={isPlatformOwner}
+                        onSubmit={(body) => create.mutateAsync(body)}
+                      />
+                    ),
+                  });
                 }}
               >
                 <Plus size={16} />
-                {creating ? "بستن فرم" : "کاربر جدید"}
+                کاربر جدید
               </Button>
             ) : null
           }
@@ -328,85 +333,6 @@ export function UsersPage() {
           </div>
         </Card>
       </section>
-      {canManage && creating ? (
-        <Card className="p-5">
-          <SectionTitle
-            icon={<Plus size={18} />}
-            title="ساخت حساب جدید"
-            subtitle="حساب را از ابتدا با نقش و محدوده درست ایجاد کنید."
-          />
-          <form
-            className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              create.mutate();
-            }}
-          >
-            <Field label="نام کاربری">
-              <Input
-                required
-                minLength={2}
-                dir="ltr"
-                value={draft.username}
-                onChange={(e) => setDraft({ ...draft, username: e.target.value })}
-              />
-            </Field>
-            <Field label="رمز اولیه (حداقل ۱۲ نویسه)">
-              <Input
-                required
-                minLength={12}
-                type="password"
-                dir="ltr"
-                value={draft.password}
-                onChange={(e) => setDraft({ ...draft, password: e.target.value })}
-              />
-            </Field>
-            <RoleField
-              value={draft.role}
-              onChange={(role) => setDraft({ ...draft, role })}
-              allowPlatform={isPlatformOwner}
-            />
-            <Field label="نام">
-              <Input
-                value={draft.firstName}
-                onChange={(e) => setDraft({ ...draft, firstName: e.target.value })}
-              />
-            </Field>
-            <Field label="نام خانوادگی">
-              <Input
-                value={draft.lastName}
-                onChange={(e) => setDraft({ ...draft, lastName: e.target.value })}
-              />
-            </Field>
-            {isPlatform && draft.role !== "PLATFORM_ADMIN" ? (
-              <OrganizationField
-                organizations={organizations.data || []}
-                value={draft.organizationId || organizationId}
-                onChange={(value) => setDraft({ ...draft, organizationId: value })}
-              />
-            ) : null}
-            <div className="flex items-end">
-              <Button
-                className="w-full"
-                loading={create.isPending}
-                disabled={
-                  draft.role !== "PLATFORM_ADMIN" && !(draft.organizationId || organizationId)
-                }
-              >
-                ساخت حساب
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
-                انصراف
-              </Button>
-            </div>
-            {create.isError ? (
-              <p role="alert" className="text-sm text-rose-700">
-                {errorText(create.error, "ساخت حساب ناموفق بود.")}
-              </p>
-            ) : null}
-          </form>
-        </Card>
-      ) : null}
       {editing ? (
         <Card className="border-brand/30 p-5">
           <SectionTitle
@@ -722,326 +648,108 @@ export function UsersPage() {
   );
 }
 
-export function OrganizationsPage() {
-  const auth = useAuth(),
-    modal = useModal(),
-    qc = useQueryClient();
-  const isPlatform = auth.hasRole("PLATFORM_ADMIN"),
-    canManage = isPlatform && auth.can("organization.manage");
-  const organizations = useQuery({ queryKey: ["organizations"], queryFn: listOrganizations });
-  const [search, setSearch] = useState(""),
-    [draft, setDraft] = useState({ name: "", type: "SCHOOL" }),
-    [editing, setEditing] = useState<PortalOrganization | null>(null),
-    [creating, setCreating] = useState(false),
-    [selectedId, setSelectedId] = useState(auth.context?.activeOrganization?.id ?? "");
-  const refresh = () => qc.invalidateQueries({ queryKey: ["organizations"] });
-  const create = useMutation({
-    mutationFn: () => createOrganization(draft),
-    onSuccess: async () => {
-      setDraft({ name: "", type: "SCHOOL" });
-      setCreating(false);
-      notify("سازمان ساخته شد.");
-      await refresh();
-    },
+function UserCreateForm({
+  organizations,
+  defaultOrganizationId,
+  isPlatform,
+  allowPlatform,
+  onSubmit,
+}: {
+  organizations: PortalOrganization[];
+  defaultOrganizationId: string;
+  isPlatform: boolean;
+  allowPlatform: boolean;
+  onSubmit: (body: Parameters<typeof createUser>[0]) => Promise<unknown>;
+}) {
+  const [draft, setDraft] = useState({
+    username: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    role: "ADVISOR" as RoleCode,
+    organizationId: defaultOrganizationId,
   });
-  const update = useMutation({
-    mutationFn: (org: PortalOrganization) =>
-      updateOrganization(org.id, { name: org.name, type: org.type, status: org.status }),
-    onSuccess: async () => {
-      setEditing(null);
-      notify("اطلاعات سازمان ذخیره شد.");
-      await refresh();
-    },
-  });
-  const archive = useMutation({
-    mutationFn: archiveOrganization,
-    onSuccess: async () => {
-      await refresh();
-      notify("سازمان بایگانی شد.");
-    },
-  });
-  const filtered = (organizations.data || []).filter((item) =>
-    item.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
-  const selected = (organizations.data || []).find((item) => item.id === selectedId);
-  const activate = (org: PortalOrganization) =>
-    auth.setActiveOrganization({
-      id: org.id,
-      membershipId: "",
-      name: org.name,
-      type: org.type,
-    } as OrganizationSummary);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const requiresOrganization = draft.role !== "PLATFORM_ADMIN";
+
   return (
-    <div className="grid gap-5">
-      {/* <ManagementPageHeader
-        eyebrow="افراد و دسترسی"
-        title="سازمان‌ها"
-        description="سازمان را از فهرست انتخاب کنید و اعضا، نقش‌ها و زمینه کاری آن را در پنل کناری مدیریت کنید."
-      /> */}
-      <section className="w-full" aria-label="ابزارهای فهرست سازمان‌ها">
-        <ManagementSummaryBar
-          action={
-            canManage ? (
-              <Button
-                onClick={() => {
-                  setEditing(null);
-                  setCreating((value) => !value);
-                }}
-              >
-                <Plus size={16} />
-                {creating ? "بستن فرم" : "سازمان جدید"}
-              </Button>
-            ) : null
-          }
-        >
-          <div className="flex w-full flex-wrap items-end gap-3">
-            <ManagementStat label="همه سازمان‌ها" value={organizations.data?.length ?? 0} />
-            <ManagementStat
-              label="فعال"
-              value={organizations.data?.filter((x) => x.status === "ACTIVE").length ?? 0}
-              tone="success"
-            />
-            <ManagementStat
-              label="بایگانی"
-              value={organizations.data?.filter((x) => x.status === "ARCHIVED").length ?? 0}
-            />
-
-            <div className="flex min-w-[260px] flex-1 items-end gap-2">
-              <Field label="جستجوی سازمان">
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={16}
-                  />
-                  <Input
-                    className="pr-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="نام سازمان…"
-                  />
-                  {search ? (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      aria-label="پاک کردن جستجو"
-                      className="absolute left-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <X size={14} />
-                    </button>
-                  ) : null}
-                </div>
-              </Field>
-
-              <span className="shrink-0 whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {filtered.length.toLocaleString("fa-IR")} نتیجه
-              </span>
-            </div>
-          </div>
-        </ManagementSummaryBar>
-      </section>
-      {canManage && creating ? (
-        <Card className="p-5">
-          <SectionTitle
-            icon={<Plus size={18} />}
-            title="سازمان جدید"
-            subtitle="نوع سازمان را برای نمایش و گزارش‌گیری دقیق انتخاب کنید."
-          />
-          <form
-            className="mt-4 grid gap-3 sm:grid-cols-[1fr_240px_auto]"
-            onSubmit={(e) => {
-              e.preventDefault();
-              create.mutate();
-            }}
-          >
-            <Field label="نام سازمان">
-              <Input
-                required
-                minLength={2}
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              />
-            </Field>
-            <OrganizationTypeField
-              value={draft.type}
-              onChange={(type) => setDraft({ ...draft, type })}
-            />
-            <div className="flex items-end">
-              <div className="flex gap-2">
-                <Button loading={create.isPending}>ساخت سازمان</Button>
-                <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
-                  انصراف
-                </Button>
-              </div>
-            </div>
-            {create.isError ? (
-              <p role="alert" className="text-sm text-rose-700">
-                {errorText(create.error, "ساخت سازمان ناموفق بود.")}
-              </p>
-            ) : null}
-          </form>
-        </Card>
+    <form
+      className="grid gap-3 md:grid-cols-2"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        setError("");
+        try {
+          await onSubmit({
+            username: draft.username,
+            password: draft.password,
+            firstName: draft.firstName,
+            lastName: draft.lastName,
+            roleCodes: [draft.role],
+            ...(requiresOrganization ? { organizationId: draft.organizationId } : {}),
+          });
+        } catch (submissionError) {
+          setError(errorText(submissionError, "ساخت حساب ناموفق بود."));
+        } finally {
+          setIsSubmitting(false);
+        }
+      }}
+    >
+      <Field label="نام کاربری">
+        <Input
+          required
+          minLength={2}
+          dir="ltr"
+          value={draft.username}
+          onChange={(event) => setDraft({ ...draft, username: event.target.value })}
+        />
+      </Field>
+      <Field label="رمز اولیه (حداقل ۱۲ نویسه)">
+        <Input
+          required
+          minLength={12}
+          type="password"
+          dir="ltr"
+          value={draft.password}
+          onChange={(event) => setDraft({ ...draft, password: event.target.value })}
+        />
+      </Field>
+      <RoleField
+        value={draft.role}
+        onChange={(role) => setDraft({ ...draft, role })}
+        allowPlatform={allowPlatform}
+      />
+      <Field label="نام">
+        <Input
+          value={draft.firstName}
+          onChange={(event) => setDraft({ ...draft, firstName: event.target.value })}
+        />
+      </Field>
+      <Field label="نام خانوادگی">
+        <Input
+          value={draft.lastName}
+          onChange={(event) => setDraft({ ...draft, lastName: event.target.value })}
+        />
+      </Field>
+      {isPlatform && requiresOrganization ? (
+        <OrganizationField
+          organizations={organizations}
+          value={draft.organizationId}
+          onChange={(organizationId) => setDraft({ ...draft, organizationId })}
+        />
       ) : null}
-      <section className="grid items-start gap-4 xl:grid-cols-[minmax(360px,.8fr)_minmax(0,1.2fr)]">
-        <Card className="overflow-hidden" aria-label="فهرست سازمان‌ها">
-          {organizations.isLoading ? (
-            <LoadingRows />
-          ) : organizations.isError ? (
-            <Retry message="دریافت سازمان‌ها ناموفق بود." retry={() => organizations.refetch()} />
-          ) : !filtered.length ? (
-            <div className="p-6">
-              <EmptyState title="سازمانی یافت نشد." />
-            </div>
-          ) : (
-            <div className="grid gap-2 p-3">
-              {filtered.map((org) => (
-                <article
-                  key={org.id}
-                  className={`rounded-xl border p-4 transition ${selectedId === org.id ? "border-brand bg-brand/5 ring-1 ring-brand/20" : "border-slate-200 hover:border-brand/30 dark:border-slate-800"}`}
-                >
-                  {editing?.id === org.id ? (
-                    <form
-                      className="grid gap-3"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        update.mutate(editing);
-                      }}
-                    >
-                      <Field label="نام">
-                        <Input
-                          required
-                          value={editing.name}
-                          onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                        />
-                      </Field>
-                      <OrganizationTypeField
-                        value={editing.type}
-                        onChange={(type) => setEditing({ ...editing, type })}
-                      />
-                      <Field label="وضعیت">
-                        <Select
-                          value={editing.status}
-                          onChange={(e) => setEditing({ ...editing, status: e.target.value })}
-                        >
-                          <option value="ACTIVE">فعال</option>
-                          <option value="INACTIVE">غیرفعال</option>
-                          <option value="ARCHIVED">بایگانی‌شده</option>
-                        </Select>
-                      </Field>
-                      <div className="flex gap-2">
-                        <Button loading={update.isPending}>ذخیره</Button>
-                        <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
-                          انصراف
-                        </Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="grid size-11 place-items-center rounded-xl bg-brand/10 text-brand">
-                          <Building2 size={21} />
-                        </span>
-                        <StatusPill status={org.status} />
-                      </div>
-                      <h2 className="mt-3 font-black">{org.name}</h2>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {organizationTypes.find(([value]) => value === org.type)?.[1] || org.type}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant={selectedId === org.id ? "primary" : "soft"}
-                          disabled={org.status === "ARCHIVED"}
-                          onClick={() => setSelectedId(org.id)}
-                        >
-                          {selectedId === org.id ? (
-                            <>
-                              <CheckCircle2 size={15} />
-                              انتخاب‌شده
-                            </>
-                          ) : (
-                            "بازکردن فضای کار"
-                          )}
-                        </Button>
-                        {auth.context?.activeOrganization?.id !== org.id &&
-                        org.status === "ACTIVE" ? (
-                          <Button variant="ghost" onClick={() => activate(org)}>
-                            انتخاب به‌عنوان زمینه کاری
-                          </Button>
-                        ) : null}
-                        {canManage ? (
-                          <>
-                            <Button variant="soft" onClick={() => setEditing({ ...org })}>
-                              <Pencil size={15} />
-                              ویرایش
-                            </Button>
-                            {org.status !== "ARCHIVED" ? (
-                              <Button
-                                variant="danger"
-                                loading={archive.isPending && archive.variables === org.id}
-                                onClick={async () => {
-                                  if (
-                                    await modal.confirm({
-                                      title: "بایگانی سازمان",
-                                      description: `سازمان ${org.name} بایگانی شود؟ داده‌ها حذف نمی‌شوند.`,
-                                      confirmLabel: "بایگانی",
-                                      confirmationText: "بایگانی",
-                                      tone: "danger",
-                                      cancelLabel: "انصراف",
-                                      showCancel: true,
-                                    })
-                                  )
-                                    archive.mutate(org.id);
-                                }}
-                              >
-                                بایگانی
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="soft"
-                                onClick={() =>
-                                  void modal
-                                    .confirm({
-                                      title: "بازیابی سازمان؟",
-                                      description: `سازمان ${org.name} و فضای مدیریتی آن دوباره فعال می‌شود.`,
-                                      confirmLabel: "بازیابی",
-                                      confirmationText: "بازیابی",
-                                      showCancel: true,
-                                    })
-                                    .then(
-                                      (confirmed) =>
-                                        confirmed && update.mutate({ ...org, status: "ACTIVE" }),
-                                    )
-                                }
-                              >
-                                بازیابی
-                              </Button>
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
-        <div className="xl:sticky xl:top-20">
-          {selected && auth.can("organization.members.manage") && selected.status !== "ARCHIVED" ? (
-            <OrganizationWorkspace organizationId={selected.id} organizationName={selected.name} />
-          ) : (
-            <Card className="p-6">
-              <EmptyState
-                title={
-                  selected?.status === "ARCHIVED"
-                    ? "سازمان بایگانی‌شده قابل مدیریت نیست."
-                    : "یک سازمان را برای مدیریت اعضا انتخاب کنید."
-                }
-              />
-            </Card>
-          )}
-        </div>
-      </section>
-    </div>
+      {error ? (
+        <p role="alert" className="md:col-span-2 text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
+      <div className="md:col-span-2 flex justify-end">
+        <Button loading={isSubmitting} disabled={requiresOrganization && !draft.organizationId}>
+          ساخت حساب
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -1139,6 +847,29 @@ function StatusPill({ status }: { status: string }) {
     >
       {statusLabels[status] || status}
     </span>
+  );
+}
+function IconAction({
+  label,
+  active = false,
+  tone = "soft",
+  children,
+  ...props
+}: Omit<ComponentProps<typeof Button>, "aria-label" | "title" | "size" | "variant"> & {
+  label: string;
+  active?: boolean;
+  tone?: "soft" | "primary" | "danger";
+}) {
+  return (
+    <Button
+      size="icon"
+      variant={active ? "primary" : tone}
+      aria-label={label}
+      title={label}
+      {...props}
+    >
+      {children}
+    </Button>
   );
 }
 function LoadingRows() {

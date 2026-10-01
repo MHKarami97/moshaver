@@ -83,18 +83,34 @@ export class RelationshipsService {
   async create(user: AuthenticatedUser, dto: CreateRelationshipDto) {
     if (!this.canManage(user, dto.organizationId))
       throw new ApiException(403, "FORBIDDEN", "ایجاد این رابطه مجاز نیست.");
-    const [fromUser, student, organization] = await Promise.all([
-      this.users.findOne({ where: { id: dto.fromUserId } }),
-      this.students.findOne({ where: { id: dto.toStudentId } }),
-      dto.organizationId
-        ? this.organizations.findOne({ where: { id: dto.organizationId } })
-        : Promise.resolve(null),
-    ]);
+    const [fromUser, student, organization, sourceMembership] =
+      await Promise.all([
+        this.users.findOne({ where: { id: dto.fromUserId } }),
+        this.students.findOne({ where: { id: dto.toStudentId } }),
+        dto.organizationId
+          ? this.organizations.findOne({ where: { id: dto.organizationId } })
+          : Promise.resolve(null),
+        dto.organizationId
+          ? this.memberships.findOne({
+              where: {
+                user: { id: dto.fromUserId },
+                organization: { id: dto.organizationId },
+                status: MembershipStatus.ACTIVE,
+              },
+            })
+          : Promise.resolve(null),
+      ]);
     if (!fromUser || !student || (dto.organizationId && !organization))
       throw new ApiException(
         404,
         "NOT_FOUND",
         "کاربر، دانش‌آموز یا سازمان یافت نشد.",
+      );
+    if (dto.organizationId && !sourceMembership)
+      throw new ApiException(
+        403,
+        "USER_NOT_IN_ORGANIZATION",
+        "کاربر انتخاب‌شده عضو فعال این سازمان نیست.",
       );
     const existing = await this.relationships.findOne({
       where: {
@@ -233,9 +249,7 @@ export class RelationshipsService {
       order: { createdAt: "DESC" },
     });
     const nextAllowedAt = student.guardianChangedAt
-      ? new Date(
-          student.guardianChangedAt.getTime() + 30 * 24 * 60 * 60 * 1000,
-        )
+      ? new Date(student.guardianChangedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
       : null;
     return {
       relationships: rows
@@ -318,7 +332,11 @@ export class RelationshipsService {
         "سرپرست قابل انتخاب نیست.",
       );
     const account = await this.users.findOneByOrFail({ id: guardianUserId });
-    const organization = guardian.organization ? await this.organizations.findOneByOrFail({ id: guardian.organization.id }) : null;
+    const organization = guardian.organization
+      ? await this.organizations.findOneByOrFail({
+          id: guardian.organization.id,
+        })
+      : null;
     let item = await this.relationships.findOne({
       where: {
         fromUser: { id: guardianUserId },
