@@ -2,10 +2,10 @@ name: CMB Packages Quality
 
 on:
   pull_request:
-    paths: ['packages/cmb/**', 'apps/cmb-reference/**', 'apps/api/**', 'tooling/architecture/**', 'tooling/generators/**', 'tooling/workspace/**', '.github/workflows/cmb-packages-quality.yml']
+    paths: ['packages/cmb/**', 'apps/cmb-reference/**', 'apps/api/**', 'tooling/architecture/**', 'tooling/cmb/**', 'tooling/generators/**', 'tooling/workspace/**', 'docs/architecture/cmb-reference-and-release.md', 'package.json', '.github/workflows/cmb-packages-quality.yml']
   push:
     branches: [develop, main]
-    paths: ['packages/cmb/**', 'apps/cmb-reference/**', 'apps/api/**', 'tooling/architecture/**', 'tooling/generators/**', 'tooling/workspace/**', '.github/workflows/cmb-packages-quality.yml']
+    paths: ['packages/cmb/**', 'apps/cmb-reference/**', 'apps/api/**', 'tooling/architecture/**', 'tooling/cmb/**', 'tooling/generators/**', 'tooling/workspace/**', 'docs/architecture/cmb-reference-and-release.md', 'package.json', '.github/workflows/cmb-packages-quality.yml']
 
 permissions:
   contents: read
@@ -44,13 +44,10 @@ jobs:
           npm run contracts:check
           npm run cmb:compatibility
       - name: Verify reusable package artifacts
-        shell: bash
         run: |
-          set -euo pipefail
-          for dir in packages/cmb/*; do
-            test -f "$dir/package.json" || continue
-            (cd "$dir" && npm pack --dry-run --json >/dev/null)
-          done
+          npm run cmb:publish:check
+          npm run test:cmb-publish
+          npm run cmb:pack
       - name: Test the non-education reference service
         working-directory: apps/cmb-reference
         run: |

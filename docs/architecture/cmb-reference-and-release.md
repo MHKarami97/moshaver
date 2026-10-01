@@ -220,12 +220,20 @@ evidence. See `docs/operations/paas-deployment.md` for operator steps.
 | Moshaver API v2 | `0.1.x` | Node 22 | Source and behavior compatibility verified by repository CI |
 | CMB reference service | `0.1.x` | Node 22 | Framework/domain independence and starter smoke tests |
 
-All CMB packages currently remain private and versioned `0.1.0`. Until a first
-public `1.0.0`, a minor release may change APIs; every such change must update all
-consumers atomically in this repository. Patch releases must remain compatible.
+All source CMB packages remain private and versioned `0.1.0` inside this
+monorepo. `npm run cmb:pack` creates a disposable npm-ready staging directory:
+it replaces local `file:` CMB dependencies with compatible semver ranges and
+validates each package using `npm pack --dry-run`; it does not publish. Until a
+first public `1.0.0`, a minor release may change APIs; every such change must
+update all consumers atomically in this repository. Patch releases must remain compatible.
 The current decision is lockstep-minor compatibility with independently versioned
 patches. `tooling/cmb/compatibility.json` and `npm run cmb:compatibility` enforce the
 supported line, private/public state, root-only exports, and current consumers.
+
+`@moshaver/cmb-starter` is the supported one-file bootstrap for a host
+application. Its `cmb.config.cjs` selects reusable modules and it expands their
+declared dependencies. It does not supply transport, persistence adapters,
+secrets, routes, roles, or product policy; those remain application-owned.
 
 ## Release procedure
 
@@ -235,8 +243,12 @@ supported line, private/public state, root-only exports, and current consumers.
    `npm run contracts:check`, `npm run test:generators`, and `npm run verify`.
 4. Confirm the fresh-database migration and authorization-matrix CI jobs pass.
 5. Record intentional breaking changes and the consumer migration in release notes.
-6. Publish packages only after removing `private: true` through a separately
-   reviewed release change. The current repository does not publish CMB packages.
+6. Run `npm run cmb:publish:check` and `npm run cmb:pack`; inspect staged
+   manifests and tarball file lists under `dist/cmb-npm/`.
+7. Choose and add an explicit repository license before a public release. The
+   staging artifacts intentionally use `UNLICENSED` until that decision exists.
+8. Publish with a separately reviewed release change and registry credentials;
+   this repository never stores or asks for npm tokens.
 
 Every reusable release note must identify security impact, deprecated surfaces,
 migration steps, and affected consumers. Breaking APIs need at least one supported

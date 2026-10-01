@@ -143,6 +143,16 @@
       "verifyTasks": ["test"]
     },
     {
+      "id": "cmb-starter",
+      "packageName": "@moshaver/cmb-starter",
+      "path": "packages/cmb/starter",
+      "kind": "cmb-platform",
+      "dependsOn": ["cmb-activity", "cmb-auth", "cmb-authorization", "cmb-data-transfer", "cmb-health", "cmb-identity", "cmb-infrastructure", "cmb-kernel", "cmb-notifications", "cmb-persistence", "cmb-realtime", "cmb-system", "cmb-tenancy"],
+      "install": true,
+      "bootstrapBuild": false,
+      "verifyTasks": ["test"]
+    },
+    {
       "id": "cmb-reference",
       "packageName": "cmb-reference-service",
       "path": "apps/cmb-reference",
