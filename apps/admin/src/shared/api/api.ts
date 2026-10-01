@@ -41,10 +41,38 @@ export function getApiWorkContextKey() {
   return `${activeWorkRole || "none"}:${activeOrganizationId || "global"}`;
 }
 
+const DEFAULT_LOCAL_ORIGIN = "http://localhost:4000";
+const DEFAULT_REMOTE_ORIGIN = "https://api.mahakaram.ir";
+
+function stripApiVersionSuffix(origin: string) {
+  return origin.replace(/\/$/, "").replace(/\/api\/v[12]$/, "");
+}
+
+function resolveOrigin(configured: unknown, fallback: string) {
+  const value = typeof configured === "string" ? configured.trim() : "";
+  return stripApiVersionSuffix(value || fallback);
+}
+
+function localOrigin() {
+  return resolveOrigin(import.meta.env.VITE_LOCAL_API_ORIGIN, DEFAULT_LOCAL_ORIGIN);
+}
+
+function remoteOrigin() {
+  return resolveOrigin(import.meta.env.VITE_REMOTE_API_ORIGIN, DEFAULT_REMOTE_ORIGIN);
+}
+
 export const backendTargets = {
-  local: "http://localhost:4000",
-  remote: "https://api.mahakaram.ir",
+  local: localOrigin(),
+  remote: remoteOrigin(),
 } as const;
+
+export function getLocalApiUrl() {
+  return `${localOrigin()}/api/v2`;
+}
+
+export function getRemoteApiUrl() {
+  return `${remoteOrigin()}/api/v2`;
+}
 
 export type BackendTarget = keyof typeof backendTargets;
 

@@ -3,6 +3,8 @@ import { RotateCw, Server } from "lucide-react";
 import {
   BackendTarget,
   getBackendTargetUrl,
+  getLocalApiUrl,
+  getRemoteApiUrl,
   getSelectedBackend,
   setSelectedBackend,
 } from "../../shared/api/api";
@@ -15,8 +17,8 @@ const options: Array<{ value: BackendTarget | ""; label: string }> = [
 ];
 
 function labelFor(value: BackendTarget | "") {
-  if (value === "local") return "http://localhost:4000/api/v2";
-  if (value === "remote") return "https://api.mahakaram.ir/api/v2";
+  if (value === "local") return getLocalApiUrl();
+  if (value === "remote") return getRemoteApiUrl();
   return getBackendTargetUrl();
 }
 
