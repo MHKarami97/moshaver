@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="README.md"><strong>English</strong></a> · <a href="README.fa.md">فارسی</a>
+</p>
+
+<p align="center">
   Admin web app · Student web/PWA/Tauri app · NestJS API · Shared product packages · CMB architecture
 </p>
 
@@ -34,6 +38,7 @@
 ## Table of contents
 
 - [Overview](#overview)
+- [Showcase highlights](#showcase-highlights)
 - [Platform features](#platform-features)
 - [Applications](#applications)
 - [Architecture](#architecture)
@@ -47,6 +52,7 @@
 - [Documentation](#documentation)
 - [AI and repository tooling](#ai-and-repository-tooling)
 - [Contributing](#contributing)
+- [Security](#security)
 - [Legacy v14 archive](#legacy-v14-archive)
 - [Repository topics](#repository-topics)
 - [License](#license)
@@ -67,6 +73,18 @@ The current product is built around:
 - **modular evolution** through CMB — Composable Modular Backend Architecture — without rewriting the product from scratch.
 
 > `main` and `develop` are the active v2 product line. The historical v1.4 product is preserved separately on `archive/v1.4`.
+
+## Showcase highlights
+
+Moshaver v2 is built for the operational reality of education teams, not only for CRUD screens:
+
+- **Role-aware operational inbox:** recovery requests, task issues, retry requests, unread conversations, sync failures, and inactive accounts are surfaced as a scoped “Needs attention” queue with priority, owner, due date, status, and deep links.
+- **Consistent responsive operations:** shared Admin list and data-table primitives provide filtering, retry/empty states, selection, and phone-friendly card layouts across the active management surfaces.
+- **Connected learner workflow:** active student context is carried between student records, planner, reports, chat, assessments, and follow-up views.
+- **Assessment authoring at scale:** exams, quizzes, questions, question-bank transfer, assignments, and analytics are designed as one workflow with capability gates.
+- **Safer production operations:** restore preflight and rollback guidance, audit-backed restore history, and browser/device push diagnostics help operators act with confidence.
+
+For a guided product walkthrough, start at the Admin dashboard, open **Needs attention**, select a student, then move through planner, reports, chat, and assessments. The exact surfaces a user can access are capability- and organization-scoped by the backend.
 
 ## Platform features
 
@@ -443,20 +461,17 @@ Agents and contributors should inspect the repository graph and current source b
 
 ## Contributing
 
-1. Read [`AGENTS.md`](AGENTS.md), the [system map](docs/architecture/system-map.md), and the [developer handbook](docs/operations/developer-handbook.md).
-2. Work from the active v2 line and keep unrelated local changes untouched.
-3. Trace a feature vertically: route → UI → client/query → controller → capability guard → service → persistence → tests.
-4. Make the smallest complete change that preserves architecture boundaries.
-5. Add or update automated coverage where practical.
-6. Run the checks required by the [verification matrix](docs/operations/repository-runbook.md).
-7. Update current documentation, capability matrices, migration notes, or release notes when behavior changes.
-8. Review `git diff --check`, `git diff --stat`, and `git status --short` before opening a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the bilingual contribution guide, expected checks, pull-request checklist, and architecture/security boundaries.
 
 Useful guidance:
 
 - [Developer handbook](docs/operations/developer-handbook.md)
 - [Feature and bug playbook](docs/operations/feature-and-bug-playbook.md)
 - [Documentation maintenance](docs/operations/documentation-maintenance.md)
+
+## Security
+
+Please do not disclose a suspected vulnerability in a public issue. Read [SECURITY.md](SECURITY.md) for the bilingual responsible-disclosure process. Authentication, authorization, tenant scope, CSRF, validation, and audit boundaries must remain server-enforced in every contribution.
 
 ## Legacy v1.4 archive
 
