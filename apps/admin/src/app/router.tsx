@@ -34,6 +34,9 @@ const SystemPage = lazy(() =>
 const FollowUpPage = lazy(() =>
   import("../features/followup").then((module) => ({ default: module.FollowUpPage })),
 );
+const AttentionPage = lazy(() =>
+  import("../features/attention").then((module) => ({ default: module.AttentionPage })),
+);
 const OrganizationsPage = lazy(() =>
   import("../features/access").then((module) => ({ default: module.OrganizationsPage })),
 );
@@ -42,6 +45,9 @@ const UsersPage = lazy(() =>
 );
 const PlannerPage = lazy(() =>
   import("../features/education/planner").then((module) => ({ default: module.PlannerPage })),
+);
+const PlanTemplatesPage = lazy(() =>
+  import("../features/education/planner").then((module) => ({ default: module.PlanTemplatesPage })),
 );
 const LearningPage = lazy(() =>
   import("../features/education/learning").then((module) => ({ default: module.LearningPage })),
@@ -259,6 +265,16 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "plan-templates",
+            element: (
+              <CapabilityRoute capability="plan_templates.read">
+                <RouteScreen>
+                  <PlanTemplatesPage />
+                </RouteScreen>
+              </CapabilityRoute>
+            ),
+          },
+          {
             path: "learning",
             element: (
               <CapabilityRoute capability="learning.read">
@@ -363,6 +379,14 @@ export const router = createBrowserRouter([
                   <FollowUpPage />
                 </RouteScreen>
               </CapabilityRoute>
+            ),
+          },
+          {
+            path: "attention",
+            element: (
+              <RouteScreen>
+                <AttentionPage />
+              </RouteScreen>
             ),
           },
           {

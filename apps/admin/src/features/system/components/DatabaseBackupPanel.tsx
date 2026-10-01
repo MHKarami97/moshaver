@@ -1,7 +1,17 @@
-import { AlertTriangle, Database, Download, FileCheck2, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Circle,
+  Database,
+  Download,
+  FileCheck2,
+  Upload,
+} from "lucide-react";
 import { useState } from "react";
 import { Button, Card, Input } from "../../../shared/ui/ui";
-const MAX_BACKUP_SIZE = 250 * 1024 * 1024;
+// Matches the API default (`MAX_RESTORE_BODY`); production can raise both through
+// its deployment configuration, but the default UI must not invite a guaranteed 400.
+const MAX_BACKUP_SIZE = 64 * 1024 * 1024;
 export function DatabaseBackupPanel({
   file,
   busy,
@@ -40,7 +50,7 @@ export function DatabaseBackupPanel({
     }
     if (next.size > MAX_BACKUP_SIZE) {
       setFile(null);
-      setFileError("حجم فایل باید کمتر از ۲۵۰ مگابایت باشد.");
+      setFileError("حجم فایل بازیابی در تنظیمات پیش‌فرض باید کمتر از ۶۴ مگابایت باشد.");
       return;
     }
     setFileError("");
@@ -103,6 +113,25 @@ export function DatabaseBackupPanel({
               {fileError}
             </p>
           ) : null}
+          <div className="mt-3 rounded-lg border border-rose-200/80 bg-white/70 p-3 text-xs text-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+            <p className="mb-2 font-bold text-rose-900 dark:text-rose-200">بررسی پیش از بازیابی</p>
+            <PreflightRow
+              ready={Boolean(file) && !fileError}
+              label="فایل SQLite و حجم آن در مرورگر بررسی شد"
+            />
+            <PreflightRow ready={canRestore} label="مجوز بازیابی برای نقش فعلی فعال است" />
+            <PreflightRow ready={restoreEnabled} label="بازیابی راه‌دور در سرور مجاز است" />
+            <PreflightRow ready label="سرور پیش از جایگزینی، snapshot بازگشت ایجاد می‌کند" />
+            <PreflightRow
+              ready
+              label="در خطای راه‌اندازی، snapshot به‌طور خودکار برگردانده می‌شود"
+            />
+            <PreflightRow ready label="پس از جایگزینی، سلامت SQLite دوباره بررسی می‌شود" />
+            <PreflightRow
+              ready
+              label="نتیجه را از تاریخچه عملیات و سلامت پایگاه داده بررسی می‌کنید"
+            />
+          </div>
           <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
             <input
               className="mt-0.5"
@@ -134,5 +163,18 @@ export function DatabaseBackupPanel({
         </section>
       </div>
     </Card>
+  );
+}
+
+function PreflightRow({ ready, label }: { ready: boolean; label: string }) {
+  return (
+    <p className={`mt-1 flex items-start gap-2 ${ready ? "" : "text-slate-500"}`}>
+      {ready ? (
+        <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-600" />
+      ) : (
+        <Circle size={14} className="mt-0.5 shrink-0" />
+      )}
+      {label}
+    </p>
   );
 }

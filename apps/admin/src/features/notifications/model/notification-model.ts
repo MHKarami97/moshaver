@@ -23,6 +23,14 @@ export type PushStatus = {
   registered: boolean;
   serverConfigured: boolean;
   preferences: PushPreferences;
+  devices?: Array<{
+    id: string;
+    userAgent: string;
+    failureCount: number;
+    lastSuccessAt: string | null;
+    updatedAt: string;
+    current: boolean;
+  }>;
 };
 
 export function normalizeAdminNotification(

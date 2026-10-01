@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RoleDashboard } from "../features/dashboard/components/RoleDashboard";
 import { NotificationCenterPanel } from "../features/notifications/components/NotificationCenterPanel";
+import { AdvisorInboxPanel } from "../features/notifications/components/AdvisorInboxPanel";
+import { ConversationSidebar } from "../features/chat/components/conversation/ConversationSidebar";
 import { StudentList } from "../features/students/components/StudentList";
 import { LocaleProvider } from "../shared/ui/locale";
 
@@ -35,6 +37,12 @@ vi.mock("../features/auth/hooks/useAuth", () => ({ useAuth: () => auth }));
 vi.mock("../features/auth", () => ({ useAuth: () => auth }));
 vi.mock("../features/notifications/hooks/useAdminNotifications", () => ({
   useAdminNotifications: () => notifications,
+}));
+vi.mock("../features/chat/components/group/GroupChatControls", () => ({
+  CreateGroupButton: () => <button type="button">گروه جدید</button>,
+}));
+vi.mock("../features/chat/components/conversation/CreateDirectButton", () => ({
+  CreateDirectButton: () => <button type="button">گفتگوی جدید</button>,
 }));
 
 async function expectAccessible(container: HTMLElement) {
@@ -127,6 +135,58 @@ describe("Admin v2 accessibility smoke", () => {
           />
         </LocaleProvider>
       </MemoryRouter>,
+    );
+    await expectAccessible(view.container);
+  });
+
+  it("has no automated violations on the advisor inbox list", async () => {
+    const view = render(
+      <AdvisorInboxPanel
+        mobilePanel="inbox"
+        rows={[]}
+        students={[]}
+        studentId=""
+        loading={false}
+        error={false}
+        recoveryPendingId=""
+        issuePendingId=""
+        onStudentChange={vi.fn()}
+        onRetry={vi.fn()}
+        onRecovery={vi.fn().mockResolvedValue(true)}
+        onIssue={vi.fn().mockResolvedValue(true)}
+        canManageRecovery
+        canManageIssues
+      />,
+    );
+    await expectAccessible(view.container);
+  });
+
+  it("has no automated violations on the chat conversation directory", async () => {
+    const view = render(
+      <ConversationSidebar
+        visible
+        items={[]}
+        search=""
+        filter="all"
+        sort="recent"
+        favoriteIds={new Set()}
+        drafts={{}}
+        total={0}
+        unread={0}
+        loading={false}
+        error={false}
+        fetching={false}
+        hasMore={false}
+        fetchingMore={false}
+        onSearch={vi.fn()}
+        onFilter={vi.fn()}
+        onSort={vi.fn()}
+        onSelect={vi.fn()}
+        onToggleFavorite={vi.fn()}
+        onRetry={vi.fn()}
+        onMore={vi.fn()}
+        onGroupCreated={vi.fn()}
+      />,
     );
     await expectAccessible(view.container);
   });

@@ -36,6 +36,13 @@ export const educationNavigation = [
     capability: "plans.read",
   },
   {
+    path: "plan-templates",
+    title: "الگوهای برنامه",
+    description: "کتابخانه، انتشار و اعمال الگوهای برنامه سازمان",
+    icon: CalendarDays,
+    capability: "plan_templates.read",
+  },
+  {
     path: "learning",
     title: "سیستم یادگیری",
     description: "مدیریت مرورهای فاصله‌دار، تسلط و الگوهای خطای دانش‌آموز",
@@ -141,6 +148,12 @@ export const adminNavigation = [
         description: "مدیریت حساب، وضعیت و دسترسی دانش‌آموزان",
         icon: UsersRound,
         capability: "students.read",
+      },
+      {
+        path: "attention",
+        title: "نیازمند توجه",
+        description: "صف یکپارچه کارهای عملیاتی، پیگیری‌ها و خطاهای فعال",
+        icon: ShieldCheck,
       },
       {
         path: "family",

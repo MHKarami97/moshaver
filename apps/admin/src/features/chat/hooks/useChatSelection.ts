@@ -26,5 +26,19 @@ export function useChatSelectionParams() {
         return next;
       });
     },
+    setView(nextView: { q?: string; filter?: string; sort?: string }) {
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (nextView.q !== undefined) nextView.q ? next.set("q", nextView.q) : next.delete("q");
+          if (nextView.filter !== undefined)
+            nextView.filter === "all" ? next.delete("filter") : next.set("filter", nextView.filter);
+          if (nextView.sort !== undefined)
+            nextView.sort === "recent" ? next.delete("sort") : next.set("sort", nextView.sort);
+          return next;
+        },
+        { replace: true },
+      );
+    },
   };
 }

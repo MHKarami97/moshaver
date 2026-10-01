@@ -21,10 +21,13 @@ import { useAuth } from "../../auth";
 import { useQuery } from "@tanstack/react-query";
 import { getExamAnalytics, type ExamAnalytics } from "../api/exams.api";
 import { Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 export function ExamsPage() {
   const modal = useModal();
   const auth = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useExamFilters();
 
@@ -57,6 +60,19 @@ export function ExamsPage() {
       ),
     });
   }
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1" || !auth.can("exams.create")) return;
+    openEditor();
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("new");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [auth, searchParams, setSearchParams]);
 
   function openRetryReview(request: RetryRequest, status: "approved" | "rejected") {
     modal.open({

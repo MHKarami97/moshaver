@@ -9,7 +9,6 @@ import {
   List,
   Pencil,
   Plus,
-  RefreshCw,
   Search,
   Share2,
   Trash2,
@@ -23,7 +22,8 @@ import { notify } from "../../shared/ui/notifications";
 import { useModal } from "../../shared/ui/modal";
 import { StudentAllocationControl } from "../../shared/ui/student-allocation-control";
 import { listClasses } from "../education/api/classes.api";
-import { Badge, Button, Card, EmptyState, Input, LoadingState, Textarea } from "../../shared/ui/ui";
+import { Badge, Button, Card, EmptyState, Input, Textarea } from "../../shared/ui/ui";
+import { AdminList } from "../../shared/ui/admin-list";
 import {
   createResource,
   deleteResource,
@@ -167,6 +167,9 @@ export function ResourcesPage() {
     });
     setConfirmDelete(false);
   };
+  const editorPrerequisitesLoading = students.isLoading || classes.isLoading;
+  const editorPrerequisitesError = students.isError || classes.isError;
+  const retryEditorPrerequisites = () => void Promise.all([students.refetch(), classes.refetch()]);
   const startNew = () => {
     setSelectedId(null);
     setEditing(null);
@@ -225,23 +228,6 @@ export function ResourcesPage() {
     if (confirmed) remove.mutate(resource.id);
   };
   if (!canManage) return <EmptyState title="دسترسی مدیریت منابع آموزشی ندارید." />;
-  if (resources.isLoading || students.isLoading || classes.isLoading)
-    return <LoadingState label="در حال آماده‌سازی منابع آموزشی…" />;
-  if (resources.isError || students.isError)
-    return (
-      <EmptyState
-        title="دریافت منابع آموزشی ناموفق بود."
-        action={
-          <Button
-            variant="soft"
-            onClick={() => void Promise.all([resources.refetch(), students.refetch()])}
-          >
-            <RefreshCw size={16} />
-            تلاش دوباره
-          </Button>
-        }
-      />
-    );
   return (
     <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
       {/* <Card className="hidden grid gap-3 p-3 xl:sticky xl:top-16">
@@ -329,8 +315,28 @@ export function ResourcesPage() {
         </form>
       </Card> */}
 
-      <Card className="min-w-0 p-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <AdminList
+        label="فهرست منابع"
+        description="نتایج با فیلترهای بالا به‌روزرسانی می‌شوند."
+        items={visibleResources}
+        loading={resources.isLoading}
+        error={resources.isError}
+        onRetry={() => void Promise.all([resources.refetch(), students.refetch(), classes.refetch()])}
+        emptyTitle={
+          query || status !== "ALL" || category
+            ? "منبعی با این فیلتر نیست."
+            : "هنوز منبعی ساخته نشده است."
+        }
+        emptyAction={
+          <Button
+            variant="soft"
+            disabled={editorPrerequisitesLoading || editorPrerequisitesError}
+            onClick={() => openEditor()}
+          >
+            ساخت منبع
+          </Button>
+        }
+        toolbar={<div className="flex flex-wrap items-center gap-2">
           <label className="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 dark:border-slate-700 dark:bg-slate-900">
             <Search size={16} className="text-slate-400" />
             <input
@@ -384,14 +390,26 @@ export function ResourcesPage() {
               <LayoutGrid size={16} />
             </button>
           </div>
-          <Button size="sm" variant="soft" onClick={() => openEditor()}>
+          <Button
+            size="sm"
+            variant="soft"
+            disabled={editorPrerequisitesLoading || editorPrerequisitesError}
+            onClick={() => openEditor()}
+          >
             <Plus size={15} />
             جدید
           </Button>
-        </div>
-        <div
-          className={`mt-3 grid gap-2 ${view === "grid" ? "md:grid-cols-2 2xl:grid-cols-3" : "grid-cols-1"}`}
-        >
+          {editorPrerequisitesError ? (
+            <div className="flex flex-wrap items-center gap-1 text-xs text-rose-700" role="alert">
+              <span>دریافت فهرست دانش‌آموزان یا کلاس‌ها برای فرم منبع ناموفق بود.</span>
+              <Button size="sm" variant="ghost" onClick={retryEditorPrerequisites}>
+                تلاش دوباره
+              </Button>
+            </div>
+          ) : null}
+        </div>}
+      >
+        <div className={`grid gap-2 ${view === "grid" ? "md:grid-cols-2 2xl:grid-cols-3" : "grid-cols-1"}`}>
           {visibleResources.map((item) => (
             <ResourceListItem
               key={item.id}
@@ -401,22 +419,8 @@ export function ResourcesPage() {
               onSelect={() => setSelectedId(item.id)}
             />
           ))}
-          {!visibleResources.length ? (
-            <EmptyState
-              title={
-                query || status !== "ALL" || category
-                  ? "منبعی با این فیلتر نیست."
-                  : "هنوز منبعی ساخته نشده است."
-              }
-              action={
-                <Button variant="soft" onClick={() => openEditor()}>
-                  ساخت منبع
-                </Button>
-              }
-            />
-          ) : null}
         </div>
-      </Card>
+      </AdminList>
 
       <Card className="hidden grid gap-3 p-3 xl:sticky xl:top-16">
         <div className="flex items-center justify-between">

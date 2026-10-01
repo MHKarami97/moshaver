@@ -144,7 +144,7 @@ export function StudentsPage() {
   const [pageSize, setPageSize] = useState(() =>
     numberParam(searchParams.get("pageSize"), 25, [25, 50, 100]),
   );
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(() => searchParams.get("create") === "1");
   const [selectedId, setSelectedId] = useState(() => searchParams.get("studentId") || "");
   const [detailTab, setDetailTab] = useState<StudentDetailTab>(() => {
     const value = searchParams.get("tab") as StudentDetailTab | null;
@@ -264,6 +264,7 @@ export function StudentsPage() {
         const next = new URLSearchParams(current);
         if (id) next.set("studentId", id);
         else next.delete("studentId");
+        next.delete("create");
         return next;
       },
       { replace: true },
@@ -304,7 +305,15 @@ export function StudentsPage() {
     const run = () => {
       setCreating(true);
       setSelectedId("");
-      updateStudentContext("");
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("create", "1");
+          next.delete("studentId");
+          return next;
+        },
+        { replace: true },
+      );
       setDetailTab("profile");
       setMobileDirectory(false);
       setForm(emptyStudentForm());
@@ -721,7 +730,17 @@ export function StudentsPage() {
       hint: "موضوع‌های تحلیل‌شده",
     },
     ...(auth.can("student.activity.read")
-      ? [{ label: "همگام‌سازی در انتظار", value: (syncHealth.data || []).reduce((sum, device) => sum + device.pendingCount, 0), loading: syncHealth.isLoading, error: syncHealth.isError, hint: syncHealth.data?.some((device) => device.status === "failed") ? "یک دستگاه خطای همگام‌سازی دارد" : `${syncHealth.data?.length || 0} دستگاه گزارش داده‌اند` }]
+      ? [
+          {
+            label: "همگام‌سازی در انتظار",
+            value: (syncHealth.data || []).reduce((sum, device) => sum + device.pendingCount, 0),
+            loading: syncHealth.isLoading,
+            error: syncHealth.isError,
+            hint: syncHealth.data?.some((device) => device.status === "failed")
+              ? "یک دستگاه خطای همگام‌سازی دارد"
+              : `${syncHealth.data?.length || 0} دستگاه گزارش داده‌اند`,
+          },
+        ]
       : []),
   ];
 

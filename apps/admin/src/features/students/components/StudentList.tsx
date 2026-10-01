@@ -248,7 +248,7 @@ export function StudentList({
         </div>
       ) : students.length ? (
         <>
-          <div className="hidden md:block">
+          <div>
             <AdminDataTable
               rows={students}
               rowId={(student) => student.id}
@@ -260,6 +260,35 @@ export function StudentList({
               sortDirection={sortDirection}
               onSort={(value) => onSort(value as StudentSort)}
               onRowClick={onSelect}
+              mobileCard={(student) => {
+                const education =
+                  [student.grade, student.major].filter(Boolean).join(" / ") ||
+                  "پایه و رشته ثبت نشده";
+                return (
+                  <div className="grid gap-3">
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
+                      <span className="grid size-10 place-items-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                        <UserRound size={18} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <strong className="truncate text-sm text-ink">{student.name}</strong>
+                          <StudentStatus student={student} />
+                        </span>
+                        <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                          {education}
+                        </span>
+                      </span>
+                      <ChevronLeft className="mt-2 text-slate-400" size={16} />
+                    </div>
+                    <Completeness student={student} compact />
+                    <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                      <span>{formatStudentLastSeen(student.last_seen_at)}</span>
+                      <span className="font-bold text-brand">باز کردن پرونده</span>
+                    </div>
+                  </div>
+                );
+              }}
               columns={[
                 {
                   id: "name",
@@ -324,47 +353,6 @@ export function StudentList({
                 },
               ]}
             />
-          </div>
-
-          <div className="grid gap-2 p-3 md:hidden">
-            {students.map((student) => {
-              const selected = selectedId === student.id && !creating;
-              const education =
-                [student.grade, student.major].filter(Boolean).join(" / ") ||
-                "پایه و رشته ثبت نشده";
-              return (
-                <button
-                  key={student.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => onSelect(student)}
-                  className={`grid gap-3 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${selected ? "border-brand bg-brand/5" : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"}`}
-                >
-                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-                    <span
-                      className={`grid size-10 place-items-center rounded-full ${selected ? "bg-brand text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"}`}
-                    >
-                      <UserRound size={18} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <strong className="truncate text-sm text-ink">{student.name}</strong>
-                        <StudentStatus student={student} />
-                      </span>
-                      <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
-                        {education}
-                      </span>
-                    </span>
-                    <ChevronLeft className="mt-2 text-slate-400" size={16} />
-                  </div>
-                  <Completeness student={student} compact />
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                    <span>{formatStudentLastSeen(student.last_seen_at)}</span>
-                    <span className="font-bold text-brand">باز کردن پرونده</span>
-                  </div>
-                </button>
-              );
-            })}
           </div>
 
           {filteredTotal > 0 ? (

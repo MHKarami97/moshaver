@@ -22,6 +22,7 @@ export function AdminList<T>({
   onRetry,
   footer,
   className = "",
+  contentClassName = "",
 }: {
   label: string;
   description?: string;
@@ -37,6 +38,8 @@ export function AdminList<T>({
   onRetry?: () => void;
   footer?: ReactNode;
   className?: string;
+  /** Enables fixed-height/scrolling consumers to keep the shared states in their viewport. */
+  contentClassName?: string;
 }) {
   const content = typeof children === "function" ? children(items) : children;
   return (
@@ -56,7 +59,7 @@ export function AdminList<T>({
         {actions ? <div className="flex flex-wrap gap-2 sm:justify-end">{actions}</div> : null}
         {toolbar ? <div className="sm:col-span-2">{toolbar}</div> : null}
       </header>
-      <div className="p-3 sm:p-4">
+      <div className={`p-3 sm:p-4 ${contentClassName}`}>
         {loading ? (
           <LoadingState label={`در حال دریافت ${label}…`} />
         ) : error ? (

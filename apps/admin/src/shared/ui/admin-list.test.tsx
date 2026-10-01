@@ -33,4 +33,14 @@ describe("AdminList", () => {
     );
     expect(screen.getByText("الف")).toBeInTheDocument();
   });
+
+  it("allows a fixed-height consumer to style the shared content region", () => {
+    const { container } = render(
+      <AdminList items={["الف"]} label="نمونه" contentClassName="test-scroll-region">
+        {() => <p>الف</p>}
+      </AdminList>,
+    );
+
+    expect(container.querySelector(".test-scroll-region")).toHaveTextContent("الف");
+  });
 });

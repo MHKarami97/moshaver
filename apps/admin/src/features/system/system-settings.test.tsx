@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AccountSecurityPanel } from "./components/AccountSecurityPanel";
 import { DatabaseBackupPanel } from "./components/DatabaseBackupPanel";
 import { AppVersionManager } from "./components/AppVersionManager";
@@ -22,6 +22,8 @@ function PasswordHarness({ onSubmit }: { onSubmit: () => void }) {
     />
   );
 }
+
+afterEach(cleanup);
 
 describe("system and security controls", () => {
   it("requires the current password, 12 characters, and matching confirmation", async () => {
@@ -57,6 +59,23 @@ describe("system and security controls", () => {
     });
     expect(screen.getByRole("alert")).toHaveTextContent("فقط فایل SQLite");
     expect(screen.getByRole("button", { name: /اعتبارسنجی و بازیابی/ })).toBeDisabled();
+  });
+
+  it("makes rollback and post-restore checks explicit before a restore", () => {
+    render(
+      <DatabaseBackupPanel
+        file={null}
+        busy={false}
+        downloading={false}
+        setFile={vi.fn()}
+        onDownload={vi.fn()}
+        onRestore={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/snapshot بازگشت ایجاد می‌کند/)).toBeInTheDocument();
+    expect(screen.getByText(/به‌طور خودکار برگردانده می‌شود/)).toBeInTheDocument();
+    expect(screen.getByText(/تاریخچه عملیات و سلامت پایگاه داده/)).toBeInTheDocument();
   });
 
   it("edits the active app version through an accessible form", async () => {

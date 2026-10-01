@@ -21,6 +21,7 @@ type Props = {
   canPublish: boolean;
   canApply: boolean;
   onClose: () => void;
+  showClose?: boolean;
 };
 
 function templateDays(plans: Plan[]) {
@@ -54,6 +55,7 @@ export function PlanTemplateLibrary({
   canPublish,
   canApply,
   onClose,
+  showClose = true,
 }: Props) {
   const client = useQueryClient();
   const [title, setTitle] = useState("");
@@ -263,11 +265,13 @@ export function PlanTemplateLibrary({
           </div>
         </section>
       ) : null}
-      <div className="flex justify-end">
-        <Button variant="ghost" onClick={onClose}>
-          بستن
-        </Button>
-      </div>
+      {showClose ? (
+        <div className="flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            بستن
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

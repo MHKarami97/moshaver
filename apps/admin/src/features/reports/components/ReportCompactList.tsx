@@ -16,6 +16,38 @@ export function ReportCompactList({
       rows={reports}
       rowId={(row) => String(row.id ?? `${row.plan_date ?? row.planDate}-${row.created_at ?? ""}`)}
       label="گزارش‌های روزانه"
+      mobileCard={(row) => {
+        const date = row.plan_date ?? row.planDate;
+        const accuracy = reportAccuracy(row);
+        return (
+          <div className="grid gap-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <strong>{date ? formatDate(String(date)) : "—"}</strong>
+              <span className="text-xs text-slate-500">
+                دقت: {accuracy === null ? "—" : `${fa(accuracy)}٪`}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <Metric
+                label="مطالعه"
+                value={`${fa(reportNumber(row.study_hours ?? row.studyHours))} ساعت`}
+              />
+              <Metric label="تست" value={fa(reportNumber(row.tests))} />
+              <Metric label="تمرکز" value={`${fa(reportNumber(row.focus))}/۱۰`} />
+            </div>
+            {row.problem || row.tomorrow ? (
+              <div className="grid gap-1 border-t border-slate-100 pt-2 text-xs dark:border-slate-800">
+                {row.problem ? (
+                  <span className="text-rose-700">مسئله: {String(row.problem)}</span>
+                ) : null}
+                {row.tomorrow ? (
+                  <span className="text-indigo-700">فردا: {String(row.tomorrow)}</span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        );
+      }}
       columns={[
         {
           id: "date",
@@ -80,5 +112,14 @@ export function ReportCompactList({
         },
       ]}
     />
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-900">
+      <b className="block text-slate-800 dark:text-slate-100">{value}</b>
+      <span className="mt-1 block text-slate-500">{label}</span>
+    </span>
   );
 }

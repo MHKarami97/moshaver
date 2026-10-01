@@ -11,14 +11,28 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth";
 import { normalizePersianText } from "../../shared/lib/utils";
 import { adminDestination, navigationForCapabilities } from "./admin-navigation";
+import { searchCommandPaletteEntities, type CommandPaletteEntity } from "./command-palette-search";
 import { readStoredList, writeStoredList } from "./layout-storage";
 import type { AdminCurrentNavigation } from "./layout-types";
 
 const RECENT_NAVIGATION_KEY = "admin-recent-navigation";
 const HOME_TOKEN = "__admin_home__";
 
+type NavigationResult = ReturnType<typeof navigationForCapabilities>[number]["items"][number] & {
+  section: string;
+};
+type PaletteResult = NavigationResult | CommandPaletteEntity;
+
+function isEntityResult(item: PaletteResult): item is CommandPaletteEntity {
+  return "destination" in item;
+}
+
 function pathToken(path: string) {
   return path || HOME_TOKEN;
+}
+
+function resultToken(item: PaletteResult) {
+  return isEntityResult(item) ? item.id : pathToken(item.path);
 }
 
 function tokenPath(token: string) {
@@ -59,6 +73,8 @@ export function AdminCommandPalette({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentTokens, setRecentTokens] = useState(() => readStoredList(RECENT_NAVIGATION_KEY));
+  const [entityResults, setEntityResults] = useState<CommandPaletteEntity[]>([]);
+  const [entityLoading, setEntityLoading] = useState(false);
 
   useEffect(() => {
     const token = pathToken(current.path);
@@ -80,15 +96,42 @@ export function AdminCommandPalette({
   );
 
   const normalizedQuery = normalizePersianText(query.trim().toLowerCase());
+  useEffect(() => {
+    if (!open || normalizedQuery.length < 2) {
+      setEntityResults([]);
+      setEntityLoading(false);
+      return;
+    }
+    let current = true;
+    setEntityLoading(true);
+    // Entity sources include several capability-gated API calls. Let people
+    // finish a short query before fanning out, while keeping navigation-only
+    // results available immediately.
+    const timer = window.setTimeout(() => {
+      void searchCommandPaletteEntities({
+        query: normalizedQuery,
+        capabilities: auth.capabilities,
+      }).then((items) => {
+        if (!current) return;
+        setEntityResults(items);
+        setEntityLoading(false);
+      });
+    }, 180);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [auth.capabilities, normalizedQuery, open]);
   const results = useMemo(() => {
     if (!normalizedQuery) return recentItems.length ? recentItems : availableNavigation.slice(0, 8);
-    return availableNavigation.filter((item) => {
+    const navigation = availableNavigation.filter((item) => {
       const haystack = normalizePersianText(
         `${item.title} ${item.description} ${item.section} ${item.path}`.toLowerCase(),
       );
       return haystack.includes(normalizedQuery);
     });
-  }, [normalizedQuery, recentItems, availableNavigation]);
+    return [...entityResults, ...navigation];
+  }, [normalizedQuery, recentItems, availableNavigation, entityResults]);
 
   useEffect(() => {
     if (!open) return;
@@ -138,7 +181,7 @@ export function AdminCommandPalette({
     const active = results[activeIndex];
     if (!active) return;
     document
-      .getElementById(`admin-command-${pathToken(active.path)}`)
+      .getElementById(`admin-command-${resultToken(active)}`)
       ?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open, results]);
 
@@ -151,11 +194,15 @@ export function AdminCommandPalette({
   function choose(index: number) {
     const item = results[index];
     if (!item) return;
-    const token = pathToken(item.path);
-    const nextRecent = [token, ...recentTokens.filter((value) => value !== token)].slice(0, 8);
-    setRecentTokens(nextRecent);
-    writeStoredList(RECENT_NAVIGATION_KEY, nextRecent);
-    navigate(adminDestination(item.path, item.section, selectedStudentId));
+    if (isEntityResult(item)) {
+      navigate(item.destination);
+    } else {
+      const token = pathToken(item.path);
+      const nextRecent = [token, ...recentTokens.filter((value) => value !== token)].slice(0, 8);
+      setRecentTokens(nextRecent);
+      writeStoredList(RECENT_NAVIGATION_KEY, nextRecent);
+      navigate(adminDestination(item.path, item.section, selectedStudentId));
+    }
     onClose();
   }
 
@@ -197,14 +244,14 @@ export function AdminCommandPalette({
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
             className="h-14 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-            placeholder="نام صفحه، بخش یا مسیر را جستجو کنید…"
+            placeholder="صفحه، دانش‌آموز، کاربر، سازمان یا اقدام را جست‌وجو کنید…"
             role="combobox"
             aria-autocomplete="list"
             aria-expanded="true"
             aria-controls="admin-command-results"
             aria-activedescendant={
               results[activeIndex]
-                ? `admin-command-${pathToken(results[activeIndex].path)}`
+                ? `admin-command-${resultToken(results[activeIndex])}`
                 : undefined
             }
           />
@@ -218,14 +265,20 @@ export function AdminCommandPalette({
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-[10px] text-slate-400 dark:border-slate-800 dark:bg-slate-800/60">
+        <div
+          className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2 text-[10px] text-slate-400 dark:border-slate-800 dark:bg-slate-800/60"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <span className="flex items-center gap-1 font-bold">
             {!normalizedQuery ? <Clock3 size={12} /> : <Search size={12} />}
             {!normalizedQuery
               ? recentItems.length
                 ? "مسیرهای اخیر"
                 : "پیشنهادها"
-              : `${results.length.toLocaleString("fa-IR")} نتیجه`}
+              : entityLoading
+                ? "در حال جست‌وجو…"
+                : `${results.length.toLocaleString("fa-IR")} نتیجه`}
           </span>
           <span className="hidden items-center gap-2 sm:flex" dir="rtl">
             <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 dark:border-slate-700 dark:bg-slate-900">
@@ -246,16 +299,17 @@ export function AdminCommandPalette({
         <div
           id="admin-command-results"
           role="listbox"
+          aria-busy={entityLoading}
           className="max-h-[min(60dvh,30rem)] overflow-y-auto overscroll-contain p-2"
         >
           {results.length ? (
             results.map((item, index) => {
-              const Icon = item.icon;
+              const Icon = isEntityResult(item) ? Search : item.icon;
               const active = index === activeIndex;
               return (
                 <button
-                  id={`admin-command-${pathToken(item.path)}`}
-                  key={`${item.section}-${item.path || "home"}`}
+                  id={`admin-command-${resultToken(item)}`}
+                  key={resultToken(item)}
                   type="button"
                   role="option"
                   aria-selected={active}

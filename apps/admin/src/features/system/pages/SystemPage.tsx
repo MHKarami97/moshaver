@@ -80,7 +80,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
   const audit = useQuery({
     queryKey: ["audit"],
     queryFn: getAudit,
-    enabled: view === "audit" && canReadAudit,
+    enabled: (view === "audit" || view === "database") && canReadAudit,
   });
   const imports = useQuery({
     queryKey: ["import-history"],
@@ -99,9 +99,16 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
       setFile(null);
       notify("پایگاه داده با موفقیت بازیابی شد.");
       void qc.invalidateQueries({ queryKey: ["system-database"] });
+      // The database page renders restore events from the audit feed beside the
+      // preflight. Refresh it immediately so the outcome is not stale until a
+      // manual revisit.
+      void qc.invalidateQueries({ queryKey: ["audit"] });
     },
     onError: (e) => notify(e instanceof Error ? e.message : "بازیابی انجام نشد.", "error"),
   });
+  const databaseAuditRows = (audit.data ?? []).filter((row) =>
+    String(row.action || "").startsWith("database."),
+  );
   const saveRelease = useMutation({
     mutationFn: () => saveAppRelease(release),
     onSuccess: () => {
@@ -324,6 +331,15 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
               .then((ok) => ok && restore.mutate())
           }
         />
+        {canReadAudit ? (
+          <SystemHistory
+            title="تاریخچه پشتیبان و بازیابی"
+            rows={databaseAuditRows}
+            loading={audit.isLoading}
+            error={audit.isError}
+            onRetry={() => void audit.refetch()}
+          />
+        ) : null}
         {canReadImports ? (
           <SystemHistory
             title="تاریخچه ورود داده"

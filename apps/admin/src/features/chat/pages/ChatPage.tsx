@@ -30,6 +30,29 @@ import type {
   MessagePage,
 } from "../model/chat.types";
 
+const conversationFilters: ConversationFilter[] = [
+  "all",
+  "unread",
+  "direct",
+  "group",
+  "favorites",
+  "drafts",
+  "online",
+];
+const conversationSorts: ConversationSort[] = ["recent", "unread", "online", "name"];
+
+export function parseConversationFilter(value: string | null): ConversationFilter {
+  return conversationFilters.includes(value as ConversationFilter)
+    ? (value as ConversationFilter)
+    : "all";
+}
+
+export function parseConversationSort(value: string | null): ConversationSort {
+  return conversationSorts.includes(value as ConversationSort)
+    ? (value as ConversationSort)
+    : "recent";
+}
+
 export function ChatPage() {
   const auth = useAuth();
   const modal = useModal();
@@ -43,10 +66,10 @@ export function ChatPage() {
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [editing, setEditing] = useState<ChatMessage | null>(null);
-  const [search, setSearch] = useState("");
+  const search = selection.params.get("q") || "";
   const deferredSearch = useDebouncedValue(search.trim(), 250);
-  const [conversationFilter, setConversationFilter] = useState<ConversationFilter>("all");
-  const [conversationSort, setConversationSort] = useState<ConversationSort>("recent");
+  const conversationFilter = parseConversationFilter(selection.params.get("filter"));
+  const conversationSort = parseConversationSort(selection.params.get("sort"));
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [newMessageCount, setNewMessageCount] = useState(0);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string>();
@@ -433,9 +456,9 @@ export function ChatPage() {
           fetching={conversations.isFetching}
           hasMore={!!conversations.hasNextPage}
           fetchingMore={conversations.isFetchingNextPage}
-          onSearch={setSearch}
-          onFilter={setConversationFilter}
-          onSort={setConversationSort}
+          onSearch={(value) => selection.setView({ q: value })}
+          onFilter={(value) => selection.setView({ filter: value })}
+          onSort={(value) => selection.setView({ sort: value })}
           onSelect={selectConversation}
           onToggleFavorite={toggleFavorite}
           onRetry={() => void conversations.refetch()}

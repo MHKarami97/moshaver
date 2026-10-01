@@ -29,6 +29,7 @@ export function AdminDataTable<T>({
   sortId,
   sortDirection = "asc",
   onSort,
+  mobileCard,
 }: {
   rows: T[];
   rowId: (row: T) => string;
@@ -48,6 +49,8 @@ export function AdminDataTable<T>({
   sortId?: string;
   sortDirection?: "asc" | "desc";
   onSort?: (id: string) => void;
+  /** A compact, feature-owned row representation shown below the md breakpoint. */
+  mobileCard?: (row: T) => ReactNode;
 }) {
   const selectable = Boolean(onSelectionChange);
   const visibleIds = rows.map(rowId);
@@ -122,7 +125,50 @@ export function AdminDataTable<T>({
           </Button>
         </div>
       ) : null}
-      <div className="overflow-x-auto">
+      {mobileCard ? (
+        <div className="grid gap-3 md:hidden" aria-label={`${label}، نمای کارت`}>
+          {rows.map((row) => {
+            const id = rowId(row),
+              checked = selected.has(id),
+              active = activeId === id;
+            return (
+              <article
+                key={id}
+                className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950 ${checked || active ? "ring-2 ring-brand/30" : ""} ${onRowClick ? "cursor-pointer" : ""}`}
+                onClick={() => onRowClick?.(row)}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (
+                    !onRowClick ||
+                    event.target !== event.currentTarget ||
+                    !["Enter", " "].includes(event.key)
+                  )
+                    return;
+                  event.preventDefault();
+                  onRowClick(row);
+                }}
+                data-active={checked || active || undefined}
+              >
+                {selectable ? (
+                  <label className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3 text-xs font-bold text-slate-600 dark:border-slate-800 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-brand"
+                      checked={checked}
+                      aria-label={`انتخاب ردیف ${id}`}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => toggleOne(id)}
+                    />
+                    انتخاب این مورد
+                  </label>
+                ) : null}
+                {mobileCard(row)}
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
+      <div className={`overflow-x-auto ${mobileCard ? "hidden md:block" : ""}`}>
         <table className="w-full min-w-[720px] text-sm">
           <caption className="sr-only">{label}</caption>
           <thead>

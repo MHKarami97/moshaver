@@ -1,13 +1,12 @@
 import type { ComponentProps } from "react";
-import { Inbox, RefreshCw } from "lucide-react";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
-import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { AdminList } from "../../../shared/ui/admin-list";
+import { Badge } from "../../../shared/ui/ui";
 import type {
   AdvisorInboxRow,
   RecoveryActionInput,
   TaskIssueActionInput,
 } from "../model/notification.types";
-import { NotificationSkeletons } from "./NotificationSkeletons";
 import { AdvisorInboxItem } from "./AdvisorInboxItem";
 
 type StudentPickerProps = ComponentProps<typeof StudentPicker>;
@@ -48,73 +47,46 @@ export function AdvisorInboxPanel({
   ).length;
 
   return (
-    <Card
+    <AdminList
+      label="صندوق پیگیری"
+      description="مشکلات و ریکاوری‌ها از همین صفحه قابل پاسخ و بستن هستند."
+      items={rows}
+      loading={loading}
+      error={error}
+      errorTitle="صندوق پیگیری دریافت نشد."
+      onRetry={onRetry}
       className={[
         mobilePanel === "notifications" ? "hidden lg:flex" : "flex",
-        "min-h-0 flex-col overflow-hidden p-0 dark:border-slate-800 dark:bg-slate-900",
+        "min-h-0 flex-col dark:border-slate-800 dark:bg-slate-900",
       ].join(" ")}
+      contentClassName="min-h-0 flex-1 overflow-hidden"
+      emptyTitle="مورد فعالی برای این دانش‌آموز وجود ندارد."
+      actions={
+        <div className="flex items-center gap-1.5">
+          {actionableCount ? (
+            <Badge tone="red">{actionableCount.toLocaleString("fa-IR")} عملیاتی</Badge>
+          ) : null}
+          <Badge tone={rows.length ? "amber" : "green"}>
+            {rows.length.toLocaleString("fa-IR")}
+          </Badge>
+        </div>
+      }
+      toolbar={<StudentPicker students={students} value={studentId} onChange={onStudentChange} />}
     >
-      <header className="shrink-0 border-b border-slate-100 p-3 dark:border-slate-800">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <Inbox size={17} className="text-brand" />
-              <h3 className="font-bold text-slate-900 dark:text-white">صندوق پیگیری</h3>
-            </div>
-            <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-              مشکلات و ریکاوری‌ها از همین صفحه قابل پاسخ و بستن هستند.
-            </p>
-          </div>
-          <div className="flex gap-1.5">
-            {actionableCount ? (
-              <Badge tone="red">{actionableCount.toLocaleString("fa-IR")} عملیاتی</Badge>
-            ) : null}
-            <Badge tone={rows.length ? "amber" : "green"}>
-              {rows.length.toLocaleString("fa-IR")}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="mt-3">
-          <StudentPicker students={students} value={studentId} onChange={onStudentChange} />
-        </div>
-      </header>
-
-      {loading ? (
-        <div className="p-3">
-          <NotificationSkeletons />
-        </div>
-      ) : error ? (
-        <div className="p-3">
-          <EmptyState
-            title="صندوق پیگیری دریافت نشد."
-            action={
-              <Button variant="soft" onClick={onRetry}>
-                <RefreshCw size={15} /> تلاش دوباره
-              </Button>
-            }
+      <div className="grid h-full min-h-0 gap-2 overflow-y-auto overscroll-contain">
+        {rows.map((row) => (
+          <AdvisorInboxItem
+            key={row.key}
+            row={row}
+            recoveryPendingId={recoveryPendingId}
+            issuePendingId={issuePendingId}
+            onRecovery={onRecovery}
+            onIssue={onIssue}
+            canManageRecovery={canManageRecovery}
+            canManageIssues={canManageIssues}
           />
-        </div>
-      ) : rows.length ? (
-        <div className="grid min-h-0 gap-2 overflow-y-auto overscroll-contain p-3">
-          {rows.map((row) => (
-            <AdvisorInboxItem
-              key={row.key}
-              row={row}
-              recoveryPendingId={recoveryPendingId}
-              issuePendingId={issuePendingId}
-              onRecovery={onRecovery}
-              onIssue={onIssue}
-              canManageRecovery={canManageRecovery}
-              canManageIssues={canManageIssues}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="p-3">
-          <EmptyState title="مورد فعالی برای این دانش‌آموز وجود ندارد." />
-        </div>
-      )}
-    </Card>
+        ))}
+      </div>
+    </AdminList>
   );
 }

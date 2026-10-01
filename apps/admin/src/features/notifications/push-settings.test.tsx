@@ -1,7 +1,11 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NotificationSettings } from "./components/NotificationSettings";
+import {
+  NotificationSettings,
+  pushDateTime,
+  pushDeviceLabel,
+} from "./components/NotificationSettings";
 import type { PushStatus } from "./model/notification-model";
 import type { NotificationContextValue } from "./model/notification.types";
 
@@ -39,6 +43,16 @@ function controller(status: PushStatus): NotificationContextValue {
 }
 
 describe("Web Push settings", () => {
+  it("normalizes browser/device labels without exposing subscription endpoints", () => {
+    expect(pushDeviceLabel("Mozilla/5.0 (Windows NT 10.0) Chrome/124.0.0.0")).toBe(
+      "Chrome · Windows",
+    );
+    expect(pushDeviceLabel("Mozilla/5.0 (iPhone) Version/17.0 Mobile Safari/604.1")).toBe(
+      "Safari · iOS",
+    );
+    expect(pushDateTime(null)).toBe("—");
+  });
+
   it.each([
     [
       {

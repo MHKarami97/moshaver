@@ -1,12 +1,12 @@
-import { MessageCircle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { Conversation } from "../../../../shared/types/domain";
-import { Badge, Button, Card, EmptyState } from "../../../../shared/ui/ui";
+import { AdminList } from "../../../../shared/ui/admin-list";
+import { Badge, Button } from "../../../../shared/ui/ui";
 import { CreateGroupButton } from "../group/GroupChatControls";
 import type { ConversationFilter, ConversationSort } from "../../model/chat.types";
 import { toFa } from "../../lib/chat-formatters";
 import { ConversationList } from "./ConversationList";
 import { ConversationSearch } from "./ConversationSearch";
-import { ConversationSkeleton } from "./ConversationSkeleton";
 import { ConversationToolbar } from "./ConversationToolbar";
 import { CreateDirectButton } from "./CreateDirectButton";
 
@@ -60,70 +60,62 @@ export function ConversationSidebar({
   onGroupCreated: (id: string) => void;
 }) {
   return (
-    <Card
+    <AdminList
+      label="گفتگوها"
+      description="جستجو، فیلتر و ادامه گفتگوهای کاری در یک فهرست یکپارچه."
+      items={items}
+      loading={loading}
+      error={error}
+      errorTitle="دریافت گفتگوها ناموفق بود."
+      onRetry={onRetry}
       className={`${visible ? "flex" : "hidden lg:flex"} min-h-0 flex-col overflow-hidden border-slate-200/90 p-0 shadow-[0_12px_35px_rgba(31,49,46,0.06)]`}
-    >
-      <div className="border-b border-slate-200/80 bg-white/90 p-3 dark:bg-slate-950/90">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="grid size-8 place-items-center rounded-lg bg-brand/10 text-brand">
-            <MessageCircle size={17} />
-          </span>
-          <strong>گفتگوها</strong>
+      contentClassName="min-h-0 flex-1 overflow-auto p-0"
+      emptyTitle={
+        search || filter !== "all" ? "گفتگویی مطابق جستجو و فیلتر نیست." : "گفتگویی وجود ندارد."
+      }
+      actions={
+        <>
           <Badge>{toFa(total)}</Badge>
           {unread ? <Badge tone="red">{toFa(unread)} خوانده‌نشده</Badge> : null}
-          <span className="mr-auto">
-            <span className="flex flex-wrap gap-1">
-              <CreateDirectButton onCreated={onGroupCreated} />
-              <CreateGroupButton onCreated={onGroupCreated} />
-            </span>
-          </span>
+          <CreateDirectButton onCreated={onGroupCreated} />
+          <CreateGroupButton onCreated={onGroupCreated} />
           {fetching && !fetchingMore ? (
-            <RefreshCw className="animate-spin text-slate-400" size={15} />
+            <RefreshCw
+              className="animate-spin text-slate-400"
+              size={15}
+              aria-label="در حال تازه‌سازی"
+            />
           ) : null}
+        </>
+      }
+      toolbar={
+        <div className="grid gap-2">
+          <ConversationSearch
+            search={search}
+            filter={filter}
+            onSearch={onSearch}
+            onFilter={onFilter}
+          />
+          <ConversationToolbar sort={sort} onSort={onSort} />
         </div>
-        <ConversationSearch
-          search={search}
-          filter={filter}
-          onSearch={onSearch}
-          onFilter={onFilter}
-        />
-        <ConversationToolbar sort={sort} onSort={onSort} />
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        {loading ? (
-          <ConversationSkeleton />
-        ) : error ? (
-          <EmptyState
-            title="دریافت گفتگوها ناموفق بود."
-            action={
-              <Button variant="soft" onClick={onRetry}>
-                تلاش دوباره
-              </Button>
-            }
-          />
-        ) : (
-          <ConversationList
-            items={items}
-            activeId={activeId}
-            favoriteIds={favoriteIds}
-            drafts={drafts}
-            emptyTitle={
-              search || filter !== "all"
-                ? "گفتگویی مطابق جستجو و فیلتر نیست."
-                : "گفتگویی وجود ندارد."
-            }
-            onSelect={onSelect}
-            onToggleFavorite={onToggleFavorite}
-          />
-        )}
-        {hasMore ? (
-          <div className="p-3">
-            <Button className="w-full" variant="soft" loading={fetchingMore} onClick={onMore}>
-              گفتگوهای بیشتر
-            </Button>
-          </div>
-        ) : null}
-      </div>
-    </Card>
+      }
+      footer={
+        hasMore ? (
+          <Button className="w-full" variant="soft" loading={fetchingMore} onClick={onMore}>
+            گفتگوهای بیشتر
+          </Button>
+        ) : undefined
+      }
+    >
+      <ConversationList
+        items={items}
+        activeId={activeId}
+        favoriteIds={favoriteIds}
+        drafts={drafts}
+        emptyTitle=""
+        onSelect={onSelect}
+        onToggleFavorite={onToggleFavorite}
+      />
+    </AdminList>
   );
 }

@@ -12,6 +12,37 @@ type Props = {
   notifications?: NotificationContextValue;
 };
 
+export function pushDeviceLabel(userAgent: string) {
+  const browser = /edg\//i.test(userAgent)
+    ? "Microsoft Edge"
+    : /firefox\//i.test(userAgent)
+      ? "Firefox"
+      : /chrome\//i.test(userAgent) || /crios\//i.test(userAgent)
+        ? "Chrome"
+        : /safari\//i.test(userAgent)
+          ? "Safari"
+          : "مرورگر ناشناس";
+  const platform = /android/i.test(userAgent)
+    ? "Android"
+    : /iphone|ipad|ipod/i.test(userAgent)
+      ? "iOS"
+      : /windows/i.test(userAgent)
+        ? "Windows"
+        : /mac os/i.test(userAgent)
+          ? "macOS"
+          : /linux/i.test(userAgent)
+            ? "Linux"
+            : "دستگاه ناشناس";
+  return `${browser} · ${platform}`;
+}
+
+export function pushDateTime(value: string | null) {
+  if (!value || Number.isNaN(new Date(value).getTime())) return "—";
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "short", timeStyle: "short" }).format(
+    new Date(value),
+  );
+}
+
 /**
  * Passing `notifications` is recommended for content rendered by a global
  * ModalProvider. The modal may live outside NotificationProvider's subtree.
@@ -223,6 +254,38 @@ function NotificationSettingsContent({
           setStatus={setStatus}
         />
       </div>
+      {status?.devices?.length ? (
+        <section className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+          <h3 className="text-sm font-bold">وضعیت تحویل روی مرورگرها و دستگاه‌ها</h3>
+          <div className="mt-2 grid gap-2">
+            {status.devices.map((device) => (
+              <div
+                key={device.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-900"
+              >
+                <span className="min-w-0 truncate" title={device.userAgent}>
+                  {device.current ? "این دستگاه · " : ""}
+                  {pushDeviceLabel(device.userAgent)}
+                </span>
+                <span
+                  className={`text-left ${device.failureCount ? "text-rose-700" : "text-emerald-700"}`}
+                >
+                  <span className="block">
+                    {device.failureCount
+                      ? `${device.failureCount.toLocaleString("fa-IR")} خطای تحویل`
+                      : device.lastSuccessAt
+                        ? `تحویل موفق: ${pushDateTime(device.lastSuccessAt)}`
+                        : "در انتظار نخستین تحویل"}
+                  </span>
+                  <small className="block text-[10px] text-slate-400">
+                    آخرین فعالیت: {pushDateTime(device.updatedAt)}
+                  </small>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

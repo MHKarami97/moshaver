@@ -1,4 +1,5 @@
 export { PlannerPage } from "./pages/PlannerPage";
+export { PlanTemplatesPage } from "./pages/PlanTemplatesPage";
 export {
   filterPlans,
   parseDraggedTask,

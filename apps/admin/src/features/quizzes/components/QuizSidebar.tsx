@@ -1,5 +1,6 @@
 import { CalendarClock, CircleHelp, Plus, RotateCcw, Search } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Input, Select } from "../../../shared/ui/ui";
+import { AdminList } from "../../../shared/ui/admin-list";
+import { Badge, Button, Input, Select } from "../../../shared/ui/ui";
 import type { Quiz } from "../model/quiz.types";
 
 type Props = {
@@ -34,7 +35,32 @@ export function QuizSidebar({
   canCreate,
 }: Props) {
   return (
-    <Card className="grid gap-3 p-3 sm:p-4">
+    <AdminList
+      label="آزمونک‌ها"
+      description="برای ویرایش محتوا یا مخاطبان، یک آزمونک را انتخاب کنید."
+      items={quizzes}
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      emptyTitle={
+        search || status !== "all"
+          ? "آزمونکی با این فیلتر پیدا نشد."
+          : "هنوز آزمونکی ثبت نشده است."
+      }
+      emptyAction={
+        search || status !== "all" ? (
+          <Button variant="ghost" onClick={onClear}>
+            <RotateCcw size={15} />
+            پاک‌کردن فیلترها
+          </Button>
+        ) : canCreate ? (
+          <Button onClick={onNew}>
+            <Plus size={15} />
+            ساخت اولین آزمونک
+          </Button>
+        ) : undefined
+      }
+      toolbar={
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_auto] lg:items-end">
         <div className="relative">
           <Search
@@ -65,29 +91,13 @@ export function QuizSidebar({
           </Button>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-y py-2 text-xs text-slate-500">
+      }
+      actions={
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <Badge tone="blue">{quizzes.length.toLocaleString("fa-IR")} نتیجه</Badge>
-        <span>برای ویرایش محتوا یا مخاطبان، یک آزمونک را انتخاب کنید.</span>
-      </div>
-      {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {[1, 2, 3].map((item) => (
-            <div
-              key={item}
-              className="h-32 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900"
-            />
-          ))}
         </div>
-      ) : error ? (
-        <EmptyState
-          title="دریافت آزمونک‌ها ناموفق بود."
-          action={
-            <Button variant="soft" onClick={onRetry}>
-              تلاش دوباره
-            </Button>
-          }
-        />
-      ) : quizzes.length ? (
+      }
+    >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {quizzes.map((item) => (
             <button
@@ -121,28 +131,6 @@ export function QuizSidebar({
             </button>
           ))}
         </div>
-      ) : (
-        <EmptyState
-          title={
-            search || status !== "all"
-              ? "آزمونکی با این فیلتر پیدا نشد."
-              : "هنوز آزمونکی ثبت نشده است."
-          }
-          action={
-            search || status !== "all" ? (
-              <Button variant="ghost" onClick={onClear}>
-                <RotateCcw size={15} />
-                پاک‌کردن فیلترها
-              </Button>
-            ) : canCreate ? (
-              <Button onClick={onNew}>
-                <Plus size={15} />
-                ساخت اولین آزمونک
-              </Button>
-            ) : undefined
-          }
-        />
-      )}
-    </Card>
+    </AdminList>
   );
 }

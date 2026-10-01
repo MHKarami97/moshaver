@@ -1,5 +1,6 @@
 import { CheckCircle2, Pencil, Search, Trash2 } from "lucide-react";
-import { Badge, Button, Card, EmptyState, Input } from "../../../shared/ui/ui";
+import { AdminList } from "../../../shared/ui/admin-list";
+import { Badge, Button, Input } from "../../../shared/ui/ui";
 import type { QuizQuestion } from "../model/quiz.types";
 
 type Props = {
@@ -25,15 +26,18 @@ export function QuizQuestionsList({
   canManage,
 }: Props) {
   return (
-    <Card className="grid gap-3 p-3 sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-black">سؤال‌های آزمونک</h3>
-          <p className="text-xs text-slate-500">گزینه درست در هر کارت مشخص است.</p>
-        </div>
+    <AdminList
+      label="سؤال‌های آزمونک"
+      description="گزینه درست در هر کارت مشخص است."
+      items={items}
+      loading={loading}
+      error={error}
+      onRetry={onRetry}
+      emptyTitle="سؤالی برای نمایش نیست."
+      actions={
         <Badge tone="blue">{items.length.toLocaleString("fa-IR")} سؤال</Badge>
-      </div>
-      <div className="relative">
+      }
+      toolbar={<div className="relative">
         <Search
           className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
           size={16}
@@ -45,26 +49,8 @@ export function QuizQuestionsList({
           value={search}
           onChange={(event) => onSearch(event.target.value)}
         />
-      </div>
-      {loading ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {[1, 2, 3, 4].map((item) => (
-            <div
-              key={item}
-              className="h-44 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-900"
-            />
-          ))}
-        </div>
-      ) : error ? (
-        <EmptyState
-          title="دریافت سؤال‌ها ناموفق بود."
-          action={
-            <Button variant="soft" onClick={onRetry}>
-              تلاش دوباره
-            </Button>
-          }
-        />
-      ) : items.length ? (
+      </div>}
+    >
         <div className="grid gap-3 lg:grid-cols-2">
           {items.map((item, index) => {
             const options =
@@ -139,9 +125,6 @@ export function QuizQuestionsList({
             );
           })}
         </div>
-      ) : (
-        <EmptyState title="سؤالی برای نمایش نیست." />
-      )}
-    </Card>
+    </AdminList>
   );
 }

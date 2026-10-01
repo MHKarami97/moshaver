@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useStudentSelection } from "../../../shared/hooks/useStudentSelection";
 import { useModal } from "../../../shared/ui/modal";
 import { AdvisorInboxPanel } from "../components/AdvisorInboxPanel";
@@ -10,6 +11,12 @@ import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import { useAdvisorInbox } from "../hooks/useAdvisorInbox";
 import { useFilteredNotifications } from "../hooks/useFilteredNotifications";
 import { useAuth } from "../../auth";
+
+const notificationTypes = ["all", "message", "exam", "lesson", "announcement"] as const;
+
+export function notificationTypeFilter(value: string | null) {
+  return notificationTypes.includes(value as (typeof notificationTypes)[number]) ? value! : "all";
+}
 
 export function notificationAccess(capabilities: readonly string[]) {
   const has = (capability: string) => capabilities.includes(capability);
@@ -28,11 +35,27 @@ export function NotificationsPage() {
   const students = useStudentSelection({ enabled: access.advisorInbox });
   const notifications = useAdminNotifications();
   const modal = useModal();
+  const [params, setParams] = useSearchParams();
 
-  const [filter, setFilter] = useState<"all" | "unread">("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const filter = params.get("filter") === "unread" ? "unread" : "all";
+  const typeFilter = notificationTypeFilter(params.get("type"));
+  const search = params.get("q") || "";
   const [mobilePanel, setMobilePanel] = useState<"notifications" | "inbox">("notifications");
+
+  function setNotificationView(nextView: { filter?: "all" | "unread"; type?: string; q?: string }) {
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (nextView.filter !== undefined)
+          nextView.filter === "all" ? next.delete("filter") : next.set("filter", nextView.filter);
+        if (nextView.type !== undefined)
+          nextView.type === "all" ? next.delete("type") : next.set("type", nextView.type);
+        if (nextView.q !== undefined) nextView.q ? next.set("q", nextView.q) : next.delete("q");
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const advisor = useAdvisorInbox(students.studentId, {
     enabled: access.advisorInbox,
@@ -77,11 +100,17 @@ export function NotificationsPage() {
         <NotificationCenterPanel
           mobilePanel={access.advisorInbox ? mobilePanel : "notifications"}
           filter={filter}
-          setFilter={setFilter}
+          setFilter={(next) =>
+            setNotificationView({ filter: typeof next === "function" ? next(filter) : next })
+          }
           typeFilter={typeFilter}
-          setTypeFilter={setTypeFilter}
+          setTypeFilter={(next) =>
+            setNotificationView({ type: typeof next === "function" ? next(typeFilter) : next })
+          }
           search={search}
-          setSearch={setSearch}
+          setSearch={(next) =>
+            setNotificationView({ q: typeof next === "function" ? next(search) : next })
+          }
           items={items}
         />
 

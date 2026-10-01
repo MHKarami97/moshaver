@@ -198,8 +198,31 @@ export function ExamList({
             ))}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="overflow-x-auto">
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filtered.map((exam) => (
+                <ExamCard
+                  key={exam.id}
+                  exam={exam}
+                  checked={selected.includes(exam.id)}
+                  onCheck={onCheck ? (checked) => onCheck(exam.id, checked) : undefined}
+                  onEdit={onEdit ? () => onEdit(exam) : undefined}
+                  onDelete={onDelete ? () => onDelete(exam) : undefined}
+                  onToggle={onToggle ? () => onToggle(exam) : undefined}
+                  toggleBusy={toggleBusyId === exam.id}
+                  onAddSyllabus={onAddSyllabus ? () => onAddSyllabus(exam) : undefined}
+                  onDeleteSyllabus={onDeleteSyllabus}
+                  studentId={studentId}
+                  showQuestions={showQuestions}
+                  onManageAssignments={
+                    onManageAssignments ? () => onManageAssignments(exam) : undefined
+                  }
+                  onAnalytics={onAnalytics ? () => onAnalytics(exam) : undefined}
+                />
+              ))}
+            </div>
+            <div className="hidden overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 md:block">
+              <div className="overflow-x-auto">
               <div className="min-w-[1060px]">
                 <div className="grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 text-xs font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300">
                   <span aria-hidden="true" />
@@ -372,7 +395,8 @@ export function ExamList({
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </Card>

@@ -86,7 +86,13 @@ export function AdminHeader({
                 {current.description}
               </p>
             </div>
-            <WorkContextBar role={role} organization={organization} multipleRoles={multipleRoles} />
+            <WorkContextBar
+              role={role}
+              organization={organization}
+              multipleRoles={multipleRoles}
+              studentId={selectedStudentId}
+              showStudent={current.section === "آموزش"}
+            />
           </div>
         </div>
 

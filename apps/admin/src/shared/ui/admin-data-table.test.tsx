@@ -74,4 +74,18 @@ describe("AdminDataTable", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("دریافت کاربران ناموفق بود.");
     expect(screen.getByRole("alert")).toHaveTextContent("اتصال شبکه را بررسی کنید.");
   });
+
+  it("offers a feature-owned compact card representation without removing the table semantics", () => {
+    render(
+      <AdminDataTable
+        rows={rows}
+        rowId={(row) => row.id}
+        label="کاربران"
+        columns={[{ id: "name", header: "نام", cell: (row) => row.name }]}
+        mobileCard={(row) => <span>کارت {row.name}</span>}
+      />,
+    );
+    expect(screen.getByLabelText("کاربران، نمای کارت")).toHaveTextContent("کارت کاربر اول");
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
 });

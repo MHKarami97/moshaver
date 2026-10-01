@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarRange, LayoutGrid, List, RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { useLocale } from "../../../shared/ui/locale";
@@ -23,14 +24,39 @@ const presets = [
   { days: 30, label: "۳۰ روز" },
 ] as const;
 
+function validIsoDate(value: string | null) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
 export function ReportsPage() {
   const students = useStudentSelection();
   const locale = useLocale();
-  const [from, setFrom] = useState(addDays(todayIso(), -6));
-  const [to, setTo] = useState(todayIso());
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SortMode>("newest");
-  const [view, setView] = useState<ViewMode>("cards");
+  const [params, setParams] = useSearchParams();
+  const [defaultRange] = useState(() => ({ from: addDays(todayIso(), -6), to: todayIso() }));
+  const from = validIsoDate(params.get("from")) ? params.get("from")! : defaultRange.from;
+  const to = validIsoDate(params.get("to")) ? params.get("to")! : defaultRange.to;
+  const search = params.get("q") || "";
+  const sort: SortMode = params.get("sort") === "oldest" ? "oldest" : "newest";
+  const view: ViewMode = params.get("view") === "compact" ? "compact" : "cards";
+
+  function setReportParams(
+    next: Partial<{ from: string; to: string; q: string; sort: SortMode; view: ViewMode }>,
+  ) {
+    setParams(
+      (current) => {
+        const updated = new URLSearchParams(current);
+        if (next.from !== undefined) updated.set("from", next.from);
+        if (next.to !== undefined) updated.set("to", next.to);
+        if (next.q !== undefined) next.q ? updated.set("q", next.q) : updated.delete("q");
+        if (next.sort !== undefined)
+          next.sort === "newest" ? updated.delete("sort") : updated.set("sort", next.sort);
+        if (next.view !== undefined)
+          next.view === "cards" ? updated.delete("view") : updated.set("view", next.view);
+        return updated;
+      },
+      { replace: true },
+    );
+  }
 
   const reports = useQuery({
     queryKey: ["reports", students.studentId, from, to],
@@ -52,8 +78,7 @@ export function ReportsPage() {
 
   function applyPreset(days: number) {
     const end = todayIso();
-    setTo(end);
-    setFrom(addDays(end, -(days - 1)));
+    setReportParams({ to: end, from: addDays(end, -(days - 1)) });
   }
 
   return (
@@ -76,11 +101,19 @@ export function ReportsPage() {
             </label>
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
               <span>از تاریخ</span>
-              <DatePicker value={from} max={to} onChange={setFrom} />
+              <DatePicker
+                value={from}
+                max={to}
+                onChange={(next) => setReportParams({ from: next })}
+              />
             </label>
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
               <span>تا تاریخ</span>
-              <DatePicker value={to} min={from} onChange={setTo} />
+              <DatePicker
+                value={to}
+                min={from}
+                onChange={(next) => setReportParams({ to: next })}
+              />
             </label>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
@@ -147,7 +180,7 @@ export function ReportsPage() {
                   className="pr-9"
                   placeholder="جستجو در مسئله یا برنامه فردا"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => setReportParams({ q: event.target.value })}
                 />
               </div>
               <label className="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 dark:border-slate-700 px-2 text-xs font-semibold text-slate-600">
@@ -155,7 +188,7 @@ export function ReportsPage() {
                 <select
                   className="h-9 bg-transparent outline-none"
                   value={sort}
-                  onChange={(event) => setSort(event.target.value as SortMode)}
+                  onChange={(event) => setReportParams({ sort: event.target.value as SortMode })}
                 >
                   <option value="newest">جدیدترین</option>
                   <option value="oldest">قدیمی‌ترین</option>
@@ -166,7 +199,7 @@ export function ReportsPage() {
                   type="button"
                   aria-pressed={view === "cards"}
                   title="نمای کارت"
-                  onClick={() => setView("cards")}
+                  onClick={() => setReportParams({ view: "cards" })}
                   className={`grid size-9 place-items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${view === "cards" ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:text-ink"}`}
                 >
                   <LayoutGrid size={16} />
@@ -175,7 +208,7 @@ export function ReportsPage() {
                   type="button"
                   aria-pressed={view === "compact"}
                   title="نمای فشرده"
-                  onClick={() => setView("compact")}
+                  onClick={() => setReportParams({ view: "compact" })}
                   className={`grid size-9 place-items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${view === "compact" ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:text-ink"}`}
                 >
                   <List size={16} />
