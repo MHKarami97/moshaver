@@ -114,6 +114,11 @@ explicit license. Do not publish public npm packages or promise reuse rights
 until that legal decision is made. See the [release policy](../../docs/architecture/cmb-reference-and-release.md)
 for compatibility, migration, and release gates.
 
+When the owner has added the chosen license text to the repository root, stage
+public artifacts with its SPDX identifier. For example, an MIT release uses
+`CMB_LICENSE=MIT npm run cmb:pack`; the generated artifacts then include the
+root `LICENSE` file and declare `MIT` in their package metadata.
+
 ## فارسی
 
 CMB یک لایهٔ backend قابل‌ترکیب و مستقل از فریم‌ورک است که زیر برنامهٔ محصول

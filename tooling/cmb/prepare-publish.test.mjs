@@ -25,10 +25,22 @@ test("CMB release staging replaces local links without changing source manifests
     const auth = JSON.parse(fs.readFileSync(path.join(out, "cmb-auth", "package.json"), "utf8"));
     assert.equal(auth.private, undefined);
     assert.equal(auth.publishConfig.access, "public");
+    assert.equal(auth.license, "UNLICENSED");
     assert.equal(auth.dependencies["@moshaver/cmb-kernel"], "^0.1.0");
     assert.equal(auth.dependencies["@moshaver/cmb-identity"], "^0.1.0");
     assert.ok(fs.existsSync(path.join(out, "cmb-auth", "src", "index.d.ts")));
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }
+});
+
+test("rejects a selected public license when its license file is absent", () => {
+  assert.throws(
+    () => execFileSync(process.execPath, ["tooling/cmb/prepare-publish.mjs", "--check"], {
+      cwd: root,
+      env: { ...process.env, CMB_LICENSE: "MIT", CMB_LICENSE_FILE: "MISSING-LICENSE" },
+      stdio: "pipe",
+    }),
+    /CMB npm preparation failed/,
+  );
 });

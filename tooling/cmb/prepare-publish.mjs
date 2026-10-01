@@ -11,6 +11,8 @@ const root = process.cwd();
 const args = new Set(process.argv.slice(2));
 const pack = args.has("--pack");
 const checkOnly = args.has("--check");
+const configuredLicense = String(process.env.CMB_LICENSE ?? "UNLICENSED").trim();
+const licenseFile = String(process.env.CMB_LICENSE_FILE ?? "LICENSE").trim();
 const outArgument = process.argv.slice(2).find((argument) => argument.startsWith("--out="));
 const out = path.resolve(root, outArgument ? outArgument.slice("--out=".length) : "dist/cmb-npm");
 const workspace = JSON.parse(
@@ -26,6 +28,11 @@ const manifests = new Map(
 
 const requiredFiles = ["package.json", "README.md", "src/index.js", "src/index.d.ts"];
 const errors = [];
+
+if (!configuredLicense) errors.push("CMB_LICENSE must be a non-empty SPDX license identifier or UNLICENSED");
+if (configuredLicense !== "UNLICENSED" && !fs.existsSync(path.join(root, licenseFile))) {
+  errors.push(`CMB_LICENSE=${configuredLicense} requires repository license file ${licenseFile}`);
+}
 
 function releaseManifest(project) {
   const source = manifests.get(project.packageName);
@@ -43,7 +50,7 @@ function releaseManifest(project) {
     main: "./src/index.js",
     types: "./src/index.d.ts",
     exports: source.exports,
-    files: ["src", "README.md"],
+    files: configuredLicense === "UNLICENSED" ? ["src", "README.md"] : ["src", "README.md", licenseFile],
     keywords: ["cmb", "modular-backend", "backend", "framework-agnostic", project.id.replace(/^cmb-/, "")],
     engines: { node: ">=22.13.0 <23" },
     repository: {
@@ -54,7 +61,7 @@ function releaseManifest(project) {
     bugs: { url: "https://github.com/Mobin-Karam/moshaver/issues" },
     homepage: "https://github.com/Mobin-Karam/moshaver/tree/main/packages/cmb",
     publishConfig: { access: "public" },
-    license: "UNLICENSED",
+    license: configuredLicense,
     sideEffects: false,
     dependencies,
   };
@@ -90,6 +97,9 @@ for (const project of packages) {
   for (const file of ["README.md", "src/index.js", "src/index.d.ts"]) {
     fs.copyFileSync(path.join(source, file), path.join(target, file));
   }
+  if (configuredLicense !== "UNLICENSED") {
+    fs.copyFileSync(path.join(root, licenseFile), path.join(target, licenseFile));
+  }
   fs.writeFileSync(
     path.join(target, "package.json"),
     `${JSON.stringify(releaseManifest(project), null, 2)}\n`,
@@ -98,5 +108,9 @@ for (const project of packages) {
 }
 
 console.log(`Prepared ${packages.length} CMB npm artifacts in ${path.relative(root, out)}.`);
-console.log("Artifacts are marked UNLICENSED until the repository owner chooses and adds a license; this tool never publishes.");
+if (configuredLicense === "UNLICENSED") {
+  console.log("Artifacts are marked UNLICENSED until the repository owner chooses and adds a license; this tool never publishes.");
+} else {
+  console.log(`Artifacts include ${licenseFile} and declare ${configuredLicense}; this tool never publishes.`);
+}
 if (!pack) console.log("Run `npm run cmb:pack` to validate every staged artifact with npm pack --dry-run.");

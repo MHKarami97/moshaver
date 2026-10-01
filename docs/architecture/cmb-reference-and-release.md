@@ -247,6 +247,8 @@ secrets, routes, roles, or product policy; those remain application-owned.
    manifests and tarball file lists under `dist/cmb-npm/`.
 7. Choose and add an explicit repository license before a public release. The
    staging artifacts intentionally use `UNLICENSED` until that decision exists.
+   Set `CMB_LICENSE` to the selected SPDX identifier (for example `MIT`) when
+   staging. The tool requires and packages the repository `LICENSE` file.
 8. Publish with a separately reviewed release change and registry credentials;
    this repository never stores or asks for npm tokens.
 
