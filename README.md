@@ -5,13 +5,19 @@
 <h1 align="center">Moshaver v2</h1>
 
 <p align="center">
-  <strong>Plan. Learn. Communicate. Measure.</strong><br />
-  A role-aware education and student-support platform for schools, counseling teams, students, and families.
+  <strong>One connected workspace around every student.</strong><br />
+  Plan learning, follow progress, run assessments, communicate, and act on what needs attention.
 </p>
 
 <p align="center">
   <a href="README.md"><strong>English</strong></a> · <a href="README.fa.md">فارسی</a> ·
   <a href="SHOWCASE.md">Showcase</a> · <a href="docs/README.md">Documentation</a>
+</p>
+
+<p align="center">
+  <a href="#quick-start"><strong>▶ Run Moshaver</strong></a> ·
+  <a href="SHOWCASE.md"><strong>See the product</strong></a> ·
+  <a href="CONTRIBUTING.md"><strong>Contribute</strong></a>
 </p>
 
 <p align="center">
