@@ -4,8 +4,14 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const backendTargets = {
-  local: process.env.MOSHAVER_LOCAL_API_ORIGIN || "http://localhost:4000",
-  remote: "https://api.mahakaram.ir",
+  local:
+    process.env.MOSHAVER_LOCAL_API_ORIGIN ||
+    process.env.VITE_LOCAL_API_ORIGIN ||
+    "http://localhost:4000",
+  remote:
+    process.env.MOSHAVER_REMOTE_API_ORIGIN ||
+    process.env.VITE_REMOTE_API_ORIGIN ||
+    "https://api.mahakaram.ir",
 } as const;
 
 function selectedBackend(cookieHeader = "") {
