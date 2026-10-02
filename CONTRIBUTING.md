@@ -37,7 +37,9 @@ Use focused, coherent commits. Do not mix generated Graphify output with product
 
 ### Security and licensing
 
-Do not file public issues for suspected vulnerabilities. Follow [SECURITY.md](SECURITY.md). This repository has no standalone `LICENSE` file today; do not assume an open-source reuse license or introduce one without maintainer approval.
+Do not file public issues for suspected vulnerabilities. Follow [SECURITY.md](SECURITY.md).
+
+Moshaver is distributed under the [MIT License](LICENSE). Contributions to this repository are made under the repository's license unless another agreement explicitly applies.
 
 ## فارسی
 
@@ -48,7 +50,7 @@ Do not file public issues for suspected vulnerabilities. Follow [SECURITY.md](SE
 1. [AGENTS.md](AGENTS.md)، [ARCHITECTURE.md](ARCHITECTURE.md) و [راهنمای توسعه‌دهنده](docs/operations/developer-handbook.md) را بخوانید.
 2. پیش از تغییر رفتار، branch فعال، تست‌های نزدیک، قراردادهای عمومی و تاریخچه migration را بررسی کنید.
 3. `workspaces` در ریشه یا lockfile ریشه اضافه نکنید؛ lockfileهای سطح پروژه و [`tooling/workspace/projects.json`](tooling/workspace/projects.json) مرجع هستند.
-4. secret، فایل `.env`، داده تولید، کلید خصوصی و token را در commit یا issue قرار ندهید.
+4. secret، فایل `.env`، داده production، کلید خصوصی و token را در commit یا issue قرار ندهید.
 
 ### جریان توسعه
 
@@ -74,4 +76,6 @@ Commitها را کوچک و هم‌دامنه نگه دارید. خروجی تو
 
 ### امنیت و مجوز
 
-آسیب‌پذیری مشکوک را در issue عمومی ثبت نکنید؛ [SECURITY.md](SECURITY.md) را دنبال کنید. مخزن فعلاً فایل `LICENSE` مستقل ندارد؛ استفاده مجدد متن‌باز یا افزودن مجوز تازه بدون تأیید نگه‌دارنده مجاز فرض نمی‌شود.
+آسیب‌پذیری مشکوک را در issue عمومی ثبت نکنید؛ [SECURITY.md](SECURITY.md) را دنبال کنید.
+
+مشاور تحت [MIT License](LICENSE) منتشر شده است. مشارکت‌ها نیز تحت مجوز همین مخزن انجام می‌شوند، مگر اینکه توافق دیگری صراحتاً اعمال شود.
