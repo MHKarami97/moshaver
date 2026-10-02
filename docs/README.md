@@ -1,37 +1,34 @@
 # Moshaver Education Platform documentation
 
-This directory is the navigation hub for the active Moshaver v2 monorepo. Documentation is grouped by intent so a person or an agent can distinguish current architecture from migration plans and historical evidence. The complete v1.4 tree is preserved on `archive/v1.4`.
+This directory is the navigation hub for the active Moshaver v2 monorepo. Documentation is grouped by intent so contributors can distinguish current architecture, product behavior, operations, migration plans, and historical evidence.
 
-Last repository inspection: 2026-09-28.
+Last repository documentation refresh: **2026-10-02**.
 
-## Read first
+## Start here
 
-1. [Repository architecture](./architecture/repository-architecture.md) — monorepo model, project classes, ownership and architecture rules.
-2. [Workspace foundation](./architecture/workspace-foundation.md) — repository task graph, install authority, build order, and root commands.
-3. [Phase-1 architecture inventory](./architecture/inventory/README.md) — current backend module classification, dependency map, and package consumers.
-4. [System map](./architecture/system-map.md) — applications, APIs, data stores, runtime relationships, and version boundaries.
-5. [Repository runbook](./operations/repository-runbook.md) — local commands, validation, deployment entry points, and known script caveats.
-6. Choose the relevant v2 runtime:
-   - [backend v2 design](./architecture/backend-v2-design.md)
-   - [student v2/Tauri runtime](./architecture/student-v2-tauri-runtime.md)
-7. To change the project safely, read the [developer handbook](./operations/developer-handbook.md).
-8. For current source-backed risks, UX priorities, documentation disposition, and
-   future product work, read the [platform audit — 2026-09-28](./history/audits/platform-audit-2026-09-28.md).
+- **New to the product?** Read the [Product Showcase](../SHOWCASE.md).
+- **New to the repository?** Read [Repository architecture](./architecture/repository-architecture.md).
+- **Running it locally?** Use the [Repository runbook](./operations/repository-runbook.md).
+- **Changing code?** Use the [Developer handbook](./operations/developer-handbook.md).
+- **Looking for API behavior?** Read [Backend v2 HTTP API](./components/backend-v2-http-api.md).
+- **Reviewing Admin coverage?** Use the [Admin v2 capability matrix](./ADMIN_V2_CAPABILITY_MATRIX.md).
 
-## Directory contract
+The complete historical v1.4 tree is preserved on `archive/v1.4`.
+
+## Documentation map
 
 ```text
 docs/
-├── architecture/  Current system shape, target repository model, inventories, ADRs and stable boundaries
-├── components/    One document per runnable app or public API
-├── operations/    Run, validate, secure, recover, and deploy the system
+├── architecture/  Current system shape, boundaries, inventories and ADRs
+├── components/    Runnable apps and public API documentation
+├── operations/    Run, validate, secure, recover and deploy the system
 ├── migrations/    Compatibility gaps and staged v1-to-v2 work
-├── product/       Product direction, UX principles, and shared assets
-├── releases/      User-facing changelog, release notes, and screenshots
-└── history/       Dated audits, old fixes, and evidence snapshots
+├── product/       Product direction, UX principles and shared assets
+├── releases/      Changelog, release notes and evidence
+└── history/       Dated audits, fixes and evidence snapshots
 ```
 
-Current behavior belongs in `architecture/`, `components/`, or `operations/`. Unfinished work belongs in `migrations/`. Time-bound evidence belongs in `history/`; do not treat it as current without checking the source.
+Current behavior belongs in `architecture/`, `components/`, or `operations/`. Unfinished migration work belongs in `migrations/`. Time-bound evidence belongs in `history/` and should not be treated as current behavior without checking source and tests.
 
 ## Architecture
 
@@ -61,17 +58,17 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 - [Admin v2 application](./components/admin-v2-application.md)
 - [Student v2 application](./components/student-v2-application.md)
 - [Admin v2 Communication workspace](./components/admin-v2-communication-workspace.md)
-- [Admin v2 capability matrix](./ADMIN_V2_CAPABILITY_MATRIX.md) — current backend, frontend, permission, test, and status mapping.
-- [Student and Family exam experience audit](./migrations/STUDENT_FAMILY_EXAM_AUDIT.md) — current learner/family baseline, integrity gaps, and phased delivery matrix.
+- [Admin v2 capability matrix](./ADMIN_V2_CAPABILITY_MATRIX.md)
+- [Student and Family exam experience audit](./migrations/STUDENT_FAMILY_EXAM_AUDIT.md)
 
 ## Operations
 
 - [Repository runbook](./operations/repository-runbook.md)
 - [Release evidence checklist](./operations/release-evidence.md)
-- [Developer handbook](./operations/developer-handbook.md) — onboarding, conventions, and definition of done.
-- [Feature and bug playbook](./operations/feature-and-bug-playbook.md) — secure vertical implementation and diagnosis.
-- [Maintenance guide](./operations/maintenance-guide.md) — recurring care, incidents, dependencies, data, and rollback.
-- [Documentation maintenance](./operations/documentation-maintenance.md) — ownership, update triggers, and review rules.
+- [Developer handbook](./operations/developer-handbook.md)
+- [Feature and bug playbook](./operations/feature-and-bug-playbook.md)
+- [Maintenance guide](./operations/maintenance-guide.md)
+- [Documentation maintenance](./operations/documentation-maintenance.md)
 - [Plan import schema version 2](./operations/plan-import-schema-v2.md)
 - [Admin v2 Web Push verification](./operations/admin-v2-web-push-verification.md)
 - [Backend v2 product demo seed](./operations/backend-v2-product-demo-seed.md)
@@ -92,10 +89,11 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 
 ## Product and releases
 
+- [Product showcase](../SHOWCASE.md)
 - [Interface design principles](./product/interface-design-principles.md)
-- [Education planning improvement](./product/education-planning-improvement.md) — multi-student planning, range sharing, UX acceptance, and gap roadmap.
-- [Education Platform control-surface audit](./product/education-platform-control-audit.md) — verified Student/API coverage and the remaining Admin-control roadmap.
-- [Education workspace audit](./product/education-workspace-audit.md) — composition boundary, controls, UX decisions, and follow-ups.
+- [Education planning improvement](./product/education-planning-improvement.md)
+- [Education Platform control-surface audit](./product/education-platform-control-audit.md)
+- [Education workspace audit](./product/education-workspace-audit.md)
 - [Version roadmap](./product/version-roadmap.md)
 - [Application icon catalog](./product/application-icon-catalog.md)
 - [Product changelog](./releases/product-changelog.md)
@@ -113,8 +111,8 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 
 ## Maintenance rules
 
-- Use descriptive kebab-case filenames that include the component and version when version-specific.
+- Use descriptive kebab-case filenames that include the component/version when version-specific.
 - Put verification dates inside snapshot documents and move stale snapshots to `history/`.
-- Update this index and all inbound links when moving a document.
-- Never duplicate an operations guide; keep one canonical document and link to it.
+- Update this index and inbound links when moving a document.
+- Keep one canonical operations guide and link to it rather than duplicating instructions.
 - Never place credentials, tokens, production database contents, or private `.env` values in documentation.
