@@ -15,6 +15,7 @@ import { useLearningPageState } from "../hooks/useLearningPageState";
 import type { LearningItem } from "../model/learning-model";
 import { notifications, notify } from "../../../shared/ui/notifications";
 import { useAuth } from "../../auth";
+import { learningCopy } from "../learning-locale";
 
 export function LearningPage() {
   const auth = useAuth();
@@ -24,7 +25,8 @@ export function LearningPage() {
 
   const queryClient = useQueryClient();
 
-  const { formatDate, formatDateTime } = useLocale();
+  const { formatDate, formatDateTime, language } = useLocale();
+  const copy = learningCopy(language);
 
   const data = useLearningData({
     studentId: state.studentId,
@@ -36,10 +38,9 @@ export function LearningPage() {
 
   function openEditor(item?: LearningItem) {
     modal.open({
-      title: item ? "ویرایش مورد یادگیری" : "افزودن مرور جدید",
+      title: item ? copy.editItem : copy.addItem,
 
-      description:
-        "این مورد در چرخه مرور دانش‌آموز قرار می‌گیرد و تغییرات فوراً برای او همگام می‌شود.",
+      description: copy.editorDescription,
 
       size: "lg",
 
@@ -61,7 +62,7 @@ export function LearningPage() {
 
   function openHistory(item: LearningItem) {
     modal.open({
-      title: `تاریخچه مرور: ${item.title}`,
+      title: `${copy.historyTitle}: ${item.title}`,
       size: "md",
       content: (
         <ReviewHistory
@@ -75,8 +76,8 @@ export function LearningPage() {
 
   function openReview(item: LearningItem) {
     modal.open({
-      title: `ثبت مرور: ${item.title}`,
-      description: "کیفیت یادآوری را ثبت کنید تا زمان مرور بعدی محاسبه شود.",
+      title: `${copy.reviewTitle}: ${item.title}`,
+      description: copy.reviewDescription,
       size: "sm",
       content: (
         <LearningReviewForm studentId={state.studentId} itemId={item.id} onSaved={modal.close} />
@@ -87,13 +88,13 @@ export function LearningPage() {
   function confirmDelete(item: LearningItem) {
     void modal
       .confirm({
-        title: "حذف مورد یادگیری؟",
+        title: copy.deleteTitle,
 
-        description: `«${item.title}» بعد از پایان زمان بازگشت حذف خواهد شد.`,
+        description: copy.deleteDescription(item.title),
 
         tone: "danger",
 
-        confirmLabel: "شروع حذف",
+        confirmLabel: copy.startDelete,
 
         softConfirm: true,
 
@@ -111,25 +112,25 @@ export function LearningPage() {
         const undoSeconds = 10;
 
         notifications.undoCountdown(
-          `مورد «${item.title}» آماده حذف است`,
+          copy.deletePreparing(item.title),
 
           undoSeconds,
 
           () => {
             cancelled = true;
 
-            notify("حذف مورد یادگیری لغو شد.", "info");
+            notify(copy.deleteCancelled, "info");
           },
 
           {
-            description: "تا پایان شمارش معکوس می‌توانید عملیات را لغو کنید.",
+            description: copy.deleteUndoDescription,
           },
         );
 
         window.setTimeout(() => {
           if (cancelled) return;
 
-          const loadingId = notifications.loading("در حال حذف مورد یادگیری...");
+          const loadingId = notifications.loading(copy.deleting);
 
           mutations.remove.mutate(
             item.id,
@@ -138,8 +139,8 @@ export function LearningPage() {
               onSuccess() {
                 notifications.dismiss(loadingId);
 
-                notifications.success("مورد یادگیری حذف شد.", {
-                  description: `«${item.title}» با موفقیت حذف شد.`,
+                notifications.success(copy.deleted, {
+                  description: copy.deletedDescription(item.title),
                 });
 
                 void queryClient.invalidateQueries({
@@ -151,10 +152,10 @@ export function LearningPage() {
                 notifications.dismiss(loadingId);
 
                 notifications.error(
-                  "حذف مورد یادگیری انجام نشد.",
+                  copy.deleteFailed,
 
                   {
-                    description: error instanceof Error ? error.message : "خطای ناشناخته رخ داد.",
+                    description: error instanceof Error ? error.message : copy.unknownError,
                   },
                 );
               },
@@ -174,13 +175,13 @@ export function LearningPage() {
       />
 
       {!state.studentId ? (
-        <EmptyState title="ابتدا یک دانش‌آموز انتخاب کنید." />
+        <EmptyState title={copy.selectStudent} />
       ) : data.learning.isError ? (
         <EmptyState
-          title="دریافت سیستم یادگیری ناموفق بود."
+          title={copy.loadFailed}
           action={
             <Button variant="soft" onClick={() => void data.learning.refetch()}>
-              تلاش دوباره
+              {copy.retry}
             </Button>
           }
         />

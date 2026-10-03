@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, GraduationCap, Heart, RefreshCw } from "lucide-react";
 import { useAuth } from "../../auth";
+import { useLocale } from "../../../shared/ui/locale";
 import { notify } from "../../../shared/ui/notifications";
 import {
   Badge,
@@ -15,11 +16,14 @@ import {
 } from "../../../shared/ui/ui";
 import { guardianApi } from "../api/guardian.api";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
-
-const fa = (value: number) => value.toLocaleString("fa-IR");
+import { guardianCopy } from "../model/guardian-copy";
 
 export function GuardianPage() {
   const auth = useAuth();
+  const { formatDate, language } = useLocale();
+  const copy = guardianCopy[language];
+  const formatNumber = (value: number) =>
+    value.toLocaleString(language === "fa" ? "fa-IR" : "en-US");
   const queryClient = useQueryClient();
   const [studentId, setStudentId] = useState("");
   const [message, setMessage] = useState("");
@@ -68,10 +72,10 @@ export function GuardianPage() {
     mutationFn: () => guardianApi.encourage(studentId, { message, kind: "SUPPORT" }),
     onSuccess: async () => {
       setMessage("");
-      notify("پیام دلگرم‌کننده برای دانش‌آموز فرستاده شد.", "success");
+      notify(copy.encouragementSent, "success");
       await queryClient.invalidateQueries({ queryKey: ["guardian", studentId] });
     },
-    onError: () => notify("ارسال پیام دلگرم‌کننده انجام نشد.", "error"),
+    onError: () => notify(copy.encouragementFailed, "error"),
   });
   const loading = children.isLoading || (enabled && detailQueries.some((query) => query.isLoading));
   const failed = children.isError || detailQueries.some((query) => query.isError);
@@ -80,37 +84,34 @@ export function GuardianPage() {
   if (children.isLoading)
     return (
       <Card role="status" className="p-8 text-center">
-        در حال دریافت اطلاعات خانواده…
+        {copy.loadingFamily}
       </Card>
     );
   if (children.isError)
     return (
       <ErrorState
-        title="اطلاعات فرزندان دریافت نشد."
+        title={copy.studentsLoadFailed}
         action={
           <Button onClick={() => void children.refetch()}>
-            <RefreshCw size={16} /> تلاش دوباره
+            <RefreshCw size={16} /> {copy.retry}
           </Button>
         }
       />
     );
   if (!children.data?.length)
     return (
-      <EmptyState
-        title="فرزند فعالی به حساب شما متصل نیست."
-        description="مدیر سازمان باید رابطه سرپرستی را فعال کند."
-      />
+      <EmptyState title={copy.noActiveStudent} description={copy.noActiveStudentDescription} />
     );
 
   return (
     <section className="grid gap-4">
       <ManagementPageHeader
-        eyebrow="خانه خانواده"
-        title="پیگیری برنامه و پیشرفت فرزند"
-        description="برنامه، پیشرفت، آزمون‌ها و منابع آموزشی فرزند را در یک نمای عملیاتی دنبال کنید."
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       <Card className="p-3">
-        <Field label="انتخاب فرزند">
+        <Field label={copy.selectStudent}>
           <Select value={studentId} onChange={(event) => setStudentId(event.target.value)}>
             {children.data.map((student) => (
               <option key={student.id} value={student.id}>
@@ -122,32 +123,38 @@ export function GuardianPage() {
       </Card>
       {failed ? (
         <ErrorState
-          title="بخشی از اطلاعات دریافت نشد."
+          title={copy.detailLoadFailed}
           action={
             <Button
               variant="soft"
               onClick={() => void Promise.all(detailQueries.map((query) => query.refetch()))}
             >
-              <RefreshCw size={16} /> دریافت دوباره
+              <RefreshCw size={16} /> {copy.reload}
             </Button>
           }
         />
       ) : null}
       {loading ? (
         <Card role="status" className="p-8 text-center">
-          در حال آماده‌سازی نمای فرزند…
+          {copy.loadingStudentView}
         </Card>
       ) : null}
       {!loading ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label="پیشرفت هفتگی" value={`${fa(weekly?.completionPercent ?? 0)}٪`} />
             <Metric
-              label="فعالیت تکمیل‌شده"
-              value={`${fa(weekly?.completedTasks ?? 0)} از ${fa(weekly?.totalTasks ?? 0)}`}
+              label={copy.weeklyProgress}
+              value={`${formatNumber(weekly?.completionPercent ?? 0)}${copy.percent}`}
             />
-            <Metric label="مطالعه هفتگی" value={`${fa(weekly?.studyMinutes ?? 0)} دقیقه`} />
-            <Metric label="آزمون‌های پیش رو" value={fa(exams.data?.length ?? 0)} />
+            <Metric
+              label={copy.completedActivity}
+              value={`${formatNumber(weekly?.completedTasks ?? 0)} ${copy.of} ${formatNumber(weekly?.totalTasks ?? 0)}`}
+            />
+            <Metric
+              label={copy.weeklyStudy}
+              value={`${formatNumber(weekly?.studyMinutes ?? 0)} ${copy.minute}`}
+            />
+            <Metric label={copy.upcomingExams} value={formatNumber(exams.data?.length ?? 0)} />
           </div>
           {dashboard.data?.attention.map((item) => (
             <Card
@@ -160,12 +167,15 @@ export function GuardianPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             <Card className="p-3">
               <h2 className="flex items-center gap-2 font-bold">
-                <CalendarDays size={18} /> برنامه آینده
+                <CalendarDays size={18} /> {copy.upcomingSchedule}
               </h2>
               <div className="mt-4 grid gap-3">
                 {(schedule.data ?? []).map((plan) => (
-                  <div key={plan.id} className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
-                    <strong>{plan.date}</strong>
+                  <div
+                    key={plan.id}
+                    className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3"
+                  >
+                    <strong>{formatDate(plan.date)}</strong>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {plan.tasks.map((task) => (
                         <Badge key={task.id} tone={task.completed ? "green" : "neutral"}>
@@ -175,34 +185,33 @@ export function GuardianPage() {
                     </div>
                   </div>
                 ))}
-                {!schedule.data?.length ? (
-                  <EmptyState title="برنامه آینده‌ای ثبت نشده است." />
-                ) : null}
+                {!schedule.data?.length ? <EmptyState title={copy.noUpcomingSchedule} /> : null}
               </div>
             </Card>
             <Card className="p-3">
               <h2 className="flex items-center gap-2 font-bold">
-                <GraduationCap size={18} /> آزمون‌ها و گزارش‌ها
+                <GraduationCap size={18} /> {copy.examsAndReports}
               </h2>
               <div className="mt-4 grid gap-2 text-sm">
                 {(exams.data ?? []).slice(0, 5).map((exam) => (
-                  <div key={exam.id} className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
-                    {exam.title ?? "آزمون"}
+                  <div
+                    key={exam.id}
+                    className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3"
+                  >
+                    {exam.title ?? copy.untitledExam}
                   </div>
                 ))}
-                <p className="text-slate-500">
-                  {fa(reports.data?.length ?? 0)} گزارش روزانه در دسترس است.
-                </p>
+                <p className="text-slate-500">{copy.dailyReports(reports.data?.length ?? 0)}</p>
               </div>
             </Card>
           </div>
           <Card className="p-3">
-            <h2 className="font-bold">منابع آموزشی مرتبط</h2>
+            <h2 className="font-bold">{copy.relatedResources}</h2>
             <p className="mt-1 text-xs text-slate-500">
               {relatedStudents.data?.find((item) => item.student.id === studentId)?.relationship
                 .type === "GUARDIAN_OF"
-                ? "دسترسی از رابطه فعال سرپرستی"
-                : "منابع قابل مشاهده در حساب شما"}
+                ? copy.guardianAccess
+                : copy.accountResources}
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {(resources.data ?? []).map((resource) => (
@@ -217,14 +226,14 @@ export function GuardianPage() {
                 </a>
               ))}
               {!resources.isLoading && !resources.data?.length ? (
-                <EmptyState title="منبع آموزشی تخصیص‌یافته‌ای وجود ندارد." />
+                <EmptyState title={copy.noResources} />
               ) : null}
             </div>
           </Card>
           {auth.can("guardian.encouragement.create") ? (
             <Card className="p-3">
               <h2 className="flex items-center gap-2 font-bold">
-                <Heart size={18} /> پیام دلگرم‌کننده
+                <Heart size={18} /> {copy.encouragement}
               </h2>
               <form
                 className="mt-4 grid gap-3"
@@ -233,7 +242,7 @@ export function GuardianPage() {
                   encouragement.mutate();
                 }}
               >
-                <Field label="متن پیام">
+                <Field label={copy.encouragementMessage}>
                   <Textarea
                     required
                     maxLength={500}
@@ -246,7 +255,7 @@ export function GuardianPage() {
                   loading={encouragement.isPending}
                   disabled={!message.trim()}
                 >
-                  ارسال برای فرزند
+                  {copy.sendToStudent}
                 </Button>
               </form>
             </Card>

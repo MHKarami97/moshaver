@@ -2,24 +2,32 @@ import type { ReactNode } from "react";
 import { Activity, CalendarClock, LogIn, LogOut } from "lucide-react";
 import { formatDateTime, formatDuration } from "../lib/time";
 import type { PlatformSessionStats } from "../model/clock.types";
+import { clockCopy } from "../model/clock-copy";
+import { useLocale } from "../../../shared/ui/locale";
 
 export function SessionStats({ stats }: { stats: PlatformSessionStats }) {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
   return (
     <div className="grid grid-cols-2 gap-2">
       <Stat
         icon={<Activity size={15} />}
-        label="این نشست"
+        label={copy.currentSession}
         value={formatDuration(stats.currentSessionMs)}
       />
       <Stat
         icon={<CalendarClock size={15} />}
-        label="امروز"
+        label={copy.today}
         value={formatDuration(stats.todayMs)}
       />
-      <Stat icon={<LogIn size={15} />} label="شروع نشست" value={formatDateTime(stats.enteredAt)} />
+      <Stat
+        icon={<LogIn size={15} />}
+        label={copy.sessionStart}
+        value={formatDateTime(stats.enteredAt)}
+      />
       <Stat
         icon={<LogOut size={15} />}
-        label="آخرین خروج"
+        label={copy.lastExit}
         value={formatDateTime(stats.lastExitAt)}
       />
     </div>

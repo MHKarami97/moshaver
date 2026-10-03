@@ -3,6 +3,7 @@ import { ArrowDown, ChevronUp, WifiOff } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, EmptyState } from "../../../shared/ui/ui";
 import { useModal } from "../../../shared/ui/modal";
+import { useLocale } from "../../../shared/ui/locale";
 import { notify } from "../../../shared/ui/notifications";
 import { api } from "../../../shared/api/api";
 import type { ChatMessage, Conversation } from "../../../shared/types/domain";
@@ -24,6 +25,7 @@ import { isNearBottom, mergeMessagePages, persistDraft, readDraft } from "../lib
 import { persistConversationScroll, readConversationScroll } from "../lib/chat-ui-storage";
 import { toFa } from "../lib/chat-formatters";
 import type { CombinedConversationPage, MessagePage } from "../model/chat.types";
+import { chatCopy } from "../model/chat-copy";
 import {
   filterAndSortConversations,
   parseConversationFilter,
@@ -32,6 +34,8 @@ import {
 } from "../model/chat-view-state";
 
 export function ChatPage() {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const auth = useAuth();
   const modal = useModal();
   const selection = useChatSelectionParams();
@@ -202,7 +206,7 @@ export function ChatPage() {
         setEditing(
           mergeMessagePages(context.previous).find((item) => item.id === context.editingId) || null,
         );
-      notify(error instanceof Error ? error.message : "ارسال پیام ناموفق بود.", "error");
+      notify(error instanceof Error ? error.message : copy.sendFailed, "error");
     },
   });
   const messageAction = useMessageActions(active?.id);
@@ -313,7 +317,7 @@ export function ChatPage() {
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        const input = document.querySelector<HTMLInputElement>('[aria-label="جستجوی گفتگوها"]');
+        const input = document.querySelector<HTMLInputElement>(`[aria-label="${copy.search}"]`);
         input?.focus();
         return;
       }
@@ -337,7 +341,7 @@ export function ChatPage() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [active?.id, filtered, messageSearch.open, showMessages]);
+  }, [active?.id, copy.search, filtered, messageSearch.open, showMessages]);
 
   useEffect(
     () => () => {
@@ -393,7 +397,7 @@ export function ChatPage() {
   function jumpToMessage(id: string, notifyIfMissing = true) {
     const node = document.getElementById(`message-${id}`);
     if (!node) {
-      if (notifyIfMissing) notify("این پیام هنوز در تاریخچه بارگذاری‌شده نیست.", "info");
+      if (notifyIfMissing) notify(copy.unavailableMessage, "info");
       return;
     }
     node.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -494,7 +498,7 @@ export function ChatPage() {
                 ref={scrollRef}
                 role="log"
                 aria-live="polite"
-                aria-label="پیام‌های گفتگو"
+                aria-label={copy.messages}
                 onScroll={(event) => {
                   const node = event.currentTarget;
 
@@ -562,7 +566,7 @@ export function ChatPage() {
                     >
                       <ChevronUp size={15} />
 
-                      {messages.isFetchingNextPage ? "در حال دریافت تاریخچه" : "پیام‌های قدیمی‌تر"}
+                      {messages.isFetchingNextPage ? copy.loadingHistory : copy.older}
                     </Button>
                   </div>
                 ) : (
@@ -574,7 +578,7 @@ export function ChatPage() {
                 text-slate-400
               "
                   >
-                    ابتدای گفتگو
+                    {copy.beginning}
                   </div>
                 )}
 
@@ -582,11 +586,11 @@ export function ChatPage() {
                   <MessageSkeleton />
                 ) : messages.isError ? (
                   <EmptyState
-                    title="دریافت پیام‌ها ناموفق بود."
+                    title={copy.messagesFailed}
                     action={
                       <Button variant="soft" onClick={() => void messages.refetch()}>
                         <WifiOff size={15} />
-                        تلاش دوباره
+                        {copy.tryAgain}
                       </Button>
                     }
                   />
@@ -616,13 +620,13 @@ export function ChatPage() {
                       if (method === "delete" && !path.includes("/reactions/")) {
                         void modal
                           .confirm({
-                            title: "حذف پیام؟",
+                            title: copy.deleteMessage,
 
-                            description: "متن پیام برای اعضای گفتگو حذف خواهد شد.",
+                            description: copy.deleteDescription,
 
                             tone: "danger",
 
-                            confirmLabel: "حذف پیام",
+                            confirmLabel: copy.delete,
                           })
                           .then((ok) => {
                             if (ok) {
@@ -643,10 +647,7 @@ export function ChatPage() {
                     }}
                   />
                 ) : (
-                  <EmptyState
-                    title="هنوز پیامی ثبت نشده است."
-                    description="برای شروع گفتگو، پیام خود را در کادر پایین بنویسید."
-                  />
+                  <EmptyState title={copy.noMessages} description={copy.startMessage} />
                 )}
 
                 {newMessageCount > 0 || !shouldStickRef.current ? (
@@ -720,7 +721,9 @@ export function ChatPage() {
                   >
                     <ArrowDown size={15} />
 
-                    {newMessageCount ? `${toFa(newMessageCount)} پیام جدید` : "رفتن به آخر گفتگو"}
+                    {newMessageCount
+                      ? `${language === "fa" ? toFa(newMessageCount) : newMessageCount.toLocaleString("en-US")} ${copy.newMessages}`
+                      : copy.goLatest}
                   </button>
                 ) : null}
               </div>
@@ -784,10 +787,7 @@ export function ChatPage() {
               />
             </>
           ) : (
-            <EmptyState
-              title="یک گفتگو را انتخاب کنید."
-              description="از فهرست گفتگوها یک دانش‌آموز یا گروه را باز کنید؛ یا گفتگوی جدید بسازید."
-            />
+            <EmptyState title={copy.selectConversation} description={copy.selectDescription} />
           )}
         </Card>
       </section>

@@ -5,6 +5,8 @@ import { ViewportPopover } from "../../../shared/ui/popover";
 
 import type { TaskFilter } from "../model/planner.types";
 import { filterLabel } from "../lib/planner-model";
+import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy } from "../model/planner-copy";
 
 export function PlannerFilterPopover({
   value,
@@ -13,6 +15,8 @@ export function PlannerFilterPopover({
   value: TaskFilter;
   onChange: (value: TaskFilter) => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <ViewportPopover
       width={240}
@@ -21,7 +25,7 @@ export function PlannerFilterPopover({
       trigger={({ ref, onClick, ...props }) => (
         <Button ref={ref} {...props} className="h-9 px-3" variant="soft" onClick={onClick}>
           <Filter size={15} />
-          فیلتر
+          {copy.filter}
           {value !== "all" ? <Badge tone="blue">۱</Badge> : null}
         </Button>
       )}
@@ -37,7 +41,7 @@ export function PlannerFilterPopover({
             dark:text-slate-400
           "
         >
-          وضعیت برنامه
+          {copy.planStatus}
         </strong>
 
         {(["all", "published", "draft", "incomplete"] as TaskFilter[]).map((item) => (

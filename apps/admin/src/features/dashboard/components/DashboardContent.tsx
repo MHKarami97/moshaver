@@ -9,6 +9,8 @@ import { AttentionInbox } from "./AttentionInbox";
 import { DashboardFollowUpCard } from "./DashboardFollowUpCard";
 import { DashboardMetricCards } from "./DashboardMetricCards";
 import { RecentReportsCard } from "./RecentReportsCard";
+import { useLocale } from "../../../shared/ui/locale";
+import { dashboardCopy } from "../model/dashboard-copy";
 
 export function DashboardContent({
   summary,
@@ -35,13 +37,15 @@ export function DashboardContent({
   onRetrySummary: () => void;
   onRetryAttention: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = dashboardCopy[language];
   return (
     <div className="grid gap-4">
       {summaryLoading ? (
-        <LoadingState label="در حال دریافت نمای کلی مدیریت…" />
+        <LoadingState label={copy.dashboardLoading} />
       ) : summaryError || !summary ? (
         <EmptyState
-          title="اطلاعات داشبورد مدیریت دریافت نشد."
+          title={copy.dashboardFailed}
           action={
             <Button variant="soft" onClick={onRetrySummary}>
               <AlertCircle size={15} /> تلاش دوباره

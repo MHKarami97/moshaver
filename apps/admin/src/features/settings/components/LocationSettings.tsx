@@ -1,6 +1,7 @@
 import { CalendarDays, MapPin } from "lucide-react";
 import { Card, Field, Select } from "../../../shared/ui/ui";
-import { locations, useLocale, type LocationId } from "../../../shared/ui/locale";
+import { locationLabel, locations, useLocale, type LocationId } from "../../../shared/ui/locale";
+import { settingsCopy } from "../settings-locale";
 export function LocationSettings({
   locale,
   onChange,
@@ -8,6 +9,7 @@ export function LocationSettings({
   locale: ReturnType<typeof useLocale>;
   onChange?: (id: LocationId) => void;
 }) {
+  const copy = settingsCopy(locale.language);
   return (
     <Card className="h-full p-5 sm:p-6">
       <div className="mb-4 flex items-start gap-3">
@@ -15,14 +17,12 @@ export function LocationSettings({
           <MapPin size={20} />
         </span>
         <div>
-          <h3 className="font-bold">موقعیت، زمان و تقویم</h3>
-          <p className="text-xs text-slate-500">
-            تمام تاریخ‌ها و ساعت‌های مدیریتی با این انتخاب نمایش داده می‌شوند.
-          </p>
+          <h3 className="font-bold">{copy.locationTitle}</h3>
+          <p className="text-xs text-slate-500">{copy.locationDescription}</p>
         </div>
       </div>
       <div className="grid gap-3">
-        <Field label="موقعیت پیش‌فرض">
+        <Field label={copy.defaultLocation}>
           <Select
             value={locale.profile.id}
             onChange={(event) => {
@@ -33,7 +33,7 @@ export function LocationSettings({
           >
             {locations.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.label}
+                {locationLabel(item, locale.language)}
               </option>
             ))}
           </Select>
@@ -41,14 +41,14 @@ export function LocationSettings({
         <div className="rounded-lg border bg-slate-50 p-3 text-sm">
           <div className="flex items-center gap-2 text-slate-500">
             <CalendarDays size={16} />
-            <span>نمایش فعلی</span>
+            <span>{copy.currentDisplay}</span>
           </div>
           <strong className="mt-2 block">
-            {locale.profile.calendar === "persian" ? "هجری شمسی" : "میلادی"} ·{" "}
-            <span dir="ltr">{locale.profile.timeZone}</span>
+            {locale.profile.calendar === "persian" ? copy.persianCalendar : copy.gregorianCalendar}{" "}
+            · <span dir="ltr">{locale.profile.timeZone}</span>
           </strong>
           <p className="mt-1 text-slate-500">
-            امروز:{" "}
+            {copy.today}:{" "}
             {locale.formatDate(new Date(), {
               weekday: "long",
               year: "numeric",
@@ -57,9 +57,7 @@ export function LocationSettings({
             })}
           </p>
         </div>
-        <p className="text-xs text-slate-500">
-          این تنظیم روی همین مرورگر ذخیره می‌شود و داده خام سرور را تغییر نمی‌دهد.
-        </p>
+        <p className="text-xs text-slate-500">{copy.locationStored}</p>
       </div>
     </Card>
   );

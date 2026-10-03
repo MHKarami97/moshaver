@@ -2,6 +2,8 @@ import { Building2, UsersRound, WandSparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import type { PortalOrganization } from "../../access/api/access.api";
 import { Button, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { onboardingCopy } from "../onboarding-locale";
 import {
   assignmentInputFor,
   canSubmitManualAssignment,
@@ -36,6 +38,8 @@ export function OnboardingQueueItem({
   onChoiceChange: (patch: Partial<ManualAssignmentChoice>) => void;
   onAssign: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = onboardingCopy(language);
   const eligibleAdvisors = eligibleAdvisorsForOrganization(advisors, choice.organizationId);
   const manualReady = canSubmitManualAssignment(choice, directoryUnavailable);
 
@@ -51,10 +55,10 @@ export function OnboardingQueueItem({
             <p className="mt-1 text-sm text-slate-500">{student.username}</p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-                {student.grade || "پایه نامشخص"}
+                {student.grade || copy.unknownGrade}
               </span>
               <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-                {student.major || "رشته نامشخص"}
+                {student.major || copy.unknownMajor}
               </span>
             </div>
           </div>
@@ -64,22 +68,20 @@ export function OnboardingQueueItem({
             <div className="rounded-lg border border-brand/15 bg-brand/5 p-4">
               <div className="flex items-center gap-2 font-semibold">
                 <WandSparkles className="text-brand" size={18} />
-                انتخاب هوشمند آماده است
+                {copy.smartReady}
               </div>
-              <p className="mt-1 text-xs leading-6 text-slate-500">
-                سازمان فعال و مشاور دارای نقش معتبر با کمترین تعداد دانش‌آموز فعال انتخاب می‌شوند.
-              </p>
+              <p className="mt-1 text-xs leading-6 text-slate-500">{copy.smartDescription}</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              <OnboardingField icon={<Building2 />} label="سازمان">
+              <OnboardingField icon={<Building2 />} label={copy.organization}>
                 <select
                   value={choice.organizationId}
                   onChange={(event) =>
                     onChoiceChange({ organizationId: event.target.value, advisorUserId: "" })
                   }
                 >
-                  <option value="">انتخاب سازمان</option>
+                  <option value="">{copy.selectOrganization}</option>
                   {organizations?.map((organization) => (
                     <option key={organization.id} value={organization.id}>
                       {organization.name}
@@ -87,7 +89,7 @@ export function OnboardingQueueItem({
                   ))}
                 </select>
               </OnboardingField>
-              <OnboardingField icon={<UsersRound />} label="مشاور">
+              <OnboardingField icon={<UsersRound />} label={copy.advisor}>
                 <select
                   value={choice.advisorUserId}
                   onChange={(event) => onChoiceChange({ advisorUserId: event.target.value })}
@@ -95,8 +97,8 @@ export function OnboardingQueueItem({
                 >
                   <option value="">
                     {choice.organizationId && !eligibleAdvisors.length
-                      ? "مشاور فعالی موجود نیست"
-                      : "انتخاب مشاور"}
+                      ? copy.noAdvisor
+                      : copy.selectAdvisor}
                   </option>
                   {eligibleAdvisors.map((advisor) => (
                     <option key={advisor.id} value={advisor.id}>
@@ -109,7 +111,7 @@ export function OnboardingQueueItem({
           )}
           {mode === "MANUAL" && directoryUnavailable ? (
             <p className="mt-2 text-xs text-rose-700" role="alert">
-              فهرست سازمان یا مشاور دریافت نشد؛ دوباره تلاش کنید یا از حالت خودکار استفاده کنید.
+              {copy.directoryUnavailable}
             </p>
           ) : null}
           <Button
@@ -118,7 +120,7 @@ export function OnboardingQueueItem({
             disabled={pending || (mode === "MANUAL" && !manualReady)}
             onClick={onAssign}
           >
-            {mode === "AUTO" ? "تخصیص خودکار و فعال‌سازی" : "تأیید انتخاب و فعال‌سازی"}
+            {mode === "AUTO" ? copy.autoAssign : copy.confirmAssign}
           </Button>
         </div>
       </div>

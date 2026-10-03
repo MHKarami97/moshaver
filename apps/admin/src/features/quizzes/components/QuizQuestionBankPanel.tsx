@@ -12,6 +12,7 @@ import {
   type QuestionBankItem,
   updateQuestionBankItem,
 } from "../../questions/api/question-bank.api";
+import { useQuizCopy } from "../model/quiz-locale";
 import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
 import { Badge, Button, Card, EmptyState, Input, LoadingState } from "../../../shared/ui/ui";
@@ -34,6 +35,7 @@ export function QuizQuestionBankPanel({
   selectedQuizId: string;
   canManage: boolean;
 }) {
+  const copy = useQuizCopy();
   const modal = useModal();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -61,16 +63,25 @@ export function QuizQuestionBankPanel({
     onSuccess: () => {
       refresh();
       modal.close();
-      notify("سؤال بانک آزمونک ذخیره شد.");
+      notify(copy.language === "en" ? "Quiz-bank question saved." : "سؤال بانک آزمونک ذخیره شد.");
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره سؤال ناموفق بود.", "error"),
+      notify(
+        error instanceof Error
+          ? error.message
+          : copy.language === "en"
+            ? "Could not save the question."
+            : "ذخیره سؤال ناموفق بود.",
+        "error",
+      ),
   });
   const archive = useMutation({
     mutationFn: archiveQuestionBankItem,
     onSuccess: () => {
       refresh();
-      notify("سؤال بانک آزمونک بایگانی شد.");
+      notify(
+        copy.language === "en" ? "Quiz-bank question archived." : "سؤال بانک آزمونک بایگانی شد.",
+      );
     },
   });
   const importExam = useMutation({
@@ -79,34 +90,50 @@ export function QuizQuestionBankPanel({
       refresh();
       setSelectedExamIds([]);
       notify(
-        `${result.created.toLocaleString("fa-IR")} سؤال به بانک آزمونک کپی شد.${result.skipped ? ` ${result.skipped.toLocaleString("fa-IR")} مورد تکراری بود.` : ""}`,
+        copy.language === "en"
+          ? `${result.created.toLocaleString(copy.numberLocale)} questions copied to the quiz bank.${result.skipped ? ` ${result.skipped.toLocaleString(copy.numberLocale)} duplicates skipped.` : ""}`
+          : `${result.created.toLocaleString(copy.numberLocale)} سؤال به بانک آزمونک کپی شد.${result.skipped ? ` ${result.skipped.toLocaleString(copy.numberLocale)} مورد تکراری بود.` : ""}`,
       );
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "کپی از بانک آزمون ناموفق بود.", "error"),
+      notify(
+        error instanceof Error
+          ? error.message
+          : copy.language === "en"
+            ? "Could not copy from the exam bank."
+            : "کپی از بانک آزمون ناموفق بود.",
+        "error",
+      ),
   });
   const addToQuiz = useMutation({
     mutationFn: ({ itemId, quizId }: { itemId: string; quizId: string }) =>
       addBankItemToQuiz(itemId, quizId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["quiz-questions"] });
-      notify("سؤال به آزمونک افزوده شد.");
+      notify(copy.language === "en" ? "Question added to the quiz." : "سؤال به آزمونک افزوده شد.");
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "افزودن سؤال به آزمونک ناموفق بود.", "error"),
+      notify(
+        error instanceof Error
+          ? error.message
+          : copy.language === "en"
+            ? "Could not add the question to the quiz."
+            : "افزودن سؤال به آزمونک ناموفق بود.",
+        "error",
+      ),
   });
   const rows = useMemo(
     () =>
       (quizBank.data || []).filter((item) =>
         `${item.text} ${item.subject} ${item.topic} ${item.tags.join(" ")}`
-          .toLocaleLowerCase("fa")
-          .includes(query.trim().toLocaleLowerCase("fa")),
+          .toLocaleLowerCase(copy.numberLocale)
+          .includes(query.trim().toLocaleLowerCase(copy.numberLocale)),
       ),
-    [quizBank.data, query],
+    [copy.numberLocale, quizBank.data, query],
   );
   const openEditor = (item?: QuestionBankItem) =>
     modal.open({
-      title: item ? "ویرایش سؤال بانک آزمونک" : "سؤال جدید بانک آزمونک",
+      title: item ? copy.editBankQuestion : copy.newBankQuestion,
       description:
         "این بانک از بانک آزمون جدا است؛ نسخه‌های افزوده‌شده به آزمونک‌ها مستقل می‌مانند.",
       size: "xl",
@@ -120,8 +147,24 @@ export function QuizQuestionBankPanel({
         />
       ),
     });
-  if (quizBank.isLoading) return <LoadingState label="در حال دریافت بانک سؤال آزمونک…" />;
-  if (quizBank.isError) return <EmptyState title="دریافت بانک سؤال آزمونک ناموفق بود." />;
+  if (quizBank.isLoading)
+    return (
+      <LoadingState
+        label={
+          copy.language === "en" ? "Loading quiz question bank…" : "در حال دریافت بانک سؤال آزمونک…"
+        }
+      />
+    );
+  if (quizBank.isError)
+    return (
+      <EmptyState
+        title={
+          copy.language === "en"
+            ? "Could not load the quiz question bank."
+            : "دریافت بانک سؤال آزمونک ناموفق بود."
+        }
+      />
+    );
   return (
     <div className="grid gap-4">
       <DataTransferWorkspace
@@ -142,16 +185,14 @@ export function QuizQuestionBankPanel({
         <Card className="grid gap-3 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="text-sm font-black">بانک سؤال آزمونک</h2>
-              <p className="text-xs text-slate-500">
-                سؤال‌های منبع آزمونک؛ جدا از بانک آزمون و قابل‌استفاده در چند آزمونک.
-              </p>
+              <h2 className="text-sm font-black">{copy.bank}</h2>
+              <p className="text-xs text-slate-500">{copy.bankDescription}</p>
             </div>
-            <Badge tone="blue">{rows.length.toLocaleString("fa-IR")}</Badge>
+            <Badge tone="blue">{rows.length.toLocaleString(copy.numberLocale)}</Badge>
             {canManage ? (
               <Button size="sm" onClick={() => openEditor()}>
                 <Plus size={15} />
-                سؤال جدید
+                {copy.newQuestion}
               </Button>
             ) : null}
           </div>
@@ -160,7 +201,7 @@ export function QuizQuestionBankPanel({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="جست‌وجوی متن، درس، مبحث یا برچسب"
+              placeholder={copy.questionSearch}
             />
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -169,10 +210,15 @@ export function QuizQuestionBankPanel({
                 <div>
                   <strong className="block text-sm">{item.text}</strong>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    <Badge tone="blue">{item.subject || "بدون درس"}</Badge>
-                    <Badge tone="neutral">{item.difficulty || "متوسط"}</Badge>
+                    <Badge tone="blue">{item.subject || copy.noSubject}</Badge>
+                    <Badge tone="neutral">
+                      {item.difficulty
+                        ? copy.difficulty[item.difficulty as keyof typeof copy.difficulty] ||
+                          item.difficulty
+                        : copy.medium}
+                    </Badge>
                     {item.sourceQuestionBankItemId ? (
-                      <Badge tone="neutral">کپی از بانک آزمون</Badge>
+                      <Badge tone="neutral">{copy.copyFromExam}</Badge>
                     ) : null}
                   </div>
                 </div>
@@ -185,13 +231,13 @@ export function QuizQuestionBankPanel({
                       onClick={() => addToQuiz.mutate({ itemId: item.id, quizId: selectedQuizId })}
                     >
                       <Link2 size={14} />
-                      افزودن به آزمونک
+                      {copy.addToQuiz}
                     </Button>
                   ) : null}
                   {canManage ? (
                     <Button size="sm" variant="ghost" onClick={() => openEditor(item)}>
                       <Pencil size={14} />
-                      ویرایش
+                      {copy.edit}
                     </Button>
                   ) : null}
                   {canManage ? (
@@ -212,18 +258,18 @@ export function QuizQuestionBankPanel({
                       }
                     >
                       <Archive size={14} />
-                      بایگانی
+                      {copy.archive}
                     </Button>
                   ) : null}
                 </div>
               </article>
             ))}
           </div>
-          {!rows.length ? <EmptyState title="هنوز سؤال منبعی در بانک آزمونک نیست." /> : null}
+          {!rows.length ? <EmptyState title={copy.noBankQuestion} /> : null}
         </Card>
         <Card className="grid content-start gap-3 p-3">
           <div>
-            <h2 className="text-sm font-black">کپی از بانک آزمون</h2>
+            <h2 className="text-sm font-black">{copy.copyFromExam}</h2>
             <p className="text-xs text-slate-500">
               هر تعداد سؤال را انتخاب کنید؛ کپی‌ها مستقل‌اند و در به‌روزرسانی‌های بعدی تکراری ساخته
               نمی‌شوند.
@@ -250,7 +296,11 @@ export function QuizQuestionBankPanel({
                 <span>
                   <strong className="block text-sm">{item.text}</strong>
                   <small className="text-slate-500">
-                    {item.subject || "بدون درس"} · {item.difficulty || "متوسط"}
+                    {item.subject || copy.noSubject} ·{" "}
+                    {item.difficulty
+                      ? copy.difficulty[item.difficulty as keyof typeof copy.difficulty] ||
+                        item.difficulty
+                      : copy.medium}
                   </small>
                 </span>
               </label>
@@ -267,7 +317,8 @@ export function QuizQuestionBankPanel({
               onClick={() => importExam.mutate(selectedExamIds)}
             >
               <ClipboardCopy size={15} />
-              کپی {selectedExamIds.length.toLocaleString("fa-IR")} سؤال به بانک آزمونک
+              {copy.copyFromExam} {selectedExamIds.length.toLocaleString(copy.numberLocale)}{" "}
+              {copy.questions}
             </Button>
           ) : null}
         </Card>
@@ -289,6 +340,7 @@ function QuizBankEditor({
   onSave: (draft: QuestionBankDraft) => void;
   onCancel: () => void;
 }) {
+  const copy = useQuizCopy();
   const [draft, setDraft] = useState<QuestionBankDraft>({
     organizationId:
       item?.organization?.id || (organizations.length === 1 ? organizations[0].id : ""),
@@ -321,7 +373,7 @@ function QuizBankEditor({
         value={draft.organizationId}
         onChange={(event) => set("organizationId", event.target.value)}
       >
-        <option value="">سازمان را انتخاب کنید</option>
+        <option value="">{copy.chooseOrganization}</option>
         {organizations.map((organization) => (
           <option key={organization.id} value={organization.id}>
             {organization.name}
@@ -332,7 +384,7 @@ function QuizBankEditor({
         className="min-h-24 rounded-lg border p-3 text-sm"
         value={draft.text}
         onChange={(event) => set("text", event.target.value)}
-        placeholder="متن سؤال"
+        placeholder={copy.questionBody}
       />
       <div className="grid gap-2 sm:grid-cols-2">
         {draft.options.map((option, index) => (
@@ -341,7 +393,7 @@ function QuizBankEditor({
               type="radio"
               checked={draft.correctAnswer === option && !!option}
               onChange={() => set("correctAnswer", option)}
-              aria-label={`پاسخ صحیح گزینه ${index + 1}`}
+              aria-label={copy.correctOption(index + 1)}
             />
             <Input
               value={option}
@@ -352,7 +404,7 @@ function QuizBankEditor({
                 set("options", options);
                 if (wasCorrect) set("correctAnswer", event.target.value);
               }}
-              placeholder={`گزینه ${index + 1}`}
+              placeholder={copy.option(index + 1)}
             />
           </label>
         ))}
@@ -361,21 +413,21 @@ function QuizBankEditor({
         <Input
           value={draft.subject}
           onChange={(event) => set("subject", event.target.value)}
-          placeholder="درس"
+          placeholder={copy.subject}
         />
         <Input
           value={draft.topic}
           onChange={(event) => set("topic", event.target.value)}
-          placeholder="مبحث"
+          placeholder={copy.topic}
         />
         <select
           className="h-10 rounded-lg border px-3 text-sm"
           value={draft.difficulty}
           onChange={(event) => set("difficulty", event.target.value)}
         >
-          <option value="easy">آسان</option>
-          <option value="medium">متوسط</option>
-          <option value="hard">سخت</option>
+          <option value="easy">{copy.difficulty.easy}</option>
+          <option value="medium">{copy.difficulty.medium}</option>
+          <option value="hard">{copy.difficulty.hard}</option>
         </select>
       </div>
       <Input
@@ -389,20 +441,20 @@ function QuizBankEditor({
               .filter(Boolean),
           )
         }
-        placeholder="برچسب‌ها، با ویرگول جدا کنید"
+        placeholder={copy.tags}
       />
       <textarea
         className="min-h-16 rounded-lg border p-3 text-sm"
         value={draft.explanation}
         onChange={(event) => set("explanation", event.target.value)}
-        placeholder="توضیح پاسخ (اختیاری)"
+        placeholder={copy.optionalExplanation}
       />
       <div className="flex gap-2">
         <Button loading={saving} disabled={!valid} onClick={() => onSave(draft)}>
-          ذخیره سؤال
+          {copy.saveQuestion}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
       </div>
     </div>

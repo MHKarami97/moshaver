@@ -21,6 +21,7 @@ import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { useLocale } from "../../../shared/ui/locale";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { Badge, Button, Card, EmptyState, Field, Input, Select } from "../../../shared/ui/ui";
 import {
@@ -45,9 +46,12 @@ import type {
   SubjectsMode as Mode,
 } from "../model/subject.types";
 import { TeacherAssignments } from "../components/TeacherAssignments";
+import { subjectCopy } from "../subject-locale";
 
 export function SubjectsPage() {
   const auth = useAuth();
+  const { language, profile } = useLocale();
+  const copy = subjectCopy(language);
   const canReadStudentSubjects = auth.can("studentSubjects.read") && auth.can("students.read");
   const students = useStudentSelection({ enabled: canReadStudentSubjects }),
     qc = useQueryClient(),
@@ -84,47 +88,47 @@ export function SubjectsPage() {
   const create = useMutation({
     mutationFn: createSubject,
     onSuccess: () => {
-      notify("درس جدید ساخته شد.");
+      notify(copy.created);
       void refreshAll();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ساخت درس ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.createFailed, "error"),
   });
   const updateCatalog = useMutation({
-    mutationFn: ({ id, name, category }: { id: string; name: string; category?: string }) => updateSubject(id, { name, category }),
+    mutationFn: ({ id, name, category }: { id: string; name: string; category?: string }) =>
+      updateSubject(id, { name, category }),
     onSuccess: () => {
-      notify("مشخصات درس به‌روز شد.");
+      notify(copy.updated);
       void refreshAll();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ویرایش درس ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.updateFailed, "error"),
   });
   const archiveCatalog = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setSubjectActive(id, active),
     onSuccess: (_, variables) => {
-      notify(variables.active ? "درس دوباره فعال شد." : "درس بایگانی شد.");
+      notify(variables.active ? copy.restored : copy.archived);
       void refreshAll();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "تغییر وضعیت درس ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.statusFailed, "error"),
   });
   const updateStudent = useMutation({
     mutationFn: (setting: StudentSubject) => updateStudentSubject(students.studentId, setting),
     onSuccess: () => {
-      notify("وضعیت آموزشی دانش‌آموز ذخیره شد.");
+      notify(copy.studentSaved);
       void qc.invalidateQueries({
         queryKey: ["student-subjects", students.studentId],
       });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره وضعیت درس ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.studentSaveFailed, "error"),
   });
   const catalogRows = useMemo(
     () =>
-      (subjects.data || []).filter((row) =>
-        (!category || row.category === category) && normalizePersianText(`${row.name} ${row.code} ${row.category}`).includes(
-          normalizePersianText(deferredSearch),
-        ),
+      (subjects.data || []).filter(
+        (row) =>
+          (!category || row.category === category) &&
+          normalizePersianText(`${row.name} ${row.code} ${row.category}`).includes(
+            normalizePersianText(deferredSearch),
+          ),
       ),
     [category, deferredSearch, subjects.data],
   );
@@ -183,10 +187,11 @@ export function SubjectsPage() {
   }
   function openCreate() {
     modal.open({
-      title: "درس جدید",
-      description: "درس برای همه دانش‌آموزان به فهرست آموزشی اضافه می‌شود.",
+      title: copy.createTitle,
+      description: copy.createDescription,
       content: (
         <CatalogForm
+          copy={copy}
           onSubmit={async (value) => {
             await create.mutateAsync(value);
             modal.close();
@@ -197,13 +202,18 @@ export function SubjectsPage() {
   }
   function openCatalogEdit(subject: Subject) {
     modal.open({
-      title: "ویرایش درس",
+      title: copy.editTitle,
       description: subject.code,
       content: (
         <CatalogForm
           initial={subject}
+          copy={copy}
           onSubmit={async (value) => {
-            await updateCatalog.mutateAsync({ id: subject.id, name: value.name, category: value.category });
+            await updateCatalog.mutateAsync({
+              id: subject.id,
+              name: value.name,
+              category: value.category,
+            });
             modal.close();
           }}
         />
@@ -212,35 +222,56 @@ export function SubjectsPage() {
   }
   function openImport() {
     modal.open({
-      title: "ورود گروهی درس‌ها",
-      description: "JSON یا Excel را بارگذاری کنید، خطاها را در پیش‌نمایش بررسی کنید و سپس ثبت کنید.",
-      content: <SubjectImportForm onImported={() => { void refreshAll(); modal.close(); }} />,
+      title: copy.importTitle,
+      description: copy.importDescription,
+      content: (
+        <SubjectImportForm
+          copy={copy}
+          locale={profile.locale}
+          onImported={() => {
+            void refreshAll();
+            modal.close();
+          }}
+        />
+      ),
     });
   }
   async function downloadSubjectData(format: "json" | "xlsx", sample = false) {
     const payload = sample ? await getSubjectImportSample() : await exportSubjects();
     const filename = sample ? "moshaver-subjects-sample" : "moshaver-subjects";
     if (format === "json") {
-      downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `${filename}.json`);
+      downloadBlob(
+        new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+        `${filename}.json`,
+      );
       return;
     }
     const { Workbook } = await import("exceljs");
     const workbook = new Workbook();
-    const sheet = workbook.addWorksheet("Subjects", { views: [{ rightToLeft: true, state: "frozen", ySplit: 1 }] });
+    const sheet = workbook.addWorksheet("Subjects", {
+      views: [{ rightToLeft: profile.direction === "rtl", state: "frozen", ySplit: 1 }],
+    });
     sheet.columns = [
-      { header: "code", key: "code", width: 24 }, { header: "name", key: "name", width: 28 },
-      { header: "category", key: "category", width: 20 }, { header: "organizationId", key: "organizationId", width: 38 },
+      { header: "code", key: "code", width: 24 },
+      { header: "name", key: "name", width: 28 },
+      { header: "category", key: "category", width: 20 },
+      { header: "organizationId", key: "organizationId", width: 38 },
     ];
     payload.subjects.forEach((subject) => sheet.addRow(subject));
     sheet.getRow(1).font = { bold: true };
-    downloadBlob(new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${filename}.xlsx`);
+    downloadBlob(
+      new Blob([await workbook.xlsx.writeBuffer()], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      `${filename}.xlsx`,
+    );
   }
   function openTeacherAssignments(subject: Subject) {
     const organization = auth.context?.activeOrganization;
     if (!organization) return;
     modal.open({
-      title: `دبیران ${subject.name}`,
-      description: `تخصیص دبیر در ${organization.name}`,
+      title: copy.teachersFor(subject.name),
+      description: copy.teacherAssignmentFor(organization.name),
       content: <TeacherAssignments subjectId={subject.id} organizationId={organization.id} />,
     });
   }
@@ -261,7 +292,7 @@ export function SubjectsPage() {
       <Card className="sticky top-14 z-10 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedControl
-            ariaLabel="بخش درس‌ها"
+            ariaLabel={copy.section}
             value={mode}
             onValueChange={(next) => {
               setMode(next);
@@ -269,10 +300,10 @@ export function SubjectsPage() {
             }}
             options={[
               ...(canReadStudentSubjects
-                ? [{ value: "student" as const, label: "وضعیت دانش‌آموز" }]
+                ? [{ value: "student" as const, label: copy.studentMode }]
                 : []),
-              { value: "catalog", label: "فهرست سراسری" },
-              { value: "books", label: "کتاب‌های ۱۴۰۵–۱۴۰۶" },
+              { value: "catalog", label: copy.catalogMode },
+              { value: "books", label: copy.booksMode },
             ]}
           />
           {mode === "student" ? (
@@ -287,11 +318,24 @@ export function SubjectsPage() {
             <div className="flex-1" />
           )}
           {mode === "catalog" && canCreate ? (
-            <div className="flex flex-wrap gap-1"><Button onClick={openCreate}><BookPlus size={16} /> درس جدید</Button><Button variant="soft" onClick={openImport}><Upload size={15} /> ورود</Button><Button variant="ghost" onClick={() => void downloadSubjectData("xlsx")}><FileSpreadsheet size={15} /> Excel</Button><Button variant="ghost" onClick={() => void downloadSubjectData("json", true)}><FileJson size={15} /> نمونه</Button></div>
+            <div className="flex flex-wrap gap-1">
+              <Button onClick={openCreate}>
+                <BookPlus size={16} /> {copy.newSubject}
+              </Button>
+              <Button variant="soft" onClick={openImport}>
+                <Upload size={15} /> {copy.import}
+              </Button>
+              <Button variant="ghost" onClick={() => void downloadSubjectData("xlsx")}>
+                <FileSpreadsheet size={15} /> Excel
+              </Button>
+              <Button variant="ghost" onClick={() => void downloadSubjectData("json", true)}>
+                <FileJson size={15} /> {copy.sample}
+              </Button>
+            </div>
           ) : null}
           {mode === "books" ? (
             <Button variant="soft" onClick={() => void downloadDatasets()}>
-              <Download size={16} /> دریافت JSON اصلی
+              <Download size={16} /> {copy.downloadOfficial}
             </Button>
           ) : null}
         </div>
@@ -302,19 +346,49 @@ export function SubjectsPage() {
               setSearch(value);
               updateUrl({ q: value });
             }}
-            placeholder="جستجوی نام، کلید یا یادداشت درس"
-            onClear={search ? () => { setSearch(""); updateUrl({ q: "" }); } : undefined}
-            resultLabel={<Badge tone="blue">{rows.length.toLocaleString("fa-IR")} نتیجه</Badge>}
-            filters={mode === "catalog" ? <Select className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none" value={category} onChange={(event) => { setCategory(event.target.value); updateUrl({ category: event.target.value }); }}><option value="">همه دسته‌ها</option>{[...new Set((subjects.data || []).map((item) => item.category || "عمومی"))].sort((a, b) => a.localeCompare(b, "fa")).map((item) => <option key={item} value={item}>{item}</option>)}</Select> : undefined}
+            placeholder={copy.search}
+            onClear={
+              search
+                ? () => {
+                    setSearch("");
+                    updateUrl({ q: "" });
+                  }
+                : undefined
+            }
+            resultLabel={<Badge tone="blue">{copy.result(rows.length, profile.locale)}</Badge>}
+            filters={
+              mode === "catalog" ? (
+                <Select
+                  className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
+                  value={category}
+                  onChange={(event) => {
+                    setCategory(event.target.value);
+                    updateUrl({ category: event.target.value });
+                  }}
+                >
+                  <option value="">{copy.allCategories}</option>
+                  {[...new Set((subjects.data || []).map((item) => item.category || copy.general))]
+                    .sort((a, b) => a.localeCompare(b, profile.locale))
+                    .map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                </Select>
+              ) : undefined
+            }
           />
         </div>
       </Card>
       {mode === "student" ? (
         <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Metric label="همه درس‌ها" value={summary.total} />
-          <Metric label="فعال" value={summary.enabled} tone="green" />
-          <Metric label="غیرفعال" value={summary.disabled} tone="red" />
-          <Metric label="میانگین هدف هفتگی" value={`${fa(summary.average)} دقیقه`} />
+          <Metric label={copy.allSubjects} value={summary.total} />
+          <Metric label={copy.active} value={summary.enabled} tone="green" />
+          <Metric label={copy.inactive} value={summary.disabled} tone="red" />
+          <Metric
+            label={copy.weeklyAverage}
+            value={`${summary.average.toLocaleString(profile.locale)} ${copy.minutes}`}
+          />
         </section>
       ) : null}
       <Card>
@@ -322,10 +396,10 @@ export function SubjectsPage() {
           <Skeleton />
         ) : activeQuery.isError ? (
           <EmptyState
-            title="دریافت اطلاعات درس‌ها ناموفق بود."
+            title={copy.loadFailed}
             action={
               <Button variant="soft" onClick={() => void activeQuery.refetch()}>
-                تلاش دوباره
+                {copy.retry}
               </Button>
             }
           />
@@ -336,6 +410,7 @@ export function SubjectsPage() {
                   <CatalogRow
                     key={row.id}
                     subject={row}
+                    copy={copy}
                     onEdit={canUpdate ? () => openCatalogEdit(row) : undefined}
                     onToggleActive={
                       canArchive
@@ -351,11 +426,12 @@ export function SubjectsPage() {
                   />
                 ))
               : mode === "books"
-                ? bookRows.map((row) => <EducationBookRow key={row.id} book={row} />)
+                ? bookRows.map((row) => <EducationBookRow key={row.id} book={row} copy={copy} />)
                 : studentRows.map((row) => (
                     <StudentSubjectEditor
                       key={`${students.studentId}-${row.subject.id}`}
                       initial={row}
+                      copy={copy}
                       onSave={(value) => updateStudent.mutate(value)}
                       saving={
                         updateStudent.isPending &&
@@ -366,14 +442,16 @@ export function SubjectsPage() {
                   ))}
           </div>
         ) : (
-          <EmptyState title={search ? "درسی با این جستجو پیدا نشد." : "درسی ثبت نشده است."} />
+          <EmptyState title={search ? copy.noSearchResults : copy.noSubjects} />
         )}
       </Card>
     </div>
   );
 }
 
-function EducationBookRow({ book }: { book: EducationBook }) {
+type SubjectCopy = ReturnType<typeof subjectCopy>;
+
+function EducationBookRow({ book, copy }: { book: EducationBook; copy: SubjectCopy }) {
   return (
     <article className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)]">
       <span className="grid size-9 place-items-center rounded-md bg-amber-50 text-amber-700">
@@ -385,7 +463,7 @@ function EducationBookRow({ book }: { book: EducationBook }) {
           {book.category} · {book.level} · {book.track}
         </p>
       </div>
-      <Badge tone="blue">پایه {fa(book.grade)}</Badge>
+      <Badge tone="blue">{copy.grade(book.grade)}</Badge>
       {book.textbookCode ? <Badge tone="neutral">{book.textbookCode}</Badge> : null}
     </article>
   );
@@ -397,12 +475,14 @@ function CatalogRow({
   onTeachers,
   onToggleActive,
   toggling,
+  copy,
 }: {
   subject: Subject;
   onEdit?: () => void;
   onTeachers?: () => void;
   onToggleActive?: () => void;
   toggling: boolean;
+  copy: SubjectCopy;
 }) {
   return (
     <article className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
@@ -416,24 +496,24 @@ function CatalogRow({
         </p>
       </div>
       <Badge tone={subject.active ? "green" : "neutral"}>
-        {subject.active ? "فعال" : "بایگانی‌شده"}
+        {subject.active ? copy.active : copy.archivedLabel}
       </Badge>
-      <Badge tone="blue">{subject.category || "عمومی"}</Badge>
+      <Badge tone="blue">{subject.category || copy.general}</Badge>
       {onEdit ? (
         <Button variant="soft" onClick={onEdit}>
-          <Edit3 size={15} /> ویرایش
+          <Edit3 size={15} /> {copy.edit}
         </Button>
       ) : null}
       {onTeachers ? (
         <Button variant="soft" onClick={onTeachers}>
           <Users size={15} />
-          دبیران
+          {copy.teachers}
         </Button>
       ) : null}
       {onToggleActive ? (
         <Button variant="ghost" loading={toggling} onClick={onToggleActive}>
           {subject.active ? <Archive size={15} /> : <ArchiveRestore size={15} />}
-          {subject.active ? "بایگانی" : "فعال‌سازی"}
+          {subject.active ? copy.archive : copy.activate}
         </Button>
       ) : null}
     </article>
@@ -444,11 +524,13 @@ function StudentSubjectEditor({
   onSave,
   saving,
   editable,
+  copy,
 }: {
   initial: StudentSubject;
   onSave: (subject: StudentSubject) => void;
   saving: boolean;
   editable: boolean;
+  copy: SubjectCopy;
 }) {
   const [setting, setSetting] = useState(initial);
   useEffect(() => setSetting(initial), [initial]);
@@ -461,7 +543,7 @@ function StudentSubjectEditor({
           {setting.subject.code}
         </p>
       </div>
-      <Field label="نمایش برای دانش‌آموز">
+      <Field label={copy.visibleToStudent}>
         <Select
           disabled={!editable}
           value={setting.enabled ? "enabled" : "disabled"}
@@ -469,11 +551,11 @@ function StudentSubjectEditor({
             setSetting({ ...setting, enabled: event.target.value === "enabled" })
           }
         >
-          <option value="enabled">فعال</option>
-          <option value="disabled">غیرفعال</option>
+          <option value="enabled">{copy.active}</option>
+          <option value="disabled">{copy.inactive}</option>
         </Select>
       </Field>
-      <Field label="نام نمایشی">
+      <Field label={copy.displayName}>
         <Input
           disabled={!editable}
           maxLength={120}
@@ -482,7 +564,7 @@ function StudentSubjectEditor({
           placeholder={setting.subject.name}
         />
       </Field>
-      <Field label="هدف هفتگی (دقیقه)">
+      <Field label={copy.weeklyTarget}>
         <Input
           disabled={!editable}
           type="number"
@@ -500,7 +582,7 @@ function StudentSubjectEditor({
           disabled={!dirty || saving}
           onClick={() => onSave(setting)}
         >
-          <Save size={15} /> ذخیره
+          <Save size={15} /> {copy.save}
         </Button>
       ) : null}
     </article>
@@ -509,14 +591,16 @@ function StudentSubjectEditor({
 function CatalogForm({
   initial,
   onSubmit,
+  copy,
 }: {
   initial?: Subject;
   onSubmit: (value: SubjectDraft) => Promise<void>;
+  copy: SubjectCopy;
 }) {
   const [value, setValue] = useState({
       name: initial?.name || "",
       code: initial?.code || "",
-      category: initial?.category || "عمومی",
+      category: initial?.category || copy.general,
     }),
     [busy, setBusy] = useState(false);
   return (
@@ -528,7 +612,7 @@ function CatalogForm({
         void onSubmit(value).finally(() => setBusy(false));
       }}
     >
-      <Field label="نام درس">
+      <Field label={copy.subjectName}>
         <Input
           autoFocus
           maxLength={150}
@@ -536,7 +620,7 @@ function CatalogForm({
           onChange={(event) => setValue({ ...value, name: event.target.value })}
         />
       </Field>
-      <Field label="کلید یکتا">
+      <Field label={copy.uniqueKey}>
         <Input
           dir="ltr"
           maxLength={80}
@@ -551,18 +635,21 @@ function CatalogForm({
           placeholder="mathematics"
         />
       </Field>
-      <Field label="دسته‌بندی"><Input maxLength={80} value={value.category} onChange={(event) => setValue({ ...value, category: event.target.value })} placeholder="مثلاً علوم پایه" /></Field>
-      {initial ? (
-        <p className="text-xs text-slate-500">
-          برای حفظ ارتباط داده‌ها، کلید یکتا پس از ساخت تغییر نمی‌کند.
-        </p>
-      ) : null}
+      <Field label={copy.category}>
+        <Input
+          maxLength={80}
+          value={value.category}
+          onChange={(event) => setValue({ ...value, category: event.target.value })}
+          placeholder={copy.categoryExample}
+        />
+      </Field>
+      {initial ? <p className="text-xs text-slate-500">{copy.keyImmutable}</p> : null}
       <Button
         type="submit"
         loading={busy}
         disabled={busy || value.name.trim().length < 2 || !value.code.trim()}
       >
-        {initial ? "ذخیره تغییرات" : "ساخت درس"}
+        {initial ? copy.saveChanges : copy.createSubject}
       </Button>
     </form>
   );
@@ -576,10 +663,24 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function SubjectImportForm({ onImported }: { onImported: () => void }) {
+function SubjectImportForm({
+  onImported,
+  copy,
+  locale,
+}: {
+  onImported: () => void;
+  copy: SubjectCopy;
+  locale: string;
+}) {
   const [rows, setRows] = useState<SubjectDraft[]>([]);
   const preview = useMutation({ mutationFn: () => previewSubjectImport(rows) });
-  const commit = useMutation({ mutationFn: () => commitSubjectImport(rows), onSuccess: (result) => { notify(`${result.imported.toLocaleString("fa-IR")} درس ثبت شد.`); onImported(); } });
+  const commit = useMutation({
+    mutationFn: () => commitSubjectImport(rows),
+    onSuccess: (result) => {
+      notify(copy.importSaved(result.imported, locale));
+      onImported();
+    },
+  });
   async function readFile(file?: File) {
     if (!file) return;
     try {
@@ -589,10 +690,19 @@ function SubjectImportForm({ onImported }: { onImported: () => void }) {
         await workbook.xlsx.load(await file.arrayBuffer());
         const sheet = workbook.getWorksheet("Subjects") || workbook.worksheets[0];
         if (!sheet) throw new Error();
-        const headers = (sheet.getRow(1).values as Array<unknown>).map((value) => String(value || "").trim());
+        const headers = (sheet.getRow(1).values as Array<unknown>).map((value) =>
+          String(value || "").trim(),
+        );
         const index = (name: string) => headers.indexOf(name);
         if (index("code") < 0 || index("name") < 0) throw new Error();
-        setRows(sheet.getRows(2, sheet.rowCount - 1)?.map((row) => ({ code: String(row.getCell(index("code")).value || ""), name: String(row.getCell(index("name")).value || ""), category: String(row.getCell(index("category")).value || "عمومی"), organizationId: String(row.getCell(index("organizationId")).value || "") || undefined })) || []);
+        setRows(
+          sheet.getRows(2, sheet.rowCount - 1)?.map((row) => ({
+            code: String(row.getCell(index("code")).value || ""),
+            name: String(row.getCell(index("name")).value || ""),
+            category: String(row.getCell(index("category")).value || copy.general),
+            organizationId: String(row.getCell(index("organizationId")).value || "") || undefined,
+          })) || [],
+        );
       } else {
         const payload = JSON.parse(await file.text());
         const next = Array.isArray(payload) ? payload : payload.subjects;
@@ -600,9 +710,52 @@ function SubjectImportForm({ onImported }: { onImported: () => void }) {
         setRows(next);
       }
       preview.reset();
-    } catch { notify("فایل باید JSON معتبر یا Excel با شیت Subjects باشد.", "error"); }
+    } catch {
+      notify(copy.invalidImport, "error");
+    }
   }
-  return <div className="grid gap-3"><Field label="فایل JSON یا Excel"><Input type="file" accept=".json,.xlsx,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => void readFile(event.target.files?.[0])} /></Field><p className="text-xs text-slate-500">{rows.length ? `${rows.length.toLocaleString("fa-IR")} ردیف آماده بررسی است.` : "ابتدا نمونه را دانلود و تکمیل کنید."}</p><div className="flex gap-2"><Button variant="soft" disabled={!rows.length || preview.isPending} onClick={() => preview.mutate()}>پیش‌نمایش</Button>{preview.data?.valid ? <Button disabled={commit.isPending} onClick={() => commit.mutate()}>ثبت {preview.data.accepted.toLocaleString("fa-IR")} درس</Button> : null}</div>{preview.data ? <div className={preview.data.valid ? "text-xs text-emerald-700" : "text-xs text-rose-700"}>{preview.data.valid ? "همه ردیف‌ها آماده ثبت هستند." : preview.data.rows.filter((row) => !row.valid).slice(0, 6).map((row) => <p key={row.row}>ردیف {row.row}: {row.errors.join("، ")}</p>)}</div> : null}</div>;
+  return (
+    <div className="grid gap-3">
+      <Field label={copy.importFile}>
+        <Input
+          type="file"
+          accept=".json,.xlsx,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(event) => void readFile(event.target.files?.[0])}
+        />
+      </Field>
+      <p className="text-xs text-slate-500">
+        {rows.length ? copy.rowsReady(rows.length, locale) : copy.completeSample}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          variant="soft"
+          disabled={!rows.length || preview.isPending}
+          onClick={() => preview.mutate()}
+        >
+          {copy.preview}
+        </Button>
+        {preview.data?.valid ? (
+          <Button disabled={commit.isPending} onClick={() => commit.mutate()}>
+            {copy.saveCount(preview.data.accepted, locale)}
+          </Button>
+        ) : null}
+      </div>
+      {preview.data ? (
+        <div className={preview.data.valid ? "text-xs text-emerald-700" : "text-xs text-rose-700"}>
+          {preview.data.valid
+            ? copy.allRowsReady
+            : preview.data.rows
+                .filter((row) => !row.valid)
+                .slice(0, 6)
+                .map((row) => (
+                  <p key={row.row}>
+                    {copy.row(row.row)}: {row.errors.join(copy.errorSeparator)}
+                  </p>
+                ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 function Metric({
   label,

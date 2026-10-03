@@ -5,6 +5,8 @@ import {
   readQuickReplies,
   writeQuickReplies,
 } from "../../lib/chat-ui-storage";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export const defaultQuickReplies = fallbackQuickReplies;
 
@@ -15,6 +17,8 @@ export function QuickReplies({
   onSelect: (value: string) => void;
   personName?: string;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [items, setItems] = useState<string[]>(() => readQuickReplies());
   const [editing, setEditing] = useState(false);
   const [newReply, setNewReply] = useState("");
@@ -41,7 +45,7 @@ export function QuickReplies({
   return (
     <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
       <div className="flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto" aria-label="پاسخ‌های سریع">
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto" aria-label={copy.quickReplies}>
           {rendered.map((item, index) => (
             <button
               key={`${items[index]}-${index}`}
@@ -55,8 +59,8 @@ export function QuickReplies({
         </div>
         <button
           type="button"
-          title="مدیریت پاسخ‌های سریع"
-          aria-label="مدیریت پاسخ‌های سریع"
+          title={copy.manageQuickReplies}
+          aria-label={copy.manageQuickReplies}
           className={`grid size-8 shrink-0 place-items-center rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-800 ${editing ? "text-brand" : "text-slate-400"}`}
           onClick={() => setEditing((value) => !value)}
         >
@@ -75,7 +79,7 @@ export function QuickReplies({
                   add();
                 }
               }}
-              placeholder="پاسخ جدید؛ {name} با نام مخاطب جایگزین می‌شود"
+              placeholder={copy.newQuickReplyPlaceholder}
               className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-brand/50 dark:border-slate-700 dark:bg-slate-950"
             />
             <button
@@ -83,7 +87,7 @@ export function QuickReplies({
               onClick={add}
               disabled={!newReply.trim()}
               className="grid size-9 place-items-center rounded-lg bg-brand text-white disabled:opacity-40"
-              aria-label="افزودن پاسخ سریع"
+              aria-label={copy.addQuickReply}
             >
               <Plus size={16} />
             </button>
@@ -99,7 +103,7 @@ export function QuickReplies({
                   type="button"
                   onClick={() => remove(index)}
                   className="grid size-7 place-items-center rounded-md text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                  aria-label="حذف پاسخ سریع"
+                  aria-label={copy.removeQuickReply}
                 >
                   <Trash2 size={13} />
                 </button>

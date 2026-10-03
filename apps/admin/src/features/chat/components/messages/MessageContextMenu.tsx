@@ -1,5 +1,7 @@
 import { Copy, Pencil, Reply, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function MessageContextMenu({
   onReply,
@@ -12,21 +14,23 @@ export function MessageContextMenu({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   return (
     <div className="flex items-center gap-0.5">
-      <Action label="پاسخ" onClick={onReply}>
+      <Action label={copy.reply} onClick={onReply}>
         <Reply size={13} />
       </Action>
-      <Action label="کپی" onClick={onCopy}>
+      <Action label={copy.copyMessage} onClick={onCopy}>
         <Copy size={13} />
       </Action>
       {onEdit ? (
-        <Action label="ویرایش" onClick={onEdit}>
+        <Action label={copy.edit} onClick={onEdit}>
           <Pencil size={13} />
         </Action>
       ) : null}
       {onDelete ? (
-        <Action label="حذف" className="text-rose-700" onClick={onDelete}>
+        <Action label={copy.delete} className="text-rose-700" onClick={onDelete}>
           <Trash2 size={13} />
         </Action>
       ) : null}

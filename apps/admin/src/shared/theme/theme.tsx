@@ -1,16 +1,16 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { useOptionalAdminLanguage } from "../ui/locale";
 
 export type ThemePreference = "light" | "dark" | "system";
 
 const STORAGE_KEY = "admin-theme-preference";
 const SYSTEM_QUERY = "(prefers-color-scheme: dark)";
 
-const themeOptions = [
-  { value: "light", label: "روشن", icon: Sun },
-  { value: "dark", label: "تیره", icon: Moon },
-  { value: "system", label: "سیستم", icon: Monitor },
-] as const;
+const themeLabels = {
+  fa: { group: "حالت نمایش", prefix: "حالت", light: "روشن", dark: "تیره", system: "سیستم" },
+  en: { group: "Appearance", prefix: "Use", light: "Light", dark: "Dark", system: "System" },
+} as const;
 
 type ThemeContextValue = {
   preference: ThemePreference;
@@ -81,11 +81,18 @@ export function useTheme() {
 
 export function ThemeSwitcher() {
   const { preference, setPreference } = useTheme();
+  const language = useOptionalAdminLanguage();
+  const labels = themeLabels[language];
+  const themeOptions = [
+    { value: "light" as const, label: labels.light, icon: Sun },
+    { value: "dark" as const, label: labels.dark, icon: Moon },
+    { value: "system" as const, label: labels.system, icon: Monitor },
+  ];
   return (
     <div
       className="flex h-9 shrink-0 items-center rounded-lg border border-slate-200 bg-slate-100/80 p-0.5"
       role="group"
-      aria-label="حالت نمایش"
+      aria-label={labels.group}
     >
       {themeOptions.map(({ value, label, icon: Icon }) => {
         const selected = preference === value;
@@ -94,8 +101,8 @@ export function ThemeSwitcher() {
             key={value}
             type="button"
             className={`grid size-8 place-items-center rounded-md transition ${selected ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:bg-white/70 hover:text-ink"}`}
-            title={`حالت ${label}`}
-            aria-label={`حالت ${label}`}
+            title={`${labels.prefix} ${label}`}
+            aria-label={`${labels.prefix} ${label}`}
             aria-pressed={selected}
             onClick={() => setPreference(value)}
           >

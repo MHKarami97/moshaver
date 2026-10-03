@@ -2,6 +2,8 @@ import { useState } from "react";
 import { AppWindow, Save } from "lucide-react";
 import type { AppVersion } from "../api/system.api";
 import { Button, Card, EmptyState, Field, Input, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { systemCopy } from "../system-locale";
 
 export function AppVersionManager({
   versions,
@@ -20,6 +22,8 @@ export function AppVersionManager({
   onRetry: () => void;
   onSave: (app: string, value: { version: string; notes: string }) => void;
 }) {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   const [editing, setEditing] = useState<AppVersion | null>(null);
   return (
     <Card className="p-5 sm:p-6">
@@ -28,23 +32,21 @@ export function AppVersionManager({
           <AppWindow size={19} />
         </span>
         <div>
-          <h3 className="font-bold">نسخه فعال برنامه‌ها</h3>
-          <p className="text-xs text-slate-500">
-            نسخه‌ای که کلاینت‌ها برای کنترل سازگاری دریافت می‌کنند.
-          </p>
+          <h3 className="font-bold">{copy.versionManagerTitle}</h3>
+          <p className="text-xs text-slate-500">{copy.versionManagerDescription}</p>
         </div>
       </div>
       {loading ? (
         <div className="h-24 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
       ) : error ? (
         <div role="alert">
-          <p className="text-sm text-rose-700">نسخه برنامه‌ها دریافت نشد.</p>
+          <p className="text-sm text-rose-700">{copy.versionsFailed}</p>
           <Button variant="soft" onClick={onRetry}>
-            تلاش دوباره
+            {copy.retry}
           </Button>
         </div>
       ) : !versions?.length ? (
-        <EmptyState title="نسخه‌ای ثبت نشده است." />
+        <EmptyState title={copy.noVersions} />
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
           {versions.map((item) => (
@@ -57,7 +59,7 @@ export function AppVersionManager({
             >
               <span>
                 <strong>{item.app}</strong>
-                <small className="mt-1 block text-slate-500">{item.notes || "بدون یادداشت"}</small>
+                <small className="mt-1 block text-slate-500">{item.notes || copy.noNotes}</small>
               </span>
               <span className="font-mono text-sm" dir="ltr">
                 {item.version}
@@ -74,7 +76,7 @@ export function AppVersionManager({
             onSave(editing.app, { version: editing.version, notes: editing.notes });
           }}
         >
-          <Field label={`نسخه ${editing.app}`}>
+          <Field label={copy.versionFor(editing.app)}>
             <Input
               required
               dir="ltr"
@@ -83,7 +85,7 @@ export function AppVersionManager({
               onChange={(e) => setEditing({ ...editing, version: e.target.value })}
             />
           </Field>
-          <Field label="یادداشت">
+          <Field label={copy.notes}>
             <Textarea
               rows={1}
               maxLength={2000}
@@ -94,18 +96,16 @@ export function AppVersionManager({
           <div className="flex gap-2 md:mt-6">
             <Button loading={busy}>
               <Save size={15} />
-              ذخیره
+              {copy.save}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
-              انصراف
+              {copy.cancel}
             </Button>
           </div>
         </form>
       ) : null}
       {!canManage && !loading && !error ? (
-        <p className="mt-3 text-xs text-slate-500">
-          این نما فقط خواندنی است؛ تغییر نسخه به مجوز مدیریت انتشار نیاز دارد.
-        </p>
+        <p className="mt-3 text-xs text-slate-500">{copy.versionsReadOnly}</p>
       ) : null}
     </Card>
   );

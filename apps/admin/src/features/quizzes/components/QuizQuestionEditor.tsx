@@ -1,5 +1,6 @@
 import { Button, Card, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
 import type { QuestionDraft } from "../../questions/question-model";
+import { useQuizCopy } from "../model/quiz-locale";
 export function QuizQuestionEditor({
   editingId,
   question,
@@ -17,25 +18,26 @@ export function QuizQuestionEditor({
   onCancel: () => void;
   onSave: () => void;
 }) {
+  const copy = useQuizCopy();
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-bold">{editingId ? "ویرایش سؤال" : "سؤال جدید"}</h3>
+        <h3 className="font-bold">{editingId ? copy.editQuestion : copy.newQuestion}</h3>
         {editingId ? (
           <Button className="h-8" variant="ghost" onClick={onCancel}>
-            انصراف
+            {copy.cancel}
           </Button>
         ) : null}
       </div>
       <div className="grid gap-2">
-        <Field label="صورت سؤال">
+        <Field label={copy.questionText}>
           <Textarea
             value={question.question}
             onChange={(e) => setQuestion({ ...question, question: e.target.value })}
           />
         </Field>
         {question.options.map((value, index) => (
-          <Field key={index} label={`گزینه ${index + 1}`}>
+          <Field key={index} label={copy.option(index + 1)}>
             <Input
               value={value}
               onChange={(e) =>
@@ -47,20 +49,20 @@ export function QuizQuestionEditor({
             />
           </Field>
         ))}
-        <Field label="پاسخ">
+        <Field label={copy.answer}>
           <Select
             value={question.correctOption}
             onChange={(e) => setQuestion({ ...question, correctOption: e.target.value })}
           >
             {["a", "b", "c", "d"].map((key, index) => (
               <option key={key} value={key}>
-                گزینه {index + 1}
+                {copy.option(index + 1)}
               </option>
             ))}
           </Select>
         </Field>
         <Button loading={busy} disabled={!!error || busy} onClick={onSave}>
-          {editingId ? "ذخیره تغییرات" : "افزودن سؤال"}
+          {editingId ? copy.saveChanges : copy.addQuestion}
         </Button>
       </div>
     </Card>

@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { cn } from "../lib/utils";
 import { Button } from "./ui";
 import { SoftConfirmButton } from "./soft-confirmation-button";
+import { useSharedUiCopy } from "./locale";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl";
 export type ModalTone = "default" | "danger";
@@ -57,6 +58,7 @@ type ActiveModal = ModalOptions & {
 const ModalContext = createContext<ModalContextValue | null>(null);
 
 export function ModalProvider({ children }: { children: ReactNode }) {
+  const copy = useSharedUiCopy();
   const [active, setActive] = useState<ActiveModal | null>(null);
 
   const activeRef = useRef<ActiveModal | null>(null);
@@ -100,8 +102,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
             dismissible: true,
             showCancel: true,
             size: "sm",
-            confirmLabel: "تأیید",
-            cancelLabel: "انصراف",
+            confirmLabel: copy.confirm,
+            cancelLabel: copy.cancel,
             ...options,
             resolve,
             parent: activeRef.current,
@@ -113,7 +115,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [settle],
+    [copy, settle],
   );
 
   return (
@@ -140,6 +142,7 @@ function ModalSurface({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const copy = useSharedUiCopy();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2)}`);
   const descriptionId = useRef(`modal-description-${Math.random().toString(36).slice(2)}`);
@@ -224,7 +227,7 @@ function ModalSurface({
         onConfirm();
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "انجام عملیات ناموفق بود.");
+      setSubmitError(error instanceof Error ? error.message : copy.operationFailed);
     } finally {
       setBusy(false);
     }
@@ -308,7 +311,7 @@ leading-6 text-slate-500
           {dismissible && (
             <button
               type="button"
-              aria-label="بستن پنجره"
+              aria-label={copy.closeDialog}
               onClick={onCancel}
               className="
 grid size-9
@@ -348,12 +351,12 @@ px-4 py-4
 
         {modal.confirmationText ? (
           <label className="mx-4 mb-4 grid gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-200">
-            برای تأیید، عبارت «{modal.confirmationText}» را وارد کنید.
+            {copy.confirmationInstruction(modal.confirmationText)}
             <input
               type="text"
               value={confirmationValue}
               onChange={(event) => setConfirmationValue(event.target.value)}
-              aria-label={`عبارت تأیید ${modal.confirmationText}`}
+              aria-label={copy.confirmationPhrase(modal.confirmationText)}
               autoComplete="off"
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25 dark:border-slate-600 dark:bg-slate-950"
             />
@@ -373,7 +376,7 @@ px-5 py-4
           >
             {modal.showCancel && (
               <Button variant="soft" disabled={busy} onClick={onCancel}>
-                {modal.cancelLabel || "انصراف"}
+                {modal.cancelLabel || copy.cancel}
               </Button>
             )}
 
@@ -390,8 +393,10 @@ px-5 py-4
                 variant={modal.tone === "danger" ? "danger" : "primary"}
                 progressColor={modal.softConfirmProgressColor}
                 backgroundColor={modal.softConfirmBackgroundColor}
+                progressLabel={copy.holdToConfirm}
+                successLabel={copy.completed}
               >
-                {modal.confirmLabel || "نگه دارید"}
+                {modal.confirmLabel || copy.holdToConfirm}
               </SoftConfirmButton>
             ) : (
               <Button
@@ -405,7 +410,7 @@ px-5 py-4
                 }
                 onClick={() => void submit()}
               >
-                {modal.confirmLabel || "تأیید"}
+                {modal.confirmLabel || copy.confirm}
               </Button>
             )}
           </footer>

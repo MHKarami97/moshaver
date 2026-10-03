@@ -3,26 +3,16 @@ import { useState } from "react";
 import type { ChangeEvent } from "react";
 import { useWorldClocks } from "../hooks/useWorldClocks";
 import { formatClockTime, getDayOffsetLabel } from "../lib/time";
-
-const ZONES = [
-  ["تهران", "Asia/Tehran"],
-  ["دبی", "Asia/Dubai"],
-  ["استانبول", "Europe/Istanbul"],
-  ["برلین", "Europe/Berlin"],
-  ["لندن", "Europe/London"],
-  ["نیویورک", "America/New_York"],
-  ["لس‌آنجلس", "America/Los_Angeles"],
-  ["تورنتو", "America/Toronto"],
-  ["توکیو", "Asia/Tokyo"],
-  ["سئول", "Asia/Seoul"],
-  ["سنگاپور", "Asia/Singapore"],
-  ["سیدنی", "Australia/Sydney"],
-] as const;
+import { clockCopy, clockZones } from "../model/clock-copy";
+import { useLocale } from "../../../shared/ui/locale";
 
 export function WorldClockPanel({ now }: { now: Date }) {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
+  const zones = clockZones[language];
   const { items, add, remove } = useWorldClocks();
   const [zone, setZone] = useState("Asia/Dubai");
-  const selected = ZONES.find((item) => item[1] === zone);
+  const selected = zones.find((item) => item[1] === zone);
 
   return (
     <div className="space-y-3">
@@ -32,7 +22,7 @@ export function WorldClockPanel({ now }: { now: Date }) {
           onChange={(event: ChangeEvent<HTMLSelectElement>) => setZone(event.target.value)}
           className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-900"
         >
-          {ZONES.map(([label, timeZone]) => (
+          {zones.map(([label, timeZone]) => (
             <option key={timeZone} value={timeZone}>
               {label} — {timeZone}
             </option>
@@ -43,11 +33,11 @@ export function WorldClockPanel({ now }: { now: Date }) {
           onClick={() => selected && add(selected[0], selected[1])}
           className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white hover:bg-brand-strong"
         >
-          <Plus size={15} /> افزودن
+          <Plus size={15} /> {copy.addWorldClock}
         </button>
       </div>
 
-      <div className="max-h-64 space-y-2 overflow-y-auto pr-0.5">
+      <div className="max-h-64 space-y-2 overflow-y-auto pe-0.5">
         {items.map((item) => (
           <div
             key={item.id}
@@ -62,7 +52,7 @@ export function WorldClockPanel({ now }: { now: Date }) {
                 {item.timeZone}
               </div>
             </div>
-            <div className="text-left">
+            <div className="text-start">
               <strong
                 dir="ltr"
                 className="block font-mono text-sm tabular-nums text-slate-800 dark:text-slate-100"
@@ -77,7 +67,7 @@ export function WorldClockPanel({ now }: { now: Date }) {
               type="button"
               onClick={() => remove(item.id)}
               className="grid size-7 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-              aria-label={`حذف ${item.label}`}
+              aria-label={`${copy.deleteWorldClock} ${item.label}`}
             >
               <Trash2 size={13} />
             </button>

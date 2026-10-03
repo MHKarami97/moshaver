@@ -2,6 +2,8 @@ import { fa } from "../../../shared/lib/utils";
 import { Card, Select } from "../../../shared/ui/ui";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 import type { LiveFilter, LivePanel } from "../model/live.types";
 
 export function LiveControls({
@@ -23,41 +25,43 @@ export function LiveControls({
   onFilterChange: (value: LiveFilter) => void;
   onPanelChange: (value: LivePanel) => void;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   return (
     <Card className="shrink-0 p-2">
       <CollectionToolbar
         search={search}
         onSearchChange={onSearchChange}
-        searchLabel="جستجوی دانش‌آموز"
-        placeholder="نام، پایه، رشته یا صفحه فعلی…"
+        searchLabel={copy.searchStudents}
+        placeholder={copy.searchPlaceholder}
         onClear={search ? () => onSearchChange("") : undefined}
-        resultLabel={`نمایش ${fa(visibleCount)} از ${fa(totalCount)}`}
+        resultLabel={`${copy.result} ${language === "fa" ? fa(visibleCount) : visibleCount.toLocaleString("en-US")} ${language === "fa" ? "از" : "of"} ${language === "fa" ? fa(totalCount) : totalCount.toLocaleString("en-US")}`}
         filters={
           <Select
             className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
-            aria-label="فیلتر وضعیت"
+            aria-label={copy.statusFilter}
             value={filter}
             onChange={(event) => onFilterChange(event.target.value as LiveFilter)}
           >
-            <option value="all">همه وضعیت‌ها</option>
-            <option value="online">آنلاین</option>
-            <option value="studying">در حال مطالعه</option>
-            <option value="paused">متوقف</option>
-            <option value="taking_exam">در حال آزمون</option>
-            <option value="attention">نیازمند توجه</option>
-            <option value="offline">آفلاین</option>
+            <option value="all">{copy.allStatuses}</option>
+            <option value="online">{copy.online}</option>
+            <option value="studying">{copy.studying}</option>
+            <option value="paused">{copy.paused}</option>
+            <option value="taking_exam">{copy.takingExam}</option>
+            <option value="attention">{copy.attention}</option>
+            <option value="offline">{copy.offline}</option>
           </Select>
         }
         actions={
           <SegmentedControl
             className="lg:hidden"
-            ariaLabel="پنل زنده"
+            ariaLabel={copy.livePanel}
             value={panel}
             onValueChange={onPanelChange}
             options={[
-              { value: "students", label: "فهرست" },
-              { value: "details", label: "جزئیات" },
-              { value: "timeline", label: "رویدادها" },
+              { value: "students", label: copy.list },
+              { value: "details", label: copy.details },
+              { value: "timeline", label: copy.events },
             ]}
           />
         }

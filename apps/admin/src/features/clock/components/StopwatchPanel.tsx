@@ -1,8 +1,12 @@
 import { Flag, Pause, Play, RotateCcw } from "lucide-react";
 import { useStopwatch } from "../hooks/useStopwatch";
 import { formatStopwatchDuration } from "../lib/time";
+import { clockCopy } from "../model/clock-copy";
+import { useLocale } from "../../../shared/ui/locale";
 
 export function StopwatchPanel() {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
   const stopwatch = useStopwatch(50);
 
   return (
@@ -16,10 +20,10 @@ export function StopwatchPanel() {
         </div>
         <div className="mt-2 text-[10px] font-semibold text-slate-400">
           {stopwatch.running
-            ? "در حال اندازه‌گیری — با بستن پنل ادامه می‌دهد"
+            ? copy.runningAfterClose
             : stopwatch.elapsedMs > 0
-              ? "متوقف شده — زمان ذخیره شده است"
-              : "آماده شروع"}
+              ? copy.pausedSaved
+              : copy.ready}
         </div>
       </div>
 
@@ -31,11 +35,11 @@ export function StopwatchPanel() {
         >
           {stopwatch.running ? (
             <>
-              <Pause size={17} /> توقف
+              <Pause size={17} /> {copy.stop}
             </>
           ) : (
             <>
-              <Play size={17} /> {stopwatch.elapsedMs > 0 ? "ادامه" : "شروع"}
+              <Play size={17} /> {stopwatch.elapsedMs > 0 ? copy.continue : copy.start}
             </>
           )}
         </button>
@@ -44,7 +48,7 @@ export function StopwatchPanel() {
           onClick={stopwatch.lap}
           disabled={stopwatch.elapsedMs <= 0}
           className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          aria-label="ثبت دور"
+          aria-label={copy.lap}
         >
           <Flag size={17} />
         </button>
@@ -53,7 +57,7 @@ export function StopwatchPanel() {
           onClick={stopwatch.reset}
           disabled={stopwatch.elapsedMs <= 0}
           className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          aria-label="ریست کرنومتر"
+          aria-label={copy.resetStopwatch}
         >
           <RotateCcw size={17} />
         </button>
@@ -69,7 +73,7 @@ export function StopwatchPanel() {
                 className="flex items-center justify-between rounded-lg px-2 py-1.5 text-xs odd:bg-slate-50 dark:odd:bg-slate-800/60"
               >
                 <span className="text-slate-500 dark:text-slate-400">
-                  دور {stopwatch.laps.length - index}
+                  {copy.lapLabel} {stopwatch.laps.length - index}
                 </span>
                 <span
                   dir="ltr"

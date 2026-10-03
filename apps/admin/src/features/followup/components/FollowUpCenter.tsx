@@ -7,6 +7,8 @@ export function FollowUpCenter({
     description?: string;
   }>;
 }) {
+  const { language } = useLocale();
+  const copy = followupCopy(language);
   return (
     <div className="space-y-3">
       {items.map((item) => (
@@ -19,17 +21,21 @@ export function FollowUpCenter({
       dark:bg-slate-900
      "
         >
-          <div className="font-bold">{item.title ?? "پیگیری"}</div>
+          <div className="font-bold">{item.title ?? copy.fallbackTitle}</div>
 
           <p className="mt-2 text-sm text-slate-500">{item.description}</p>
 
           <div className="mt-3 flex gap-2">
-            <button className="rounded-lg bg-brand px-3 py-1 text-xs text-white">Resolve</button>
+            <button className="rounded-lg bg-brand px-3 py-1 text-xs text-white">
+              {copy.resolved}
+            </button>
 
-            <button className="rounded-lg border px-3 py-1 text-xs">Dismiss</button>
+            <button className="rounded-lg border px-3 py-1 text-xs">{copy.dismiss}</button>
           </div>
         </div>
       ))}
     </div>
   );
 }
+import { useLocale } from "../../../shared/ui/locale";
+import { followupCopy } from "../model/followup-copy";

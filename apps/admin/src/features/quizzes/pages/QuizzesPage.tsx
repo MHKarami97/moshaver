@@ -42,7 +42,9 @@ import { QuizQuestionsList } from "../components/QuizQuestionsList";
 import { QuizSidebar } from "../components/QuizSidebar";
 import { QuizQuestionBankPanel } from "../components/QuizQuestionBankPanel";
 import type { QuizDraft } from "../model/quiz.types";
+import { useQuizCopy } from "../model/quiz-locale";
 export function QuizzesPage() {
+  const copy = useQuizCopy();
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [quizId, setQuizIdState] = useState(params.get("quizId") || "");
@@ -130,9 +132,14 @@ export function QuizzesPage() {
   useEffect(() => {
     if (quizId && quizzes.isSuccess && !selected) {
       setQuizId("");
-      notify("آزمونک انتخاب‌شده دیگر وجود ندارد.", "warning");
+      notify(
+        copy.language === "en"
+          ? "The selected quiz no longer exists."
+          : "آزمونک انتخاب‌شده دیگر وجود ندارد.",
+        "warning",
+      );
     }
-  }, [quizId, quizzes.isSuccess, selected]);
+  }, [copy.language, quizId, quizzes.isSuccess, selected]);
   useEffect(
     () => setAssignedStudentIds((assignments.data || []).map((item) => item.studentId)),
     [assignments.data],
@@ -252,7 +259,7 @@ export function QuizzesPage() {
         }
       : { title: "", subject: "", durationMinutes: 20, attemptLimit: 1, resultPolicy: "immediate" };
     modal.open({
-      title: item ? "ویرایش آزمونک" : "آزمونک جدید",
+      title: item ? copy.editQuiz : copy.newQuiz,
       description: "مشخصات و سیاست تحویل را ثبت کنید؛ مخاطبان و سؤال‌ها در گام بعد مدیریت می‌شوند.",
       size: "lg",
       content: (
@@ -272,7 +279,7 @@ export function QuizzesPage() {
   };
   const openQuestionEditor = (item?: Parameters<typeof questionDraft>[0], index = 0) =>
     modal.open({
-      title: item?.id ? "ویرایش سؤال آزمونک" : "سؤال جدید آزمونک",
+      title: item?.id ? `${copy.editQuestion} ${copy.quiz}` : `${copy.newQuestion} ${copy.quiz}`,
       size: "xl",
       content: (
         <QuizQuestionEditorModal
@@ -291,12 +298,16 @@ export function QuizzesPage() {
     <div className="grid gap-5">
       <AssessmentWorkspaceIntro
         icon={<CircleHelp size={20} />}
-        title="آزمونک‌ها"
-        description="ساخت، محتوا، مخاطب و انتشار نتیجه را در یک جریان فشرده کنترل کنید."
+        title={copy.quizzes}
+        description={
+          copy.language === "en"
+            ? "Control creation, content, audiences, and result release in one focused workflow."
+            : "ساخت، محتوا، مخاطب و انتشار نتیجه را در یک جریان فشرده کنترل کنید."
+        }
         metrics={
           <>
             <AssessmentMetric>
-              {(quizzes.data || []).length.toLocaleString("fa-IR")} آزمونک
+              {(quizzes.data || []).length.toLocaleString(copy.numberLocale)} {copy.quizzes}
             </AssessmentMetric>
             <AssessmentMetric>
               {(quizzes.data || []).filter((item) => item.active).length.toLocaleString("fa-IR")}{" "}
@@ -307,7 +318,7 @@ export function QuizzesPage() {
       />
       <nav
         className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900"
-        aria-label="بخش‌های آزمونک"
+        aria-label={copy.language === "en" ? "Quiz sections" : "بخش‌های آزمونک"}
       >
         <Button
           variant={view === "quizzes" ? "soft" : "ghost"}
@@ -315,7 +326,7 @@ export function QuizzesPage() {
           onClick={() => setView("quizzes")}
         >
           <CircleHelp size={15} />
-          آزمونک‌ها
+          {copy.quizzes}
         </Button>
         <Button
           variant={view === "bank" ? "soft" : "ghost"}
@@ -323,7 +334,7 @@ export function QuizzesPage() {
           onClick={() => setView("bank")}
         >
           <BookOpen size={15} />
-          بانک سؤال آزمونک
+          {copy.bank}
         </Button>
       </nav>
       {view === "bank" ? (

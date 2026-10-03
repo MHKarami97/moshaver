@@ -1,7 +1,9 @@
 import { Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Button, Card, Field, Input } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { PasswordDraft } from "../model/system.types";
+import { systemCopy } from "../system-locale";
 export function AccountSecurityPanel({
   passwords,
   setPasswords,
@@ -13,6 +15,8 @@ export function AccountSecurityPanel({
   busy: boolean;
   onSubmit: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   const [visible, setVisible] = useState(false);
   const longEnough = passwords.newPassword.length >= 12;
   const matches = passwords.newPassword === passwords.confirmPassword;
@@ -24,12 +28,12 @@ export function AccountSecurityPanel({
           <ShieldCheck size={20} />
         </span>
         <div>
-          <h3 className="font-bold">رمز و احراز هویت</h3>
-          <p className="text-xs text-slate-500">برای تغییر حساس، رمز فعلی دوباره بررسی می‌شود.</p>
+          <h3 className="font-bold">{copy.passwordTitle}</h3>
+          <p className="text-xs text-slate-500">{copy.passwordDescription}</p>
         </div>
       </div>
       <div className="grid gap-3">
-        <Field label="رمز فعلی">
+        <Field label={copy.currentPassword}>
           <Input
             autoComplete="current-password"
             type={visible ? "text" : "password"}
@@ -37,7 +41,7 @@ export function AccountSecurityPanel({
             onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
           />
         </Field>
-        <Field label="رمز جدید">
+        <Field label={copy.newPassword}>
           <Input
             autoComplete="new-password"
             type={visible ? "text" : "password"}
@@ -45,7 +49,7 @@ export function AccountSecurityPanel({
             onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
           />
         </Field>
-        <Field label="تکرار رمز جدید">
+        <Field label={copy.confirmNewPassword}>
           <Input
             autoComplete="new-password"
             type={visible ? "text" : "password"}
@@ -55,7 +59,7 @@ export function AccountSecurityPanel({
         </Field>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className={longEnough ? "text-emerald-700" : "text-slate-500"}>
-            حداقل ۱۲ نویسه؛ عبارت عبور بلند بهتر است.
+            {copy.passwordRequirement}
           </span>
           <button
             type="button"
@@ -63,17 +67,17 @@ export function AccountSecurityPanel({
             onClick={() => setVisible((value) => !value)}
           >
             {visible ? <EyeOff size={14} /> : <Eye size={14} />}{" "}
-            {visible ? "پنهان‌کردن" : "نمایش رمزها"}
+            {visible ? copy.hidePasswords : copy.showPasswords}
           </button>
         </div>
         {passwords.confirmPassword && !matches ? (
           <p className="text-xs text-rose-600" role="alert">
-            تکرار رمز با رمز جدید یکسان نیست.
+            {copy.passwordMismatch}
           </p>
         ) : null}
         <Button loading={busy} disabled={!valid || busy} onClick={onSubmit}>
           <KeyRound size={16} />
-          تغییر امن رمز
+          {copy.changePassword}
         </Button>
       </div>
     </Card>

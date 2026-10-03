@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Button, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import {
   ManagementPageHeader,
   ManagementStat,
@@ -16,6 +17,7 @@ import {
 import { OnboardingModeSelector } from "../components/OnboardingModeSelector";
 import { OnboardingQueueItem } from "../components/OnboardingQueueItem";
 import { assignmentInputFor, displayAdvisor } from "../model/onboarding.model";
+import { onboardingCopy } from "../onboarding-locale";
 import type {
   ManualAssignmentChoice,
   OnboardingMode,
@@ -25,6 +27,8 @@ import type {
 const emptyManualChoice: ManualAssignmentChoice = { organizationId: "", advisorUserId: "" };
 
 export function OnboardingPage() {
+  const { language, profile } = useLocale();
+  const copy = onboardingCopy(language);
   const queryClient = useQueryClient();
   const students = useQuery({ queryKey: ["onboarding", "pending"], queryFn: listPendingStudents });
   const organizations = useQuery({
@@ -51,17 +55,21 @@ export function OnboardingPage() {
   return (
     <section className="space-y-5">
       <ManagementPageHeader
-        eyebrow="افراد و دسترسی"
-        title="ورودی دانش‌آموزان"
-        description="ثبت‌نام‌های جدید را بررسی و با تخصیص خودکار یا دستی به سازمان و مشاور متصل کنید."
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       <ManagementSummaryBar>
-        <ManagementStat label="در انتظار" value={students.data?.length ?? 0} active />
+        <ManagementStat label={copy.pending} value={students.data?.length ?? 0} active />
         <ManagementStat
-          label="سازمان فعال"
+          label={copy.activeOrganization}
           value={organizations.data?.filter((item) => item.status === "ACTIVE").length ?? 0}
         />
-        <ManagementStat label="مشاور آماده" value={advisors.data?.length ?? 0} tone="success" />
+        <ManagementStat
+          label={copy.advisorReady}
+          value={advisors.data?.length ?? 0}
+          tone="success"
+        />
       </ManagementSummaryBar>
       <Card className="p-2">
         <OnboardingModeSelector value={mode} onChange={setMode} />
@@ -103,7 +111,7 @@ export function OnboardingPage() {
       ) : null}
       {assignment.isError ? (
         <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">
-          {assignment.error instanceof Error ? assignment.error.message : "تخصیص انجام نشد."}
+          {assignment.error instanceof Error ? assignment.error.message : copy.assignmentFailed}
         </p>
       ) : null}
     </section>
@@ -111,6 +119,8 @@ export function OnboardingPage() {
 }
 
 function AssignmentSuccess({ assignment }: { assignment: StudentAssignment }) {
+  const { language } = useLocale();
+  const copy = onboardingCopy(language);
   return (
     <Card
       className="border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
@@ -119,13 +129,12 @@ function AssignmentSuccess({ assignment }: { assignment: StudentAssignment }) {
       <div className="flex items-start gap-3">
         <CheckCircle2 className="mt-0.5 shrink-0" />
         <div>
-          <h2 className="font-bold">تخصیص با موفقیت انجام شد</h2>
+          <h2 className="font-bold">{copy.assignmentSuccess}</h2>
           <p className="mt-1 text-sm">
-            سازمان: {assignment.organization.name} · مشاور: {displayAdvisor(assignment.advisor)}
+            {copy.organization}: {assignment.organization.name} · {copy.advisor}:{" "}
+            {displayAdvisor(assignment.advisor)}
           </p>
-          <p className="mt-1 text-xs opacity-70">
-            عضویت، ارتباط مشاور و گفتگوی مستقیم نیز به‌صورت خودکار ساخته یا فعال شدند.
-          </p>
+          <p className="mt-1 text-xs opacity-70">{copy.automaticMembers}</p>
         </div>
       </div>
     </Card>
@@ -143,16 +152,22 @@ function OnboardingQueueState({
   empty: boolean;
   onRetry: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = onboardingCopy(language);
   if (loading) {
-    return <Card className="p-6 text-center" role="status">در حال دریافت صف ثبت‌نام…</Card>;
+    return (
+      <Card className="p-6 text-center" role="status">
+        {copy.loading}
+      </Card>
+    );
   }
   if (error) {
     return (
       <Card className="border-rose-200 p-6 text-center text-rose-700" role="alert">
-        <p>دریافت صف دانش‌آموزان انجام نشد.</p>
+        <p>{copy.loadFailed}</p>
         <Button className="mt-4" variant="soft" onClick={onRetry}>
           <RefreshCw size={16} />
-          تلاش دوباره
+          {copy.retry}
         </Button>
       </Card>
     );
@@ -161,8 +176,8 @@ function OnboardingQueueState({
     return (
       <Card className="p-8 text-center">
         <CheckCircle2 className="mx-auto text-emerald-600" />
-        <h2 className="mt-3 font-semibold">صف ورودی خالی است</h2>
-        <p className="mt-2 text-sm text-slate-500">همه دانش‌آموزان جدید تعیین تکلیف شده‌اند.</p>
+        <h2 className="mt-3 font-semibold">{copy.emptyTitle}</h2>
+        <p className="mt-2 text-sm text-slate-500">{copy.emptyDescription}</p>
       </Card>
     );
   }

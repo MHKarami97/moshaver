@@ -1,5 +1,7 @@
 import { MoreHorizontal } from "lucide-react";
 import { ViewportPopover } from "../../../shared/ui/popover";
+import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy } from "../model/planner-copy";
 
 export function PlannerMoreMenu({
   onClose,
@@ -26,6 +28,8 @@ export function PlannerMoreMenu({
   canHistory: boolean;
   canTemplates: boolean;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <ViewportPopover
       width={240}
@@ -76,7 +80,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            تنظیمات برنامه روز
+            {copy.planSettings}
           </button>
         ) : null}
 
@@ -99,7 +103,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            انتشار بازه
+            {copy.publishRange}
           </button>
         ) : null}
 
@@ -122,7 +126,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            پیش‌نویس کردن بازه
+            {copy.unpublishRange}
           </button>
         ) : null}
 
@@ -145,7 +149,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            ورود / خروج JSON
+            {copy.importExportJson}
           </button>
         ) : null}
 
@@ -157,7 +161,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            تاریخچه اشتراک‌گذاری
+            {copy.shareHistory}
           </button>
         ) : null}
 
@@ -169,7 +173,7 @@ export function PlannerMoreMenu({
               onClose();
             }}
           >
-            کتابخانه الگوهای برنامه
+            {copy.templateLibrary}
           </button>
         ) : null}
       </div>

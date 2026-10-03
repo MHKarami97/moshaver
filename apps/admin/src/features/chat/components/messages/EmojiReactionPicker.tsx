@@ -1,6 +1,8 @@
 import { SmilePlus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { chatApi } from "../../api/chat.api";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 const fallback = ["❤️", "👍", "😂", "👏", "😮", "😢", "🔥", "🎉", "🙏", "✅"];
 
@@ -11,6 +13,8 @@ export function EmojiReactionPicker({
   reacted: (emoji: string) => boolean;
   onReact: (emoji: string, remove: boolean) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const configuration = useQuery({
     queryKey: ["chat-configuration"],
     queryFn: chatApi.configuration,
@@ -25,15 +29,15 @@ export function EmojiReactionPicker({
         <button
           type="button"
           key={emoji}
-          title={`واکنش ${emoji}`}
-          aria-label={`واکنش ${emoji}`}
+          title={copy.reaction.replace("{emoji}", emoji)}
+          aria-label={copy.reaction.replace("{emoji}", emoji)}
           className={`grid min-h-7 min-w-7 place-items-center rounded-md px-1 text-xs transition hover:bg-black/5 dark:hover:bg-white/10 ${reacted(emoji) ? "bg-brand/10 ring-1 ring-brand/20" : ""}`}
           onClick={() => onReact(emoji, reacted(emoji))}
         >
           {emoji}
         </button>
       ))}
-      {configuration.isLoading ? <SmilePlus size={14} aria-label="در حال دریافت واکنش‌ها" /> : null}
+      {configuration.isLoading ? <SmilePlus size={14} aria-label={copy.loadingReactions} /> : null}
     </div>
   );
 }

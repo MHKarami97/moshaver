@@ -6,11 +6,15 @@ import { listOrganizations } from "../../access/api/access.api";
 import { useAuth } from "../../auth";
 import { useStudentSelection } from "../../../shared/hooks/useStudentSelection";
 import { Button, Card, ErrorState, LoadingState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import { PlanTemplateLibrary } from "../components/PlanTemplateLibrary";
 import { TemplateOrganizationPicker } from "../components/TemplateOrganizationPicker";
+import { plannerCopy } from "../model/planner-copy";
 
 export function PlanTemplatesPage() {
   const auth = useAuth();
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   const isPlatformAdmin = auth.hasRole("PLATFORM_ADMIN");
   const activeOrganizationId = auth.context?.activeOrganization?.id || "";
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(activeOrganizationId);
@@ -24,8 +28,8 @@ export function PlanTemplatesPage() {
   if (!selectedOrganizationId && !isPlatformAdmin)
     return (
       <ErrorState
-        title="سازمان فعال برای الگوها در دسترس نیست."
-        description="برای دیدن الگوهای برنامه، یک زمینه سازمانی فعال انتخاب کنید."
+        title={copy.templatesUnavailable}
+        description={copy.templatesUnavailableDescription}
       />
     );
 
@@ -33,33 +37,30 @@ export function PlanTemplatesPage() {
     <section className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-bold text-brand">برنامه‌ریزی سازمانی</p>
-          <h1 className="text-xl font-black">الگوهای برنامه</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            الگوهای منتشرشده را برای دانش‌آموزان اعمال کنید؛ ساخت الگوی تازه از برنامه‌های بازه فعلی
-            انجام می‌شود.
-          </p>
+          <p className="text-xs font-bold text-brand">{copy.organizationPlanning}</p>
+          <h1 className="text-xl font-black">{copy.templates}</h1>
+          <p className="mt-1 text-sm text-slate-500">{copy.templatesDescription}</p>
         </div>
         <Link
           to="/admin/planner"
           className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
         >
-          <ArrowRight size={15} /> رفتن به برنامه‌ریز
+          <ArrowRight size={15} /> {copy.goToPlanner}
         </Link>
       </div>
 
       {!selectedOrganizationId ? (
         <Card className="p-4">
           <div className="mb-4 flex items-center gap-2 text-sm font-bold">
-            <Building2 size={17} className="text-brand" /> انتخاب سازمان
+            <Building2 size={17} className="text-brand" /> {copy.selectOrganization}
           </div>
-          {organizations.isLoading ? <LoadingState label="در حال دریافت سازمان‌ها…" /> : null}
+          {organizations.isLoading ? <LoadingState label={copy.loadingOrganizations} /> : null}
           {organizations.isError ? (
             <ErrorState
-              title="فهرست سازمان‌ها دریافت نشد."
+              title={copy.organizationsFailed}
               action={
                 <Button variant="soft" onClick={() => void organizations.refetch()}>
-                  تلاش دوباره
+                  {copy.retry}
                 </Button>
               }
             />
@@ -76,7 +77,7 @@ export function PlanTemplatesPage() {
           {isPlatformAdmin && !activeOrganizationId ? (
             <div className="mb-4 flex justify-end">
               <Button size="sm" variant="ghost" onClick={() => setSelectedOrganizationId("")}>
-                تغییر سازمان
+                {copy.changeOrganization}
               </Button>
             </div>
           ) : null}

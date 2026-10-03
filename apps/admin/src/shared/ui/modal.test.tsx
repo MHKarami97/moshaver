@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ModalProvider, useModal } from "./modal";
+import { LocaleProvider } from "./locale";
 
 function Harness({ resolved }: { resolved: (value: boolean) => void }) {
   const modal = useModal();
@@ -158,5 +159,20 @@ describe("global modal", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("ارتباط با سرور برقرار نشد.");
     expect(screen.getByRole("dialog", { name: "ذخیره تغییرات" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ذخیره" })).not.toBeDisabled();
+  });
+
+  it("uses English defaults and accessible labels in the international workspace", async () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <ModalProvider>
+          <Harness resolved={() => undefined} />
+        </ModalProvider>
+      </LocaleProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "confirm" }));
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Close dialog")).toBeInTheDocument();
   });
 });

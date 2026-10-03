@@ -10,6 +10,8 @@ import {
 import { Button, Card, Badge } from "../../../shared/ui/ui";
 
 import { fa } from "../../../shared/lib/utils";
+import { useLocale } from "../../../shared/ui/locale";
+import { dashboardCopy } from "../model/dashboard-copy";
 
 import type { AdminDashboardSummary } from "../model/dashboard.types";
 
@@ -46,40 +48,42 @@ export function DashboardMetricCards({
   refreshing?: boolean;
   onRefresh: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = dashboardCopy[language];
   const metrics: Metric[] = [
     {
-      label: "دانش‌آموز فعال",
+      label: copy.activeStudents,
       value: summary.students,
-      hint: "حساب‌های فعال سامانه",
+      hint: copy.activeAccounts,
       icon: UsersRound,
-      status: "فعال",
+      status: copy.active,
       tone: "green",
     },
 
     {
-      label: "برنامه امروز",
+      label: copy.todayPlans,
       value: summary.todayPlans,
-      hint: "برنامه آماده اجرا",
+      hint: copy.readyPlans,
       icon: CalendarCheck2,
-      status: "امروز",
+      status: copy.today,
       tone: "blue",
     },
 
     {
-      label: "گزارش امروز",
+      label: copy.todayReports,
       value: summary.todayReports,
-      hint: "گزارش ثبت شده",
+      hint: copy.submittedReports,
       icon: ClipboardCheck,
-      status: "دریافت شده",
+      status: copy.received,
       tone: "amber",
     },
 
     {
-      label: "آزمون پیش‌رو",
+      label: copy.upcomingExams,
       value: summary.upcomingExams,
-      hint: "آزمون‌های آینده",
+      hint: copy.futureExams,
       icon: GraduationCap,
-      status: "در انتظار",
+      status: copy.pending,
       tone: "red",
     },
   ];
@@ -113,7 +117,7 @@ justify-center
 "
         >
           <RefreshCw size={17} />
-          بروزرسانی
+          {copy.refresh}
         </Button>
       </Card>
 
@@ -121,10 +125,7 @@ justify-center
         const Icon = item.icon;
 
         return (
-          <Card
-            key={item.label}
-          className="group p-3 hover:border-brand/30 hover:shadow-sm"
-          >
+          <Card key={item.label} className="group p-3 hover:border-brand/30 hover:shadow-sm">
             <div
               className="
 flex

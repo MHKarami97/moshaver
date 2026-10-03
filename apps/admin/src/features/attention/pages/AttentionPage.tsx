@@ -12,17 +12,19 @@ import { AdminList } from "../../../shared/ui/admin-list";
 import { Badge, Button } from "../../../shared/ui/ui";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { useLocale } from "../../../shared/ui/locale";
 import { getAttentionQueue, type AttentionItem } from "../api/attention.api";
 import { useMemo, useState } from "react";
+import { attentionCopy, attentionPriorityLabel, attentionTypeLabel } from "../attention-locale";
 
 const priorityLabels = { urgent: "فوری", high: "بالا", normal: "عادی" } as const;
 const priorityTones = { urgent: "red", high: "amber", normal: "blue" } as const;
 export const attentionStatusLabels = { open: "باز" } as const;
 
-export function formatAttentionDueDate(value: string) {
+export function formatAttentionDueDate(value: string, locale = "fa-IR") {
   const date = new Date(value.length === 10 ? `${value}T12:00:00` : value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("fa-IR", {
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -40,6 +42,8 @@ const typeLabels: Record<AttentionItem["type"], string> = {
 };
 
 export function AttentionPage() {
+  const { language, profile } = useLocale();
+  const copy = attentionCopy(language);
   const queue = useQuery({ queryKey: ["attention-queue"], queryFn: () => getAttentionQueue() });
   const [priority, setPriority] = useState<"all" | AttentionItem["priority"]>("all");
   const items = useMemo(
@@ -51,19 +55,33 @@ export function AttentionPage() {
   return (
     <section className="space-y-4">
       <ManagementPageHeader
-        eyebrow="عملیات یکپارچه"
-        title="نیازمند توجه"
-        description="فقط کارهایی را می‌بینید که در نقش و محدوده کاری فعلی شما مجاز هستند."
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       <AdminList
-        label="صف رسیدگی"
-        description="درخواست‌ها، خطاها و پیام‌های باز با اولویت بالاتر در ابتدای صف قرار می‌گیرند."
+        label={copy.queue}
+        description={copy.queueDescription}
         items={items}
         loading={queue.isLoading}
         error={queue.isError}
-        errorTitle="صف نیازمند توجه دریافت نشد."
+        errorTitle={copy.loadFailed}
         onRetry={() => void queue.refetch()}
-        toolbar={<CollectionToolbar filters={( ["all", "urgent", "high", "normal"] as const).map((value) => <button key={value} type="button" className={`rounded px-2 py-1 text-[11px] ${priority === value ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setPriority(value)}>{value === "all" ? "همه" : priorityLabels[value]}</button>)} resultLabel={`${items.length.toLocaleString("fa-IR")} مورد`} />}
+        toolbar={
+          <CollectionToolbar
+            filters={(["all", "urgent", "high", "normal"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={`rounded px-2 py-1 text-[11px] ${priority === value ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`}
+                onClick={() => setPriority(value)}
+              >
+                {value === "all" ? copy.all : attentionPriorityLabel(value, language)}
+              </button>
+            ))}
+            resultLabel={`${items.length.toLocaleString(profile.locale)} ${language === "fa" ? "مورد" : "items"}`}
+          />
+        }
         actions={
           <Button
             size="sm"
@@ -72,12 +90,10 @@ export function AttentionPage() {
             onClick={() => void queue.refetch()}
           >
             <RefreshCw size={15} />
-            به‌روزرسانی
+            {copy.refresh}
           </Button>
         }
-        emptyTitle={
-          priority === "all" ? "مورد بازی برای رسیدگی ندارید." : "موردی با این اولویت وجود ندارد."
-        }
+        emptyTitle={priority === "all" ? copy.empty : copy.emptyPriority}
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
@@ -90,17 +106,19 @@ export function AttentionPage() {
 }
 
 export function AttentionCard({ item }: { item: AttentionItem }) {
+  const { language, profile } = useLocale();
+  const copy = attentionCopy(language);
   return (
     <article className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Badge tone={priorityTones[item.priority]}>
             <AlertTriangle size={13} />
-            {priorityLabels[item.priority]}
+            {attentionPriorityLabel(item.priority, language)}
           </Badge>
           <h2 className="mt-2 font-black text-ink">{item.title}</h2>
         </div>
-        <Badge tone="neutral">{typeLabels[item.type]}</Badge>
+        <Badge tone="neutral">{attentionTypeLabel(item.type, language)}</Badge>
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
         {item.description}
@@ -108,25 +126,27 @@ export function AttentionCard({ item }: { item: AttentionItem }) {
       <dl className="mt-4 grid gap-2 border-t border-[rgb(var(--border-subtle))] pt-3 text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <UserRound size={14} />
-          <dt className="sr-only">مالک</dt>
+          <dt className="sr-only">{copy.owner}</dt>
           <dd>{item.owner.label}</dd>
         </div>
         <div className="flex items-center gap-2">
           <CircleDot size={14} />
-          <dt>وضعیت</dt>
-          <dd>{attentionStatusLabels[item.status]}</dd>
+          <dt>{copy.status}</dt>
+          <dd>{item.status === "open" ? copy.open : item.status}</dd>
         </div>
         {item.dueAt ? (
           <div className="flex items-center gap-2">
             <CalendarClock size={14} />
-            <dt>سررسید</dt>
-            <dd>{formatAttentionDueDate(item.dueAt)}</dd>
+            <dt>{copy.due}</dt>
+            <dd>{formatAttentionDueDate(item.dueAt, profile.locale)}</dd>
           </div>
         ) : null}
         {item.student ? (
           <div>
-            <dt className="sr-only">دانش‌آموز</dt>
-            <dd>دانش‌آموز: {item.student.name}</dd>
+            <dt className="sr-only">{copy.student}</dt>
+            <dd>
+              {copy.student}: {item.student.name}
+            </dd>
           </div>
         ) : null}
       </dl>
@@ -134,7 +154,7 @@ export function AttentionCard({ item }: { item: AttentionItem }) {
         to={item.deepLink}
         className="mt-4 inline-flex h-9 items-center gap-1 rounded-lg bg-brand px-3 text-xs font-bold text-white outline-none transition hover:bg-brand/90 focus-visible:ring-4 focus-visible:ring-brand/20"
       >
-        باز کردن مورد <ArrowUpRight size={14} />
+        {copy.openItem} <ArrowUpRight size={14} />
       </Link>
     </article>
   );

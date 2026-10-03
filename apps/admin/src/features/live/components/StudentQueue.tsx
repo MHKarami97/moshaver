@@ -4,6 +4,8 @@ import { needsAttention } from "../lib/live-helpers";
 import type { LivePanel, LiveStudent } from "../model/live.types";
 import { CompactSkeleton } from "./CompactSkeleton";
 import { StudentRow } from "./StudentRow";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 
 export function StudentQueue({
   panel,
@@ -20,6 +22,8 @@ export function StudentQueue({
   now: number;
   onSelect: (id: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   return (
     <Card
       className={[
@@ -28,10 +32,13 @@ export function StudentQueue({
       ].join(" ")}
     >
       <div className="flex items-center justify-between border-b px-3 py-2">
-        <strong>صف عملیات دانش‌آموزان</strong>
+        <strong>{language === "fa" ? "صف عملیات دانش‌آموزان" : "Student operations queue"}</strong>
 
         <Badge tone={students.some(needsAttention) ? "red" : "green"}>
-          {fa(students.filter(needsAttention).length)} نیازمند توجه
+          {language === "fa"
+            ? fa(students.filter(needsAttention).length)
+            : students.filter(needsAttention).length.toLocaleString("en-US")}{" "}
+          {copy.attention}
         </Badge>
       </div>
 
@@ -50,7 +57,7 @@ export function StudentQueue({
           ))}
         </div>
       ) : (
-        <EmptyState title="دانش‌آموزی با این جستجو یا فیلتر پیدا نشد." />
+        <EmptyState title={copy.noMatches} />
       )}
     </Card>
   );

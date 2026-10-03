@@ -3,6 +3,7 @@ import { Music2, PauseCircle, PlayCircle, Plus, Power, Users } from "lucide-reac
 import { useRef, useState } from "react";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Card, EmptyState, Field, Input } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import { listOrganizations } from "../../access/api/access.api";
 import {
   createRelaxationTrack,
@@ -11,34 +12,50 @@ import {
   updateRelaxationTrack,
   type RelaxationTrackDraft,
 } from "../api/system.api";
+import { systemCopy } from "../system-locale";
 
-const emptyDraft: RelaxationTrackDraft = { title: "", artist: "", url: "", active: true, gradeIds: [] };
+const emptyDraft: RelaxationTrackDraft = {
+  title: "",
+  artist: "",
+  url: "",
+  active: true,
+  gradeIds: [],
+};
 
 export function RelaxationMusicManager() {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   const qc = useQueryClient();
   const audio = useRef<HTMLAudioElement>(null);
   const [draft, setDraft] = useState(emptyDraft);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const tracks = useQuery({ queryKey: ["relaxation-tracks"], queryFn: getRelaxationTracks });
-  const organizations = useQuery({ queryKey: ["organizations", "relaxation-targeting"], queryFn: listOrganizations });
+  const organizations = useQuery({
+    queryKey: ["organizations", "relaxation-targeting"],
+    queryFn: listOrganizations,
+  });
   const [audienceTrackId, setAudienceTrackId] = useState<string | null>(null);
-  const audience = useQuery({ queryKey: ["relaxation-track-audience", audienceTrackId], queryFn: () => getRelaxationTrackAudience(audienceTrackId!), enabled: Boolean(audienceTrackId) });
+  const audience = useQuery({
+    queryKey: ["relaxation-track-audience", audienceTrackId],
+    queryFn: () => getRelaxationTrackAudience(audienceTrackId!),
+    enabled: Boolean(audienceTrackId),
+  });
   const create = useMutation({
     mutationFn: () => createRelaxationTrack(draft),
     onSuccess: () => {
       setDraft(emptyDraft);
-      notify("موسیقی آرامش‌بخش اضافه شد.");
+      notify(copy.musicAdded);
       void qc.invalidateQueries({ queryKey: ["relaxation-tracks"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ثبت موسیقی ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.musicCreateFailed, "error"),
   });
   const toggle = useMutation({
     mutationFn: ({ id, body }: { id: string; body: RelaxationTrackDraft }) =>
       updateRelaxationTrack(id, body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["relaxation-tracks"] }),
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "تغییر وضعیت ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.musicCreateFailed, "error"),
   });
 
   function preview(id: string, url: string) {
@@ -57,7 +74,7 @@ export function RelaxationMusicManager() {
     void audio.current
       .play()
       .then(() => setPlayingId(id))
-      .catch(() => notify("پخش این پیوند در مرورگر ممکن نیست.", "error"));
+      .catch(() => notify(copy.musicPlaybackFailed, "error"));
   }
 
   return (
@@ -66,11 +83,9 @@ export function RelaxationMusicManager() {
       <div>
         <span className="flex items-center gap-2 font-black" id="relaxation-music-title">
           <Music2 size={19} className="text-brand" />
-          موسیقی آرامش‌بخش دانش‌آموز
+          {copy.musicTitle}
         </span>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          فقط پیوند HTTPS ذخیره می‌شود؛ فایل روی سامانه دانلود یا نگهداری نمی‌شود.
-        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{copy.musicDescription}</p>
       </div>
       <form
         className="grid gap-3 md:grid-cols-2"
@@ -79,7 +94,7 @@ export function RelaxationMusicManager() {
           create.mutate();
         }}
       >
-        <Field label="عنوان">
+        <Field label={copy.trackTitle}>
           <Input
             required
             maxLength={180}
@@ -87,7 +102,7 @@ export function RelaxationMusicManager() {
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           />
         </Field>
-        <Field label="هنرمند یا منبع">
+        <Field label={copy.artist}>
           <Input
             maxLength={120}
             value={draft.artist}
@@ -95,7 +110,7 @@ export function RelaxationMusicManager() {
           />
         </Field>
         <div className="md:col-span-2">
-          <Field label="پیوند مستقیم MP3 (HTTPS)">
+          <Field label={copy.musicUrl}>
             <Input
               required
               type="url"
@@ -106,30 +121,74 @@ export function RelaxationMusicManager() {
             />
           </Field>
         </div>
-        <Field label="پایه‌های مجاز (اختیاری، با ویرگول)">
-          <Input placeholder="مثلاً 10,11,12" value={(draft.gradeIds || []).join(",")} onChange={(event) => setDraft({ ...draft, gradeIds: event.target.value.split(",").map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0) })} />
+        <Field label={copy.gradeIds}>
+          <Input
+            placeholder={copy.gradeIdsPlaceholder}
+            value={(draft.gradeIds || []).join(",")}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                gradeIds: event.target.value
+                  .split(",")
+                  .map((value) => Number(value.trim()))
+                  .filter((value) => Number.isInteger(value) && value > 0),
+              })
+            }
+          />
         </Field>
-        <Field label="سازمان هدف (اختیاری)">
-          <select className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950" value={draft.organizationId || ""} onChange={(event) => setDraft({ ...draft, organizationId: event.target.value || undefined })} disabled={organizations.isLoading}>
-            <option value="">همه سازمان‌ها</option>
-            {(organizations.data || []).filter((organization) => organization.status === "ACTIVE").map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+        <Field label={copy.targetOrganization}>
+          <select
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950"
+            value={draft.organizationId || ""}
+            onChange={(event) =>
+              setDraft({ ...draft, organizationId: event.target.value || undefined })
+            }
+            disabled={organizations.isLoading}
+          >
+            <option value="">{copy.allOrganizations}</option>
+            {(organizations.data || [])
+              .filter((organization) => organization.status === "ACTIVE")
+              .map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.name}
+                </option>
+              ))}
           </select>
         </Field>
-        <div className="grid grid-cols-2 gap-2"><Field label="شروع انتشار"><Input type="date" value={draft.availableFrom || ""} onChange={(event) => setDraft({ ...draft, availableFrom: event.target.value || undefined })} /></Field><Field label="پایان انتشار"><Input type="date" value={draft.availableUntil || ""} onChange={(event) => setDraft({ ...draft, availableUntil: event.target.value || undefined })} /></Field></div>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label={copy.publishingStart}>
+            <Input
+              type="date"
+              value={draft.availableFrom || ""}
+              onChange={(event) =>
+                setDraft({ ...draft, availableFrom: event.target.value || undefined })
+              }
+            />
+          </Field>
+          <Field label={copy.publishingEnd}>
+            <Input
+              type="date"
+              value={draft.availableUntil || ""}
+              onChange={(event) =>
+                setDraft({ ...draft, availableUntil: event.target.value || undefined })
+              }
+            />
+          </Field>
+        </div>
         <Button
           className="md:col-span-2"
           disabled={create.isPending || !draft.title.trim() || !draft.url.startsWith("https://")}
         >
           <Plus size={16} />
-          {create.isPending ? "در حال ثبت…" : "افزودن به فهرست روزانه"}
+          {create.isPending ? copy.adding : copy.addDailyPlaylist}
         </Button>
       </form>
       {tracks.isError ? (
         <EmptyState
-          title="دریافت موسیقی‌ها ناموفق بود."
+          title={copy.musicLoadFailed}
           action={
             <Button variant="soft" onClick={() => void tracks.refetch()}>
-              تلاش دوباره
+              {copy.retry}
             </Button>
           }
         />
@@ -145,7 +204,9 @@ export function RelaxationMusicManager() {
               className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"
               onClick={() => preview(track.id, track.url)}
               aria-label={
-                playingId === track.id ? `مکث ${track.title}` : `پخش آزمایشی ${track.title}`
+                playingId === track.id
+                  ? copy.pausePreview(track.title)
+                  : copy.playPreview(track.title)
               }
             >
               {playingId === track.id ? <PauseCircle /> : <PlayCircle />}
@@ -153,7 +214,7 @@ export function RelaxationMusicManager() {
             <div className="min-w-0 flex-1">
               <strong className="block truncate text-sm">{track.title}</strong>
               <span className="block truncate text-xs text-slate-500">
-                {track.artist || "بدون نام هنرمند"}
+                {track.artist || copy.unknownArtist}
               </span>
             </div>
             <Button
@@ -175,13 +236,37 @@ export function RelaxationMusicManager() {
               }
             >
               <Power size={15} />
-              {track.active ? "فعال" : "غیرفعال"}
+              {track.active ? copy.active : copy.inactive}
             </Button>
-            <Button variant="ghost" onClick={() => setAudienceTrackId(track.id)}><Users size={15} />مخاطب</Button>
+            <Button variant="ghost" onClick={() => setAudienceTrackId(track.id)}>
+              <Users size={15} />
+              {copy.audience}
+            </Button>
           </div>
         ))}
       </div>
-      {audienceTrackId ? <div className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800"><div className="flex items-center justify-between"><strong>پیش‌نمایش مخاطبان</strong><Button variant="ghost" size="sm" onClick={() => setAudienceTrackId(null)}>بستن</Button></div>{audience.isLoading ? <p className="mt-2 text-slate-500">در حال محاسبه…</p> : audience.isError ? <p className="mt-2 text-red-700">محاسبه مخاطبان ناموفق بود.</p> : <p className="mt-2">{audience.data?.eligibleStudents.toLocaleString("fa-IR")} دانش‌آموز واجد شرایط{audience.data?.byGrade.length ? ` · ${audience.data.byGrade.map((item) => `پایه ${item.grade}: ${item.count}`).join("، ")}` : ""}</p>}</div> : null}
+      {audienceTrackId ? (
+        <div className="rounded-xl border border-slate-200 p-3 text-sm dark:border-slate-800">
+          <div className="flex items-center justify-between">
+            <strong>{copy.audiencePreview}</strong>
+            <Button variant="ghost" size="sm" onClick={() => setAudienceTrackId(null)}>
+              {copy.close}
+            </Button>
+          </div>
+          {audience.isLoading ? (
+            <p className="mt-2 text-slate-500">{copy.calculating}</p>
+          ) : audience.isError ? (
+            <p className="mt-2 text-red-700">{copy.audienceFailed}</p>
+          ) : (
+            <p className="mt-2">
+              {copy.eligibleStudents(audience.data?.eligibleStudents || 0)}
+              {audience.data?.byGrade.length
+                ? ` · ${audience.data.byGrade.map((item) => copy.gradeAudience(item.grade, item.count)).join(language === "fa" ? "، " : ", ")}`
+                : ""}
+            </p>
+          )}
+        </div>
+      ) : null}
     </Card>
   );
 }

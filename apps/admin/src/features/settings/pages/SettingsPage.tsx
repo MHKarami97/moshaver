@@ -11,10 +11,12 @@ import { ApiConnectionCard } from "../components/ApiConnectionCard";
 import { AccountSecurityPanel } from "../../system/components/AccountSecurityPanel";
 import { ChatProfileSettings } from "../components/ChatProfileSettings";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
+import { settingsCopy } from "../settings-locale";
 export function SettingsPage() {
   const qc = useQueryClient(),
     modal = useModal(),
     locale = useLocale();
+  const copy = settingsCopy(locale.language);
   const [passwords, setPasswords] = useState({
     currentPassword: "",
     newPassword: "",
@@ -24,36 +26,33 @@ export function SettingsPage() {
   const revoke = useMutation({
     mutationFn: revokeSession,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
-    meta: { successMessage: "نشست با موفقیت بسته شد." },
+    meta: { successMessage: copy.sessionRevoked },
   });
   const password = useMutation({
     mutationFn: () => changePassword(passwords),
     onSuccess: () => {
       setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      notify("رمز تغییر کرد و نشست‌های دیگر بسته شدند.");
+      notify(copy.passwordChanged);
       void qc.invalidateQueries({ queryKey: ["sessions"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "تغییر رمز انجام نشد.", "error"),
+      notify(error instanceof Error ? error.message : copy.passwordFailed, "error"),
   });
   return (
     <div className="grid gap-4">
       <ManagementPageHeader
-        eyebrow="حساب و تنظیمات"
-        title="تنظیمات مدیر"
-        description="امنیت حساب، نشست‌ها، موقعیت محلی و ترجیحات گفتگو را یک‌جا مدیریت کنید."
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       <section className="grid gap-4 lg:grid-cols-2">
-        <LocationSettings
-          locale={locale}
-          onChange={() => notify("موقعیت و تقویم این مرورگر به‌روز شد.")}
-        />
+        <LocationSettings locale={locale} onChange={() => notify(copy.locationChanged)} />
         <ApiConnectionCard />
       </section>
       <section aria-labelledby="account-security-title">
         <h2 id="account-security-title" className="mb-3 flex items-center gap-2 text-sm font-bold">
           <ShieldCheck size={17} />
-          امنیت حساب
+          {copy.accountSecurity}
         </h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <AccountSecurityPanel
@@ -63,9 +62,9 @@ export function SettingsPage() {
             onSubmit={() =>
               void modal
                 .confirm({
-                  title: "تغییر رمز عبور؟",
-                  description: "پس از تغییر، تمام نشست‌های دیگر این حساب بسته می‌شوند.",
-                  confirmLabel: "تغییر رمز",
+                  title: copy.changePasswordTitle,
+                  description: copy.changePasswordDescription,
+                  confirmLabel: copy.changePassword,
                 })
                 .then((confirmed) => confirmed && password.mutate())
             }
@@ -77,11 +76,10 @@ export function SettingsPage() {
             confirm={(id) =>
               void modal
                 .confirm({
-                  title: "بستن نشست این دستگاه؟",
-                  description:
-                    "دسترسی دستگاه انتخاب‌شده فوراً لغو می‌شود و برای ورود دوباره به رمز نیاز دارد.",
+                  title: copy.revokeTitle,
+                  description: copy.revokeDescription,
                   tone: "danger",
-                  confirmLabel: "بستن دسترسی",
+                  confirmLabel: copy.revoke,
                 })
                 .then((confirmed) => confirmed && revoke.mutate(id))
             }

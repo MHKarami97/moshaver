@@ -6,6 +6,7 @@ import { educationNavigation } from "../../../app/layout/admin-navigation";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
 import { Button } from "../../../shared/ui/ui";
 import { useAuth } from "../../auth";
+import { useLocale } from "../../../shared/ui/locale";
 import { getExams, getRetryRequests } from "../../exams/api/exams.api";
 import {
   getEducationOperations,
@@ -21,15 +22,26 @@ import {
   educationOperationsQueryKey,
   type EducationOperationsFilters,
 } from "../model/education-operations";
+import { educationCopy } from "../model/education-copy";
 
-const actions = [
-  { to: "/admin/exams", label: "ساخت آزمون", capability: "exams.create", icon: FilePlus2 },
-  { to: "/admin/questions", label: "ساخت سؤال", capability: "questions.create", icon: CircleHelp },
-  { to: "/admin/questions", label: "ورود سؤال", capability: "import.preview", icon: ArrowLeft },
-  { to: "/admin/quizzes", label: "ساخت آزمونک", capability: "quizzes.create", icon: Sparkles },
+const actionDefinitions = [
+  { to: "/admin/exams", label: "createExam", capability: "exams.create", icon: FilePlus2 },
+  {
+    to: "/admin/questions",
+    label: "createQuestion",
+    capability: "questions.create",
+    icon: CircleHelp,
+  },
+  {
+    to: "/admin/questions",
+    label: "importQuestion",
+    capability: "import.preview",
+    icon: ArrowLeft,
+  },
+  { to: "/admin/quizzes", label: "createQuiz", capability: "quizzes.create", icon: Sparkles },
   {
     to: "/admin/exams",
-    label: "درخواست‌های بازیابی",
+    label: "recoveryRequests",
     capability: "retry_requests.read",
     icon: RotateCcw,
   },
@@ -48,6 +60,8 @@ function downloadOperationsCsv(overview: EducationOperationsOverview) {
 
 export function EducationOverviewPage() {
   const auth = useAuth();
+  const { language } = useLocale();
+  const copy = educationCopy(language);
   const [filters, setFilters] = useState<EducationOperationsFilters>({
     periodFrom: "",
     periodTo: "",
@@ -67,15 +81,15 @@ export function EducationOverviewPage() {
     queryFn: () => getEducationOperations(educationOperationsFiltersToRequest(filters)),
     enabled: canReadOperations,
   });
-  const visibleActions = actions.filter((action) => auth.can(action.capability));
+  const visibleActions = actionDefinitions.filter((action) => auth.can(action.capability));
   const visibleSections = educationNavigation.filter((section) => auth.can(section.capability));
 
   return (
     <div className="grid gap-4">
       <ManagementPageHeader
-        eyebrow="آموزش"
-        title="مرکز آموزش"
-        description="وضعیت پوشش آموزشی را بررسی کنید، موارد نیازمند رسیدگی را به دانش‌آموز متصل کنید و سپس آزمون یا محتوای لازم را تکمیل کنید."
+        eyebrow={copy.education}
+        title={copy.center}
+        description={copy.description}
       />
       <EducationSections sections={visibleSections} />
       {canReadOperations ? (
@@ -88,12 +102,12 @@ export function EducationOverviewPage() {
       ) : null}
       {canReadExams ? <EducationExamSnapshot exams={exams} retries={retries} /> : null}
       {visibleActions.length ? (
-        <section aria-label="اقدام‌های آموزشی" className="flex flex-wrap gap-2">
+        <section aria-label={copy.actions} className="flex flex-wrap gap-2">
           {visibleActions.map((action) => (
             <Link key={`${action.to}-${action.label}`} to={action.to}>
               <Button variant="soft" size="sm">
                 <action.icon size={14} aria-hidden="true" />
-                {action.label}
+                {copy[action.label]}
               </Button>
             </Link>
           ))}
@@ -101,12 +115,8 @@ export function EducationOverviewPage() {
       ) : null}
       {auth.can("education.catalog.read") ? (
         <details className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3">
-          <summary className="cursor-pointer text-sm font-black text-ink">
-            کاتالوگ کتاب‌های درسی و ورود گروهی
-          </summary>
-          <p className="mt-1 text-xs text-slate-500">
-            پس از آماده‌سازی کاتالوگ، پیش‌نمایش ورود را بررسی کنید و پیش‌نویس‌ها را ثبت کنید.
-          </p>
+          <summary className="cursor-pointer text-sm font-black text-ink">{copy.catalog}</summary>
+          <p className="mt-1 text-xs text-slate-500">{copy.catalogDescription}</p>
           <div className="mt-3">
             <EducationCatalogPanel
               canManage={auth.can("education.catalog.manage")}

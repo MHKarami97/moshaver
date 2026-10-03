@@ -32,7 +32,7 @@ export function AdminMainSidebar({
   );
   return (
     <aside
-      className={`fixed inset-y-0 ${direction === "rtl" ? "right-0 border-l shadow-[-1px_0_0_rgb(24_24_27_/_2%)]" : "left-0 border-r shadow-[1px_0_0_rgb(24_24_27_/_2%)]"} z-50 hidden flex-col border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] transition-[width,padding] duration-200 motion-reduce:transition-none lg:flex ${collapsed ? "w-[4.25rem] p-2" : "w-60 p-3"}`}
+      className={`fixed inset-y-0 start-0 z-50 hidden flex-col border-e border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] transition-[width,padding] duration-200 motion-reduce:transition-none lg:flex ${direction === "rtl" ? "shadow-[-1px_0_0_rgb(24_24_27_/_2%)]" : "shadow-[1px_0_0_rgb(24_24_27_/_2%)]"} ${collapsed ? "w-[4.25rem] p-2" : "w-60 p-3"}`}
       aria-label={copy.primaryNavigation}
     >
       <div
@@ -107,7 +107,7 @@ export function AdminMainSidebar({
             >
               {active ? (
                 <span
-                  className={`absolute inset-y-2 ${direction === "rtl" ? "right-0 rounded-l-full" : "left-0 rounded-r-full"} w-0.5 bg-brand`}
+                  className="absolute inset-y-2 start-0 w-0.5 rounded-e-full bg-brand"
                   aria-hidden="true"
                 />
               ) : null}

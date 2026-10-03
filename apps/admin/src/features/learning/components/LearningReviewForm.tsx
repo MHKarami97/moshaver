@@ -2,7 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Field, Select } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import { reviewLearningItem } from "../api/learning.api";
+import { learningCopy } from "../learning-locale";
 
 export function LearningReviewForm({
   studentId,
@@ -13,17 +15,18 @@ export function LearningReviewForm({
   itemId: string;
   onSaved: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = learningCopy(language);
   const [rating, setRating] = useState(3);
   const queryClient = useQueryClient();
   const review = useMutation({
     mutationFn: () => reviewLearningItem(studentId, itemId, rating),
     onSuccess: () => {
-      notify("مرور ثبت و زمان مرور بعدی محاسبه شد.");
+      notify(copy.reviewSaved);
       void queryClient.invalidateQueries({ queryKey: ["student-learning", studentId] });
       onSaved();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ثبت مرور انجام نشد.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.reviewFailed, "error"),
   });
 
   return (
@@ -34,21 +37,18 @@ export function LearningReviewForm({
         review.mutate();
       }}
     >
-      <Field label="کیفیت یادآوری">
+      <Field label={copy.recallQuality}>
         <Select value={String(rating)} onChange={(event) => setRating(Number(event.target.value))}>
-          <option value="0">۰ — اصلاً یادم نبود</option>
-          <option value="1">۱ — بسیار سخت</option>
-          <option value="2">۲ — نیازمند مرور دوباره</option>
-          <option value="3">۳ — متوسط</option>
-          <option value="4">۴ — خوب</option>
-          <option value="5">۵ — کاملاً مسلط</option>
+          {copy.ratings.map((label, rating) => (
+            <option key={rating} value={rating}>
+              {label}
+            </option>
+          ))}
         </Select>
       </Field>
-      <p className="text-xs leading-6 text-slate-500">
-        امتیاز مرور، تسلط و فاصله مرور بعدی را به‌صورت خودکار به‌روزرسانی می‌کند.
-      </p>
+      <p className="text-xs leading-6 text-slate-500">{copy.reviewHelp}</p>
       <Button type="submit" loading={review.isPending} disabled={review.isPending}>
-        ثبت مرور
+        {copy.review}
       </Button>
     </form>
   );

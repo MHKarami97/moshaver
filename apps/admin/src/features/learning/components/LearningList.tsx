@@ -3,6 +3,8 @@ import type { LearningItem } from "../model/learning-model";
 import { LearningFilters } from "./LearningFilters";
 import { LearningRow } from "./LearningRow";
 import type { LearningFilter } from "../model/learning.types";
+import { useLocale } from "../../../shared/ui/locale";
+import { learningCopy } from "../learning-locale";
 
 export function LearningList({
   loading,
@@ -29,13 +31,15 @@ export function LearningList({
   onHistory: (item: LearningItem) => void;
   onDelete?: (item: LearningItem) => void;
 }) {
+  const { language } = useLocale();
+  const copy = learningCopy(language);
   return (
     <AdminList
-      label="منابع یادگیری"
-      description="موارد را جست‌وجو، فیلتر و برای بازبینی یا ویرایش انتخاب کنید."
+      label={copy.resources}
+      description={copy.resourcesDescription}
       items={items}
       loading={loading}
-      emptyTitle="موردی با این جست‌وجو و فیلتر پیدا نشد."
+      emptyTitle={copy.noResults}
       stickyHeader
       toolbar={
         <LearningFilters
@@ -49,7 +53,7 @@ export function LearningList({
     >
       <div
         className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto overscroll-contain pl-1 pb-1"
-        aria-label="نتایج منابع یادگیری"
+        aria-label={copy.resources}
         tabIndex={0}
       >
         {items.map((item) => (

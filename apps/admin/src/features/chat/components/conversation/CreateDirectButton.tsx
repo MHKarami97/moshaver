@@ -5,17 +5,21 @@ import { useModal } from "../../../../shared/ui/modal";
 import { notifications } from "../../../../shared/ui/notifications";
 import { Button, EmptyState, Field, Input } from "../../../../shared/ui/ui";
 import { chatApi } from "../../api/chat.api";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function CreateDirectButton({ onCreated }: { onCreated: (id: string) => void }) {
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   return (
     <Button
       size="sm"
       variant="soft"
       onClick={() =>
         modal.open({
-          title: "گفتگوی مستقیم تازه",
-          description: "کاربر مجاز را پیدا کنید و گفتگو را باز کنید.",
+          title: copy.newDirect,
+          description: copy.newDirectDescription,
           content: (
             <CreateDirectForm
               onCreated={(id) => {
@@ -27,12 +31,14 @@ export function CreateDirectButton({ onCreated }: { onCreated: (id: string) => v
         })
       }
     >
-      <MessageSquarePlus size={15} /> گفتگوی جدید
+      <MessageSquarePlus size={15} /> {copy.newConversation}
     </Button>
   );
 }
 
 function CreateDirectForm({ onCreated }: { onCreated: (id: string) => void }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [search, setSearch] = useState("");
   const users = useQuery({
     queryKey: ["chat-users", "direct", search],
@@ -42,19 +48,19 @@ function CreateDirectForm({ onCreated }: { onCreated: (id: string) => void }) {
   const create = useMutation({
     mutationFn: chatApi.createDirect,
     onSuccess: (conversation) => {
-      notifications.success("گفتگو آماده شد.");
+      notifications.success(copy.conversationReady);
       onCreated(conversation.id);
     },
-    onError: () => notifications.error("ساخت گفتگو انجام نشد."),
+    onError: () => notifications.error(copy.createConversationFailed),
   });
   return (
     <div className="grid gap-3">
-      <Field label="نام یا نام کاربری">
+      <Field label={copy.userNameOrUsername}>
         <Input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} />
       </Field>
       {users.isLoading ? (
         <p role="status" className="text-sm text-slate-500">
-          در حال جستجو…
+          {copy.searching}
         </p>
       ) : null}
       {users.data?.length ? (
@@ -64,7 +70,7 @@ function CreateDirectForm({ onCreated }: { onCreated: (id: string) => void }) {
               type="button"
               key={user.id}
               disabled={create.isPending}
-              className="rounded-xl border p-3 text-right hover:border-brand"
+              className="rounded-xl border p-3 text-start hover:border-brand"
               onClick={() => create.mutate(user.id)}
             >
               <strong>{user.name || user.username}</strong>
@@ -75,7 +81,7 @@ function CreateDirectForm({ onCreated }: { onCreated: (id: string) => void }) {
           ))}
         </div>
       ) : search.trim().length >= 2 && !users.isLoading ? (
-        <EmptyState title="کاربری پیدا نشد." />
+        <EmptyState title={copy.noUserFound} />
       ) : null}
     </div>
   );

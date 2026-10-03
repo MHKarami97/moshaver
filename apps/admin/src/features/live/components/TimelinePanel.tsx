@@ -4,6 +4,8 @@ import { Badge, Card, EmptyState } from "../../../shared/ui/ui";
 import type { LiveEvent, LivePanel } from "../model/live.types";
 import { CompactSkeleton } from "./CompactSkeleton";
 import { TimelineItem } from "./TimelineItem";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 
 export function TimelinePanel({
   panel,
@@ -16,6 +18,8 @@ export function TimelinePanel({
   events: LiveEvent[];
   formatDateTime: (value?: string | Date) => string;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   return (
     <Card
       className={[
@@ -27,7 +31,7 @@ export function TimelinePanel({
         <span className="flex items-center gap-2">
           <Activity size={17} className="text-brand" />
 
-          <strong>رویدادهای اخیر</strong>
+          <strong>{language === "fa" ? "رویدادهای اخیر" : "Recent events"}</strong>
         </span>
 
         <Badge>{fa(events.length)}</Badge>
@@ -40,7 +44,7 @@ export function TimelinePanel({
           ))}
         </div>
       ) : !loading ? (
-        <EmptyState title="هنوز رویدادی ثبت نشده است." />
+        <EmptyState title={copy.noEvents} />
       ) : (
         <CompactSkeleton />
       )}

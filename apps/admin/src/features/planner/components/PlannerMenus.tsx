@@ -5,6 +5,8 @@ import { todayIso } from "../../../shared/lib/utils";
 import type { PlannerMode, TaskFilter } from "../model/planner.types";
 import { filterLabel } from "../lib/planner-model";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
+import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy, plannerModeLabel } from "../model/planner-copy";
 
 export function ViewSwitch({
   value,
@@ -13,14 +15,16 @@ export function ViewSwitch({
   value: PlannerMode;
   onChange: (mode: PlannerMode) => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <SegmentedControl
-      ariaLabel="نمایش برنامه"
+      ariaLabel={copy.view}
       value={value}
       onValueChange={onChange}
       options={(["day", "week", "month", "list"] as PlannerMode[]).map((mode) => ({
         value: mode,
-        label: { day: "روز", week: "هفته", month: "ماه", list: "فهرست" }[mode],
+        label: plannerModeLabel(mode, language),
       }))}
     />
   );
@@ -32,9 +36,11 @@ export function FilterMenu({
   value: TaskFilter;
   onChange: (value: TaskFilter) => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <div className="w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-      <strong className="block px-2 py-1 text-xs">وضعیت برنامه</strong>
+      <strong className="block px-2 py-1 text-xs">{copy.planStatus}</strong>
       {(["all", "published", "draft", "incomplete"] as TaskFilter[]).map((item) => (
         <button
           key={item}
@@ -58,37 +64,39 @@ export function MoreMenu({
   onPublish: (value: boolean) => void;
   onTransfer: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <div className="absolute left-0 top-11 z-40 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
       <button
         className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
         onClick={onPlan}
       >
-        تنظیمات برنامه روز
+        {copy.planSettings}
       </button>
       <button
         className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
         onClick={() => onPublish(true)}
       >
-        انتشار بازه
+        {copy.publishRange}
       </button>
       <button
         className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
         onClick={() => onPublish(false)}
       >
-        پیش‌نویس کردن بازه
+        {copy.unpublishRange}
       </button>
       <button
         className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
         onClick={onTransfer}
       >
-        ورود / خروج JSON
+        {copy.importExportJson}
       </button>
       <button
         className="mt-1 block w-full border-t px-3 py-2 text-right text-xs text-slate-400"
         onClick={onClose}
       >
-        بستن
+        {copy.close}
       </button>
     </div>
   );
@@ -108,6 +116,8 @@ export function CommandPalette({
   onTask: (plan: Plan, task: PlanTask) => void;
   onCreate?: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   const [query, setQuery] = useState("");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => input.current?.focus(), []);
@@ -125,7 +135,7 @@ export function CommandPalette({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label="فرمان‌های برنامه‌ریز"
+        aria-label={copy.commandPalette}
         className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
         <label className="flex h-14 items-center gap-3 border-b px-4">
@@ -135,31 +145,33 @@ export function CommandPalette({
             className="min-w-0 flex-1 outline-none"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="جستجوی فعالیت، تاریخ یا فرمان…"
+            placeholder={copy.commandSearch}
             onKeyDown={(e) => e.key === "Escape" && onClose()}
           />
           <kbd className="text-xs text-slate-400">Esc</kbd>
         </label>
         <div className="max-h-[55vh] overflow-auto p-2">
           <div className="grid grid-cols-2 gap-2">
-            {onCreate ? <PaletteButton icon={Plus} label="فعالیت جدید" onClick={onCreate} /> : null}
+            {onCreate ? (
+              <PaletteButton icon={Plus} label={copy.newActivity} onClick={onCreate} />
+            ) : null}
             <PaletteButton
               icon={Calendar}
-              label="رفتن به امروز"
+              label={copy.goToToday}
               onClick={() => onDate(todayIso())}
             />
             {(["day", "week", "month", "list"] as PlannerMode[]).map((mode) => (
               <PaletteButton
                 key={mode}
                 icon={CalendarDays}
-                label={`نمای ${{ day: "روز", week: "هفته", month: "ماه", list: "فهرست" }[mode]}`}
+                label={copy.viewMode.replace("{mode}", plannerModeLabel(mode, language))}
                 onClick={() => onView(mode)}
               />
             ))}
           </div>
           {query ? (
             <>
-              <h4 className="px-2 pb-1 pt-4 text-xs text-slate-400">نتایج</h4>
+              <h4 className="px-2 pb-1 pt-4 text-xs text-slate-400">{copy.results}</h4>
               {tasks.map(({ plan, task }) => (
                 <button
                   key={task.id}
@@ -173,6 +185,9 @@ export function CommandPalette({
                   <small className="mr-auto text-slate-400">{plan.planDate}</small>
                 </button>
               ))}
+              {!tasks.length ? (
+                <p className="px-3 py-4 text-sm text-slate-500">{copy.noResults}</p>
+              ) : null}
             </>
           ) : null}
         </div>

@@ -9,6 +9,8 @@ import { ConversationList } from "./ConversationList";
 import { ConversationSearch } from "./ConversationSearch";
 import { ConversationToolbar } from "./ConversationToolbar";
 import { CreateDirectButton } from "./CreateDirectButton";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function ConversationSidebar({
   visible,
@@ -59,31 +61,35 @@ export function ConversationSidebar({
   onMore: () => void;
   onGroupCreated: (id: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   return (
     <AdminList
-      label="گفتگوها"
-      description="جستجو، فیلتر و ادامه گفتگوهای کاری در یک فهرست یکپارچه."
+      label={copy.conversations}
+      description={copy.description}
       items={items}
       loading={loading}
       error={error}
-      errorTitle="دریافت گفتگوها ناموفق بود."
+      errorTitle={copy.loadFailed}
       onRetry={onRetry}
       className={`${visible ? "flex" : "hidden lg:flex"} min-h-0 flex-col overflow-hidden border-slate-200/90 p-0 shadow-[0_12px_35px_rgba(31,49,46,0.06)]`}
       contentClassName="min-h-0 flex-1 overflow-auto p-0"
-      emptyTitle={
-        search || filter !== "all" ? "گفتگویی مطابق جستجو و فیلتر نیست." : "گفتگویی وجود ندارد."
-      }
+      emptyTitle={search || filter !== "all" ? copy.noMatch : copy.none}
       actions={
         <>
           <Badge>{toFa(total)}</Badge>
-          {unread ? <Badge tone="red">{toFa(unread)} خوانده‌نشده</Badge> : null}
+          {unread ? (
+            <Badge tone="red">
+              {language === "fa" ? toFa(unread) : unread.toLocaleString("en-US")} {copy.unread}
+            </Badge>
+          ) : null}
           <CreateDirectButton onCreated={onGroupCreated} />
           <CreateGroupButton onCreated={onGroupCreated} />
           {fetching && !fetchingMore ? (
             <RefreshCw
               className="animate-spin text-slate-400"
               size={15}
-              aria-label="در حال تازه‌سازی"
+              aria-label={copy.loading}
             />
           ) : null}
         </>
@@ -102,7 +108,7 @@ export function ConversationSidebar({
       footer={
         hasMore ? (
           <Button className="w-full" variant="soft" loading={fetchingMore} onClick={onMore}>
-            گفتگوهای بیشتر
+            {copy.more}
           </Button>
         ) : undefined
       }

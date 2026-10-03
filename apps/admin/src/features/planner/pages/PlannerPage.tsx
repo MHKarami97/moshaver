@@ -24,6 +24,7 @@ import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { DataTransferWorkspace } from "../../../shared/ui/data-transfer";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy } from "../model/planner-copy";
 import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
@@ -113,8 +114,9 @@ export function PlannerPage() {
   const students = useStudentSelection(),
     modal = useModal(),
     qc = useQueryClient(),
-    { profile } = useLocale(),
+    { profile, language } = useLocale(),
     [params, setParams] = useSearchParams();
+  const copy = plannerCopy(language);
   const [date, setDateState] = useState(params.get("date") || todayIso());
   const [mode, setModeState] = useState<PlannerMode>(parseMode(params.get("view")));
   const [search, setSearch] = useState(params.get("q") || "");
@@ -359,7 +361,7 @@ export function PlannerPage() {
       if (c?.previous) qc.setQueryData(c.key, c.previous);
     },
     onSettled: refresh,
-    meta: { successMessage: "زمان فعالیت جابه‌جا شد." },
+    meta: { successMessage: copy.activityMoved },
   });
   const publishRange = useMutation({
     mutationFn: (published: boolean) =>
@@ -368,7 +370,7 @@ export function PlannerPage() {
   });
   function openPlan(planDate: string, plan?: Plan) {
     modal.open({
-      title: plan ? "ویرایش مشخصات روز" : "ساخت برنامه روز",
+      title: plan ? copy.editDayDetails : copy.createDayPlan,
       size: "lg",
       content: (
         <PlanForm
@@ -387,7 +389,7 @@ export function PlannerPage() {
   }
   function openDuplicate(plan: Plan) {
     modal.open({
-      title: "کپی برنامه به روز دیگر",
+      title: copy.copyPlanToAnotherDay,
       content: (
         <DateAction
           initial={addDays(plan.planDate, 1)}
@@ -407,11 +409,11 @@ export function PlannerPage() {
       plans.data?.find((plan) => plan.planDate === date) ||
       (await getPlanForDate(students.studentId, date));
     if (!source) {
-      notify("برای این روز برنامه‌ای برای اشتراک‌گذاری وجود ندارد.", "error");
+      notify(copy.shareUnavailable, "error");
       return;
     }
     modal.open({
-      title: "اشتراک برنامه با دانش‌آموز",
+      title: copy.sharePlanWithStudent,
       content: (
         <SharePlanForm
           sourceStudentId={students.studentId}
@@ -432,12 +434,12 @@ export function PlannerPage() {
         plans.data?.find((p) => p.planDate === planDate) ||
         (await getPlanForDate(students.studentId, planDate));
       if ((existing && !canUpdatePlan) || (!existing && !canCreatePlan)) {
-        notify("دسترسی لازم برای تغییر تنظیمات این روز را ندارید.", "error");
+        notify(copy.daySettingsForbidden, "error");
         return;
       }
       openPlan(planDate, existing || undefined);
     } catch (reason) {
-      notify(errorMessage(reason, "دریافت برنامه روز انجام نشد."), "error");
+      notify(errorMessage(reason, copy.loadDayPlanFailed), "error");
     }
   }
   async function ensurePlan(planDate: string) {
@@ -467,12 +469,12 @@ export function PlannerPage() {
   }
   function requestQuickAdd(planDate: string, start = "08:00") {
     void quickAdd(planDate, start).catch((reason) =>
-      notify(errorMessage(reason, "ساخت فعالیت انجام نشد."), "error"),
+      notify(errorMessage(reason, copy.createActivityFailed), "error"),
     );
   }
   function confirmDelete(title: string, description: string, action: () => void) {
     void modal
-      .confirm({ title, description, tone: "danger", confirmLabel: "حذف" })
+      .confirm({ title, description, tone: "danger", confirmLabel: copy.delete })
       .then((ok) => ok && action());
   }
   useEffect(() => {
@@ -517,7 +519,7 @@ export function PlannerPage() {
             <Button
               className="h-8 px-2"
               variant="ghost"
-              aria-label="بازه قبل"
+              aria-label={copy.previousRange}
               onClick={() => setDate(shiftView(date, mode, -1, profile.locale, profile.calendar))}
             >
               <ChevronRight size={16} />
@@ -530,7 +532,7 @@ export function PlannerPage() {
             <Button
               className="h-8 px-2"
               variant="ghost"
-              aria-label="بازه بعد"
+              aria-label={copy.nextRange}
               onClick={() => setDate(shiftView(date, mode, 1, profile.locale, profile.calendar))}
             >
               <ChevronLeft size={16} />
@@ -549,7 +551,7 @@ export function PlannerPage() {
                 setSearch(e.target.value);
                 syncUrl({ search: e.target.value });
               }}
-              placeholder="جستجوی فعالیت…"
+              placeholder={copy.searchActivities}
             />
             <kbd className="hidden rounded bg-white px-1 text-[10px] text-slate-400 lg:inline">
               ⌘K
@@ -568,7 +570,7 @@ export function PlannerPage() {
               onClick={() => requestQuickAdd(date)}
             >
               <Plus size={16} />
-              فعالیت جدید
+              {copy.newActivity}
             </Button>
           ) : null}
           {canPlanSettings || canPublish || canTransfer || canHistory || canTemplateRead ? (
@@ -582,7 +584,7 @@ export function PlannerPage() {
                 setMoreOpen(false);
                 void modal
                   .confirm({
-                    title: published ? "انتشار برنامه‌های بازه؟" : "پیش‌نویس کردن بازه؟",
+                    title: published ? copy.publishRangeConfirm : copy.unpublishRangeConfirm,
                     description: `${range.from} تا ${range.to}`,
                   })
                   .then((ok) => ok && publishRange.mutate(published));
@@ -590,14 +592,14 @@ export function PlannerPage() {
               onTransfer={() => {
                 setMoreOpen(false);
                 modal.open({
-                  title: "ورود و خروج Excel",
+                  title: copy.excelImportExport,
                   size: "xl",
                   content: (
                     <DataTransferWorkspace
                       studentId={students.studentId}
                       scope="all"
-                      title="انتقال برنامه‌ها و آزمون‌های مرتبط"
-                      description="ورود، اعتبارسنجی و خروجی استاندارد بازه"
+                      title={copy.transferPlansAndExams}
+                      description={copy.transferPlansAndExamsHelp}
                       exportFrom={range.from}
                       exportTo={range.to}
                       showPlanReplacement
@@ -613,7 +615,7 @@ export function PlannerPage() {
               onHistory={() => {
                 setMoreOpen(false);
                 modal.open({
-                  title: "تاریخچه اشتراک‌گذاری برنامه",
+                  title: copy.planShareHistory,
                   size: "lg",
                   content: <PlanShareHistory onClose={modal.close} />,
                 });
@@ -621,7 +623,7 @@ export function PlannerPage() {
               onTemplates={() => {
                 const openLibrary = (selectedOrganizationId: string) =>
                   modal.open({
-                    title: "کتابخانه الگوهای برنامه",
+                    title: copy.templateLibrary,
                     size: "lg",
                     content: (
                       <PlanTemplateLibrary
@@ -640,11 +642,11 @@ export function PlannerPage() {
                   return;
                 }
                 if (organizations.isLoading) {
-                  notify("در حال دریافت سازمان‌ها…");
+                  notify(copy.loadingOrganizations);
                   return;
                 }
                 modal.open({
-                  title: "انتخاب سازمان برای الگوها",
+                  title: copy.selectTemplateOrganization,
                   size: "sm",
                   content: (
                     <TemplateOrganizationPicker
@@ -670,13 +672,13 @@ export function PlannerPage() {
               onClick={() => void openShare()}
             >
               <Share2 size={16} />
-              اشتراک برنامه
+              {copy.sharePlan}
             </Button>
           ) : null}
         </div>
         {filter !== "all" ? (
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-slate-400">فیلتر فعال:</span>
+            <span className="text-xs text-slate-400">{copy.filterActive}</span>
             <button
               className="flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs text-brand"
               onClick={() => setTaskFilter("all")}
@@ -738,12 +740,8 @@ export function PlannerPage() {
         {!students.studentId ? (
           <div className="grid h-full place-items-center p-6">
             <EmptyState
-              title="دانش‌آموزی انتخاب نشده است"
-              action={
-                <p className="text-sm text-slate-500">
-                  برای مشاهده یا ساخت برنامه، ابتدا دانش‌آموز را از نوار بالا انتخاب کنید.
-                </p>
-              }
+              title={copy.noStudent}
+              action={<p className="text-sm text-slate-500">{copy.selectStudentToPlan}</p>}
             />
           </div>
         ) : (
@@ -762,16 +760,16 @@ export function PlannerPage() {
             onEditTask={(plan, task) => setDrawer({ plan, task })}
             onDeleteTask={(task) => {
               if (!canDeleteTask) {
-                notify("دسترسی حذف فعالیت را ندارید.", "error");
+                notify(copy.deleteActivityForbidden, "error");
                 return;
               }
-              confirmDelete("حذف فعالیت؟", "این فعالیت از برنامه دانش‌آموز حذف می‌شود.", () =>
+              confirmDelete(copy.deleteActivityConfirm, copy.deleteActivityDescription, () =>
                 removeTask.mutate(task.id),
               );
             }}
             onDuplicateTask={(plan, task) => {
               if (!canCreateTask) {
-                notify("دسترسی ساخت فعالیت را ندارید.", "error");
+                notify(copy.createActivityForbidden, "error");
                 return;
               }
               const start = addMinutes(task.start || "08:00", 30);
@@ -798,29 +796,24 @@ export function PlannerPage() {
                     sortOrder: (task.sortOrder || plan.tasks.length) + 1,
                   },
                 })
-                .then(() => notify("فعالیت ۳۰ دقیقه بعد تکثیر شد.", "success"))
+                .then(() => notify(copy.activityDuplicated, "success"))
                 .catch((reason) =>
-                  notify(errorMessage(reason, "تکثیر فعالیت انجام نشد."), "error"),
+                  notify(errorMessage(reason, copy.duplicateActivityFailed), "error"),
                 );
             }}
             onMoveTask={(taskId, planDate, start, end) =>
               void ensurePlan(planDate)
                 .then((plan) => moveTask.mutateAsync({ taskId, planId: plan.id, start, end }))
-                .catch((reason) =>
-                  notify(
-                    errorMessage(reason, "جابجایی فعالیت ذخیره نشد و بازگردانده شد."),
-                    "error",
-                  ),
-                )
+                .catch((reason) => notify(errorMessage(reason, copy.moveActivityFailed), "error"))
             }
             onEditPlan={(plan) => openPlan(plan.planDate, plan)}
             onDuplicatePlan={openDuplicate}
             onDeletePlan={(plan) => {
               if (!canDeletePlan) {
-                notify("دسترسی حذف برنامه را ندارید.", "error");
+                notify(copy.deletePlanForbidden, "error");
                 return;
               }
-              confirmDelete("حذف برنامه روز؟", "همه فعالیت‌های این روز حذف می‌شوند.", () =>
+              confirmDelete(copy.deletePlanConfirm, copy.deletePlanDescription, () =>
                 removePlan.mutate(plan.id),
               );
             }}
@@ -829,15 +822,19 @@ export function PlannerPage() {
       </Card>
       {drawer && canManage ? (
         <TaskDrawer
-          title={drawer.task?.id ? "ویرایش فعالیت" : "فعالیت جدید"}
+          title={drawer.task?.id ? copy.editActivity : copy.newActivity}
           onClose={() => setDrawer(null)}
           onDelete={
             drawer.task?.id
               ? () =>
-                  confirmDelete("حذف فعالیت؟", "این فعالیت از برنامه حذف می‌شود.", () => {
-                    removeTask.mutate(drawer.task!.id);
-                    setDrawer(null);
-                  })
+                  confirmDelete(
+                    copy.deleteActivityConfirm,
+                    copy.deleteDrawerActivityDescription,
+                    () => {
+                      removeTask.mutate(drawer.task!.id);
+                      setDrawer(null);
+                    },
+                  )
               : undefined
           }
         >
@@ -897,6 +894,9 @@ export function PlannerPage() {
 }
 
 function PlanShareHistory({ onClose }: { onClose: () => void }) {
+  const { language, formatDateTime } = useLocale();
+  const copy = plannerCopy(language);
+  const number = (value: number) => value.toLocaleString(language === "fa" ? "fa-IR" : "en-US");
   const history = useQuery({
     queryKey: ["planner-share-history"],
     queryFn: getPlanShareHistory,
@@ -904,26 +904,26 @@ function PlanShareHistory({ onClose }: { onClose: () => void }) {
   if (history.isLoading)
     return (
       <p role="status" className="p-4 text-center text-sm text-slate-500">
-        در حال دریافت تاریخچه…
+        {copy.loadingShareHistory}
       </p>
     );
   if (history.isError)
     return (
       <div className="grid gap-3 p-3 text-center">
         <p role="alert" className="text-sm text-rose-700">
-          دریافت تاریخچه اشتراک‌گذاری انجام نشد.
+          {copy.shareHistoryFailed}
         </p>
         <Button variant="soft" onClick={() => void history.refetch()}>
-          تلاش دوباره
+          {copy.retry}
         </Button>
       </div>
     );
   if (!history.data?.length)
     return (
       <div className="grid gap-3 p-3 text-center">
-        <p className="text-sm text-slate-500">هنوز اشتراک‌گذاری گروهی ثبت نشده است.</p>
+        <p className="text-sm text-slate-500">{copy.noShareHistory}</p>
         <Button variant="ghost" onClick={onClose}>
-          بستن
+          {copy.close}
         </Button>
       </div>
     );
@@ -941,26 +941,26 @@ function PlanShareHistory({ onClose }: { onClose: () => void }) {
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <strong>
-                {metadata.sourceFrom || "—"} تا {metadata.sourceTo || "—"}
+                {metadata.sourceFrom || "—"} {copy.dateRangeSeparator} {metadata.sourceTo || "—"}
               </strong>
-              <time className="text-xs text-slate-500">
-                {new Intl.DateTimeFormat("fa-IR", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                }).format(new Date(entry.createdAt))}
-              </time>
+              <time className="text-xs text-slate-500">{formatDateTime(entry.createdAt)}</time>
             </div>
             <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-              {fa(targets)} دانش‌آموز · {fa(Number(metadata.copied || 0))} کپی ·{" "}
-              {fa(Number(metadata.skipped || 0))} بدون تغییر
-              {metadata.conflictPolicy === "overwrite" ? " · جایگزینی مجاز" : " · حفظ برنامه موجود"}
+              {copy.shareHistorySummary(
+                number(targets),
+                number(Number(metadata.copied || 0)),
+                number(Number(metadata.skipped || 0)),
+                metadata.conflictPolicy === "overwrite"
+                  ? copy.overwriteAllowed
+                  : copy.keepExistingPlans,
+              )}
             </p>
           </article>
         );
       })}
       <div className="pt-2 text-left">
         <Button variant="ghost" onClick={onClose}>
-          بستن
+          {copy.close}
         </Button>
       </div>
     </div>
@@ -1009,6 +1009,9 @@ function SharePlanForm({
     };
   }>;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
+  const number = (value: number) => value.toLocaleString(language === "fa" ? "fa-IR" : "en-US");
   const choices = students.filter(
     (student) =>
       student.id !== sourceStudentId &&
@@ -1091,34 +1094,32 @@ function SharePlanForm({
           sourceTo,
           targetStartDate,
           conflictPolicy,
-        }).catch((reason) => setError(errorMessage(reason, "اشتراک‌گذاری برنامه انجام نشد.")));
+        }).catch((reason) => setError(errorMessage(reason, copy.sharePlanFailed)));
       }}
     >
       <section className="grid gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <strong className="text-sm">دانش‌آموزان مقصد</strong>
-            <p className="text-xs text-slate-500">
-              فقط دانش‌آموزان در محدوده دسترسی نقش شما نمایش داده می‌شوند.
-            </p>
+            <strong className="text-sm">{copy.destinationStudents}</strong>
+            <p className="text-xs text-slate-500">{copy.destinationStudentsHelp}</p>
           </div>
           <span className="rounded-full bg-brand/10 px-2 py-1 text-xs font-bold text-brand">
-            {fa(targetStudentIds.length)} انتخاب
+            {copy.selectedCount(number(targetStudentIds.length))}
           </span>
         </div>
         <input
-          aria-label="جستجوی دانش‌آموزان مقصد"
+          aria-label={copy.searchDestinationStudents}
           className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="جستجو بر اساس نام، پایه یا رشته…"
+          placeholder={copy.searchDestinationStudentsPlaceholder}
         />
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            [grade, setGrade, "پایه", "grade"],
-            [educationType, setEducationType, "نوع آموزش", "educationType"],
-            [track, setTrack, "رشته / مسیر", "track"],
-            [organization, setOrganization, "سازمان", "organization"],
+            [grade, setGrade, copy.grade, "grade"],
+            [educationType, setEducationType, copy.educationType, "educationType"],
+            [track, setTrack, copy.track, "track"],
+            [organization, setOrganization, copy.organization, "organization"],
           ].map(([value, setValue, label, key]) => (
             <label
               key={String(key)}
@@ -1130,7 +1131,7 @@ function SharePlanForm({
                 onChange={(event) => (setValue as (value: string) => void)(event.target.value)}
                 className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
               >
-                <option value="">همه</option>
+                <option value="">{copy.all}</option>
                 {filterValues(key as "grade" | "educationType" | "track" | "organization").map(
                   (item) => (
                     <option key={item} value={item}>
@@ -1157,7 +1158,7 @@ function SharePlanForm({
               )
             }
           >
-            {allVisibleSelected ? "برداشتن انتخاب‌های نمایش‌داده‌شده" : "انتخاب همه نمایش‌داده‌شده"}
+            {allVisibleSelected ? copy.clearVisibleSelection : copy.selectAllVisible}
           </button>
           {targetStudentIds.length ? (
             <button
@@ -1165,14 +1166,14 @@ function SharePlanForm({
               className="text-slate-500"
               onClick={() => setTargetStudentIds([])}
             >
-              پاک کردن
+              {copy.clear}
             </button>
           ) : null}
         </div>
         <div
           className="max-h-52 overflow-y-auto rounded-lg bg-slate-50 p-1 dark:bg-slate-800/60"
           role="group"
-          aria-label="دانش‌آموزان مقصد"
+          aria-label={copy.destinationStudents}
         >
           {visibleChoices.map((student) => (
             <label
@@ -1189,17 +1190,17 @@ function SharePlanForm({
                 <small className="block truncate text-xs text-slate-500">
                   {[student.grade, student.major, student.user?.username || student.username]
                     .filter(Boolean)
-                    .join(" · ") || "پروفایل آموزشی"}
+                    .join(" · ") || copy.educationProfile}
                 </small>
               </span>
             </label>
           ))}
           {!visibleChoices.length ? (
-            <p className="p-3 text-center text-sm text-slate-500">دانش‌آموزی پیدا نشد.</p>
+            <p className="p-3 text-center text-sm text-slate-500">{copy.noStudentFound}</p>
           ) : null}
         </div>
         {targetStudentIds.length ? (
-          <div className="flex flex-wrap gap-1" aria-label="دانش‌آموزان انتخاب‌شده">
+          <div className="flex flex-wrap gap-1" aria-label={copy.selectedDestinationStudents}>
             {targetStudentIds.map((id) => {
               const student = choices.find((item) => item.id === id);
               return student ? (
@@ -1208,7 +1209,7 @@ function SharePlanForm({
                   type="button"
                   className="rounded-full bg-brand/10 px-2 py-1 text-xs font-bold text-brand hover:bg-brand/20"
                   onClick={() => toggle(id)}
-                  aria-label={`حذف ${student.name} از انتخاب`}
+                  aria-label={copy.removeStudentFromSelection(student.name)}
                 >
                   {student.name} ×
                 </button>
@@ -1219,12 +1220,10 @@ function SharePlanForm({
       </section>
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
         <div>
-          <strong className="text-sm">بازه و تعارض</strong>
-          <p className="text-xs text-slate-500">
-            روزهای برنامه با همان فاصله زمانی به تاریخ مقصد منتقل می‌شوند.
-          </p>
+          <strong className="text-sm">{copy.rangeAndConflict}</strong>
+          <p className="text-xs text-slate-500">{copy.rangeAndConflictHelp}</p>
         </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="بازه آماده اشتراک‌گذاری">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={copy.readyShareRange}>
           <Button
             type="button"
             size="sm"
@@ -1235,7 +1234,7 @@ function SharePlanForm({
               setTargetStartDate(sourceDate);
             }}
           >
-            فقط همین روز
+            {copy.onlyThisDay}
           </Button>
           <Button
             type="button"
@@ -1247,20 +1246,20 @@ function SharePlanForm({
               setTargetStartDate(initialRange.from);
             }}
           >
-            بازه نمایش‌داده‌شده
+            {copy.visibleRange}
           </Button>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-sm font-bold">
-            از برنامه مبدأ
+            {copy.sourcePlanFrom}
             <DatePicker value={sourceFrom} onChange={setSourceFrom} />
           </label>
           <label className="grid gap-1 text-sm font-bold">
-            تا برنامه مبدأ
+            {copy.sourcePlanTo}
             <DatePicker value={sourceTo} onChange={setSourceTo} />
           </label>
           <label className="grid gap-1 text-sm font-bold sm:col-span-2">
-            شروع بازه مقصد
+            {copy.targetRangeStart}
             <DatePicker value={targetStartDate} onChange={setTargetStartDate} />
           </label>
         </div>
@@ -1274,11 +1273,8 @@ function SharePlanForm({
             }}
           />
           <span>
-            <strong>جایگزینی برنامه‌های موجود</strong>
-            <small className="mt-1 block">
-              به‌صورت پیش‌فرض برنامه موجود حفظ می‌شود. این گزینه فعالیت‌های برنامه مقصد را جایگزین
-              می‌کند.
-            </small>
+            <strong>{copy.replaceExistingPlans}</strong>
+            <small className="mt-1 block">{copy.replaceExistingPlansHelp}</small>
           </span>
         </label>
         {conflictPolicy === "overwrite" ? (
@@ -1289,49 +1285,53 @@ function SharePlanForm({
               onChange={(event) => setOverwriteAcknowledged(event.target.checked)}
             />
             <span>
-              <strong>متوجه هستم که برنامه‌های موجود مقصد جایگزین می‌شوند.</strong>
-              <small className="mt-1 block">
-                فعالیت‌های انجام‌شده همچنان توسط سرور محافظت می‌شوند و جایگزین نخواهند شد.
-              </small>
+              <strong>{copy.overwriteAcknowledgement}</strong>
+              <small className="mt-1 block">{copy.overwriteAcknowledgementHelp}</small>
             </span>
           </label>
         ) : null}
       </section>
       {!choices.length ? (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-          دانش‌آموز دیگری در محدوده نقش فعال شما وجود ندارد.
-        </p>
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{copy.noOtherStudents}</p>
       ) : null}
       {preview ? (
         <section
           className="grid gap-1 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-950 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-100"
           aria-live="polite"
         >
-          <strong>پیش‌نمایش اشتراک‌گذاری</strong>
+          <strong>{copy.sharePreview}</strong>
           <span>
-            {fa(preview.summary.targetCount)} دانش‌آموز · {fa(preview.summary.copiedPlanCount)}{" "}
-            برنامه مقصد
+            {copy.previewDestinationPlans(
+              number(preview.summary.targetCount),
+              number(preview.summary.copiedPlanCount),
+            )}
           </span>
           <span>
-            {fa(preview.summary.existingPlanCount)} برنامه موجود ·{" "}
-            {fa(preview.summary.emptyDestinationDayCount)} روز خالی
+            {copy.previewExistingAndEmpty(
+              number(preview.summary.existingPlanCount),
+              number(preview.summary.emptyDestinationDayCount),
+            )}
           </span>
           <span>
-            {fa(preview.summary.timeConflictCount)} تداخل زمانی ·{" "}
-            {fa(preview.summary.examCollisionCount)} تداخل آزمون ·{" "}
-            {fa(preview.summary.overCapacityDayCount)} روز فراتر از ظرفیت
+            {copy.previewConflicts(
+              number(preview.summary.timeConflictCount),
+              number(preview.summary.examCollisionCount),
+              number(preview.summary.overCapacityDayCount),
+            )}
           </span>
           <span>
-            بار پیشنهادی: {fa(Math.round((preview.summary.proposedMinutes / 60) * 10) / 10)} ساعت
+            {copy.proposedLoad(
+              number(Math.round((preview.summary.proposedMinutes / 60) * 10) / 10),
+            )}
           </span>
           {preview.summary.existingPlanCount ? (
-            <small>در حالت پیش‌فرض، برنامه‌های موجود بدون تغییر باقی می‌مانند.</small>
+            <small>{copy.defaultExistingPlansHelp}</small>
           ) : null}
         </section>
       ) : null}
       {sourceFrom > sourceTo ? (
         <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">
-          تاریخ شروع بازه باید پیش از تاریخ پایان باشد.
+          {copy.invalidShareRange}
         </p>
       ) : null}
       {error ? (
@@ -1341,7 +1341,7 @@ function SharePlanForm({
       ) : null}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
         <Button
           type="button"
@@ -1359,13 +1359,11 @@ function SharePlanForm({
               conflictPolicy,
             })
               .then(setPreview)
-              .catch((reason) =>
-                setError(errorMessage(reason, "پیش‌نمایش اشتراک‌گذاری انجام نشد.")),
-              )
+              .catch((reason) => setError(errorMessage(reason, copy.sharePreviewFailed)))
               .finally(() => setPreviewing(false));
           }}
         >
-          پیش‌نمایش
+          {copy.preview}
         </Button>
         <Button
           type="submit"
@@ -1376,7 +1374,7 @@ function SharePlanForm({
             (conflictPolicy === "overwrite" && !overwriteAcknowledged)
           }
         >
-          {busy ? "در حال اشتراک…" : "اشتراک برنامه"}
+          {busy ? copy.sharing : copy.sharePlan}
         </Button>
       </div>
     </form>

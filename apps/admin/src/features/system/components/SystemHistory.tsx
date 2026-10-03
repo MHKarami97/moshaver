@@ -1,6 +1,8 @@
 import { History, RotateCcw } from "lucide-react";
 import { Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { HistoryRow } from "../model/system.types";
+import { systemCopy } from "../system-locale";
 export function SystemHistory({
   title,
   rows = [],
@@ -14,6 +16,8 @@ export function SystemHistory({
   error?: boolean;
   onRetry?: () => void;
 }) {
+  const { language, profile } = useLocale();
+  const copy = systemCopy(language);
   return (
     <Card className="min-h-72 p-5 sm:p-6">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -22,22 +26,22 @@ export function SystemHistory({
           {title}
         </h3>
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-600">
-          {rows.length.toLocaleString("fa-IR")} مورد
+          {rows.length.toLocaleString(profile.locale)} {copy.items}
         </span>
       </div>
       {loading ? (
-        <div className="grid gap-2" aria-label="در حال دریافت تاریخچه">
+        <div className="grid gap-2" aria-label={copy.loadingHistory}>
           {[1, 2, 3].map((item) => (
             <div key={item} className="h-14 animate-pulse rounded-md bg-slate-100" />
           ))}
         </div>
       ) : error ? (
         <EmptyState
-          title="دریافت تاریخچه ناموفق بود."
+          title={copy.historyFailed}
           action={
             <Button variant="soft" onClick={onRetry}>
               <RotateCcw size={14} />
-              تلاش دوباره
+              {copy.retry}
             </Button>
           }
         />
@@ -47,7 +51,7 @@ export function SystemHistory({
             <article key={String(row.id || index)} className="rounded-lg border p-3 text-sm">
               <div className="flex items-start justify-between gap-2">
                 <strong>
-                  {String(row.app || row.action || row.type || row.schemaVersion || "رکورد")}
+                  {String(row.app || row.action || row.type || row.schemaVersion || copy.record)}
                 </strong>
                 <time className="shrink-0 text-[10px] text-slate-400">
                   {String(row.createdAt || row.updatedAt || row.created_at || row.updated_at || "")}
@@ -60,7 +64,7 @@ export function SystemHistory({
           ))}
         </div>
       ) : (
-        <EmptyState title="سابقه‌ای وجود ندارد." />
+        <EmptyState title={copy.noHistory} />
       )}
     </Card>
   );

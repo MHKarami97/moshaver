@@ -1,4 +1,6 @@
 import { Card, EmptyState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 import type { LivePanel, LiveStudent } from "../model/live.types";
 import { StudentDetail } from "./StudentDetail";
 
@@ -13,6 +15,8 @@ export function StudentDetailPanel({
   now: number;
   formatDateTime: (value?: string | Date) => string;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   return (
     <Card
       className={[
@@ -21,15 +25,19 @@ export function StudentDetailPanel({
       ].join(" ")}
     >
       <div className="border-b px-3 py-2">
-        <strong>کنترل سریع</strong>
+        <strong>{language === "fa" ? "کنترل سریع" : "Quick controls"}</strong>
 
-        <p className="text-xs text-slate-500">جزئیات فقط برای مورد انتخاب‌شده</p>
+        <p className="text-xs text-slate-500">
+          {language === "fa"
+            ? "جزئیات فقط برای مورد انتخاب‌شده"
+            : "Details for the selected record only"}
+        </p>
       </div>
 
       {student ? (
         <StudentDetail student={student} now={now} formatDateTime={formatDateTime} />
       ) : (
-        <EmptyState title="یک دانش‌آموز را انتخاب کنید." />
+        <EmptyState title={copy.noStudent} />
       )}
     </Card>
   );

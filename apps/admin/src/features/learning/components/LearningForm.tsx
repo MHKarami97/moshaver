@@ -5,9 +5,11 @@ import { todayIso } from "../../../shared/lib/utils";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import { createLearningItem, updateLearningItem } from "../api/learning.api";
 import { learningFormSchema, type LearningFormValues } from "../model/learning-form.schema";
 import type { LearningItem } from "../model/learning-model";
+import { learningCopy } from "../learning-locale";
 
 export function LearningForm({
   studentId,
@@ -18,6 +20,8 @@ export function LearningForm({
   item?: LearningItem;
   onSaved: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = learningCopy(language);
   const queryClient = useQueryClient();
 
   const form = useForm<LearningFormValues>({
@@ -43,7 +47,7 @@ export function LearningForm({
       item ? updateLearningItem(studentId, item.id, values) : createLearningItem(studentId, values),
 
     onSuccess: () => {
-      notify(item ? "مورد یادگیری به‌روز شد." : "مرور جدید ساخته شد.");
+      notify(item ? copy.updated : copy.created);
 
       void queryClient.invalidateQueries({
         queryKey: ["student-learning", studentId],
@@ -52,38 +56,37 @@ export function LearningForm({
       onSaved();
     },
 
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره انجام نشد.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
 
   return (
     <form className="grid gap-3" onSubmit={form.handleSubmit((values) => save.mutate(values))}>
-      <Field label="عنوان" error={form.formState.errors.title?.message}>
+      <Field label={copy.title} error={form.formState.errors.title?.message}>
         <Input autoFocus {...form.register("title")} />
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="درس">
+        <Field label={copy.subject}>
           <Input {...form.register("subject")} />
         </Field>
 
-        <Field label="مبحث">
+        <Field label={copy.topic}>
           <Input {...form.register("topic")} />
         </Field>
 
-        <Field label="کتاب">
+        <Field label={copy.book}>
           <Input {...form.register("book")} />
         </Field>
 
-        <Field label="فصل">
+        <Field label={copy.chapter}>
           <Input {...form.register("chapter")} />
         </Field>
 
-        <Field label="درس / بخش">
+        <Field label={copy.lesson}>
           <Input {...form.register("lesson")} />
         </Field>
 
-        <Field label="تاریخ مرور" error={form.formState.errors.dueDate?.message}>
+        <Field label={copy.reviewDate} error={form.formState.errors.dueDate?.message}>
           <DatePicker
             value={form.watch("dueDate")}
             onChange={(value) =>
@@ -97,31 +100,35 @@ export function LearningForm({
 
       {item ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="تسلط فعلی">
-            <Input value={`${item.mastery.toLocaleString("fa-IR")} از ۵`} disabled readOnly />
+          <Field label={copy.currentMastery}>
+            <Input
+              value={`${item.mastery.toLocaleString(language === "fa" ? "fa-IR" : "en-US")} / 5`}
+              disabled
+              readOnly
+            />
           </Field>
-          <Field label="وضعیت">
+          <Field label={copy.status}>
             <Select {...form.register("status")}>
-              <option value="pending">در انتظار مرور</option>
+              <option value="pending">{copy.pending}</option>
 
-              <option value="done">تکمیل‌شده</option>
+              <option value="done">{copy.done}</option>
 
-              <option value="archived">بایگانی</option>
+              <option value="archived">{copy.archived}</option>
             </Select>
           </Field>
         </div>
       ) : null}
 
-      <Field label="یادداشت">
+      <Field label={copy.note}>
         <Textarea rows={3} {...form.register("note")} />
       </Field>
 
-      <Field label="راهنمای مرور بعدی">
+      <Field label={copy.hint}>
         <Textarea rows={3} {...form.register("hint")} />
       </Field>
 
       <Button type="submit" loading={save.isPending} disabled={save.isPending}>
-        ذخیره مورد یادگیری
+        {copy.save}
       </Button>
     </form>
   );

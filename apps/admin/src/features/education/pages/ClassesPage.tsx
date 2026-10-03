@@ -26,6 +26,7 @@ import {
   type EducationClass,
   updateClass,
 } from "../api/classes.api";
+import { useClassesCopy } from "../model/classes-copy";
 
 const initial = (): ClassDraft => ({
   organizationId: "",
@@ -44,6 +45,7 @@ export function ClassesPage() {
   const auth = useAuth();
   const client = useQueryClient();
   const modal = useModal();
+  const copy = useClassesCopy();
   const canManage = auth.can("classes.manage");
   const canRoster = auth.can("classes.roster.manage");
   const organizations = useQuery({
@@ -69,10 +71,9 @@ export function ClassesPage() {
       setSelectedId(row.id);
       setEditing(row.id);
       modal.close();
-      notify("کلاس ذخیره شد.", "success");
+      notify(copy.saved, "success");
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره کلاس ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const remove = useMutation({
     mutationFn: deleteClass,
@@ -81,9 +82,9 @@ export function ClassesPage() {
       setSelectedId(null);
       setEditing(null);
       setForm(initial());
-      notify("کلاس حذف شد.", "success");
+      notify(copy.deleted, "success");
     },
-    onError: () => notify("حذف کلاس ناموفق بود.", "error"),
+    onError: () => notify(copy.deleteFailed, "error"),
   });
   const saveBooks = useMutation({
     mutationFn: (books: Array<{ bookId: string; teacherId: string }>) =>
@@ -91,25 +92,27 @@ export function ClassesPage() {
     onSuccess: () => {
       refresh();
       void options.refetch();
-      notify("کتاب‌ها و دبیران کلاس ذخیره شد.", "success");
+      notify(copy.booksSaved, "success");
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره کتاب‌ها ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const saveRoster = useMutation({
     mutationFn: (studentIds: string[]) => setClassEnrollments(selectedId!, studentIds),
     onSuccess: () => {
       refresh();
       void options.refetch();
-      notify("فهرست دانش‌آموزان کلاس ذخیره شد.", "success");
+      notify(copy.rosterSaved, "success");
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره فهرست ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const saveAdvisor = useMutation({
     mutationFn: (advisorId: string | null) => updateClass(selectedId!, { advisorId }),
-    onSuccess: () => { refresh(); void options.refetch(); notify("مشاور کلاس به‌روزرسانی شد.", "success"); },
-    onError: (error) => notify(error instanceof Error ? error.message : "ذخیره مشاور ناموفق بود.", "error"),
+    onSuccess: () => {
+      refresh();
+      void options.refetch();
+      notify(copy.advisorSaved, "success");
+    },
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const start = (row?: EducationClass) => {
     if (!row) {
@@ -138,13 +141,36 @@ export function ClassesPage() {
   };
   const openEditor = (row?: EducationClass) => {
     const draft: ClassDraft = row
-      ? { organizationId: row.organization.id, code: row.code, name: row.name, schoolYear: row.schoolYear, gradeId: row.gradeId, educationTypeId: row.educationTypeId, trackId: row.trackId, capacity: row.capacity, description: row.description, advisorId: row.advisor?.id || null }
-      : { ...initial(), organizationId: organizations.data?.length === 1 ? organizations.data[0].id : "" };
+      ? {
+          organizationId: row.organization.id,
+          code: row.code,
+          name: row.name,
+          schoolYear: row.schoolYear,
+          gradeId: row.gradeId,
+          educationTypeId: row.educationTypeId,
+          trackId: row.trackId,
+          capacity: row.capacity,
+          description: row.description,
+          advisorId: row.advisor?.id || null,
+        }
+      : {
+          ...initial(),
+          organizationId: organizations.data?.length === 1 ? organizations.data[0].id : "",
+        };
     modal.open({
-      title: row ? "ویرایش کلاس" : "کلاس جدید",
-      description: "مشخصات کلاس را ثبت کنید؛ کتاب‌ها و دانش‌آموزان در مرحلهٔ بعد مدیریت می‌شوند.",
+      title: row ? copy.editClass : copy.newClass,
+      description: copy.editorDescription,
       size: "lg",
-      content: <ClassEditorModal initialDraft={draft} editingId={row?.id || null} organizations={organizations.data || []} saving={save.isPending} onClose={modal.close} onSave={(next) => save.mutate({ id: row?.id || null, draft: next })} />,
+      content: (
+        <ClassEditorModal
+          initialDraft={draft}
+          editingId={row?.id || null}
+          organizations={organizations.data || []}
+          saving={save.isPending}
+          onClose={modal.close}
+          onSave={(next) => save.mutate({ id: row?.id || null, draft: next })}
+        />
+      ),
     });
   };
   const visible = useMemo(
@@ -154,28 +180,23 @@ export function ClassesPage() {
       ),
     [classes.data, form.organizationId],
   );
-  if (classes.isLoading || organizations.isLoading)
-    return <LoadingState label="در حال آماده‌سازی کلاس‌ها…" />;
-  if (classes.isError || organizations.isError)
-    return <EmptyState title="دریافت اطلاعات کلاس ناموفق بود." />;
-  if (!auth.can("classes.read"))
-    return <EmptyState title="دسترسی مشاهده کلاس‌های آموزشی ندارید." />;
+  if (classes.isLoading || organizations.isLoading) return <LoadingState label={copy.loading} />;
+  if (classes.isError || organizations.isError) return <EmptyState title={copy.loadFailed} />;
+  if (!auth.can("classes.read")) return <EmptyState title={copy.noAccess} />;
   return (
     <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_23rem] xl:items-start">
       <Card className="min-w-0 p-3">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold">کلاس‌های سازمان</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              کتاب، دبیر، مشاور و ثبت‌نام را در یک جریان کنترل کنید.
-            </p>
+            <h2 className="text-sm font-bold">{copy.organizationClasses}</h2>
+            <p className="mt-1 text-xs text-slate-500">{copy.listDescription}</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge tone="blue">{visible.length.toLocaleString("fa-IR")}</Badge>
             {canManage ? (
               <Button size="sm" onClick={() => openEditor()}>
                 <Plus size={15} />
-                کلاس جدید
+                {copy.newClass}
               </Button>
             ) : null}
           </div>
@@ -201,11 +222,11 @@ export function ClassesPage() {
                   </span>
                 </span>
                 <Badge tone={row.status === "ACTIVE" ? "green" : "neutral"}>
-                  {row.status === "ACTIVE" ? "فعال" : "بایگانی"}
+                  {row.status === "ACTIVE" ? copy.active : copy.archived}
                 </Badge>
               </span>
               <span className="flex flex-wrap gap-1">
-                <Badge tone="blue">پایه {row.gradeId.toLocaleString("fa-IR")}</Badge>
+                <Badge tone="blue">{copy.grade(row.gradeId)}</Badge>
                 <Badge tone="neutral">
                   {educationLabel(row.educationTypeId)} · {educationLabel(row.trackId)}
                 </Badge>
@@ -215,18 +236,18 @@ export function ClassesPage() {
                 </small>
               </span>
               <small className="text-xs text-slate-500">
-                مشاور: {row.advisor?.name || "تعیین نشده"} ·{" "}
-                {row.books.length.toLocaleString("fa-IR")} کتاب
+                {copy.advisor}: {row.advisor?.name || copy.notAssigned} ·{" "}
+                {row.books.length.toLocaleString(copy.locale)} {copy.books}
               </small>
             </button>
           ))}
           {!visible.length ? (
             <EmptyState
-              title="هنوز کلاسی برای این سازمان ساخته نشده است."
+              title={copy.noClasses}
               action={
                 canManage ? (
                   <Button variant="soft" onClick={() => openEditor()}>
-                    ساخت کلاس
+                    {copy.createClass}
                   </Button>
                 ) : undefined
               }
@@ -286,14 +307,13 @@ function ClassDetail({
   deleting: boolean;
 }) {
   const modal = useModal();
+  const copy = useClassesCopy();
   const [books, setBooks] = useState<Array<{ bookId: string; teacherId: string }>>([]);
   const [students, setStudents] = useState<string[]>([]);
   if (!classroom)
     return (
       <Card className="p-3 xl:sticky xl:top-16">
-        <p className="text-sm text-slate-500">
-          برای انتخاب کتاب، دبیر، مشاور و دانش‌آموزان، یک کلاس را انتخاب کنید.
-        </p>
+        <p className="text-sm text-slate-500">{copy.selectClass}</p>
       </Card>
     );
   const activeBooks = books.length
@@ -305,8 +325,8 @@ function ClassDetail({
   const openBooks = () =>
     options &&
     modal.open({
-      title: "کتاب‌ها و دبیران کلاس",
-      description: "هر کتاب را انتخاب کنید و دبیر مسئول همان کتاب را تعیین کنید.",
+      title: copy.bookTeachersTitle,
+      description: copy.bookTeachersDescription,
       size: "xl",
       content: (
         <ClassBooksModal
@@ -321,8 +341,8 @@ function ClassDetail({
   const openRoster = () =>
     options &&
     modal.open({
-      title: "فهرست دانش‌آموزان کلاس",
-      description: "فقط دانش‌آموزان هم‌ساز با پایه، نوع آموزش و رشتهٔ کلاس نمایش داده می‌شوند.",
+      title: copy.rosterTitle,
+      description: copy.rosterDescription,
       size: "xl",
       content: (
         <ClassRosterModal
@@ -334,17 +354,27 @@ function ClassDetail({
         />
       ),
     });
-  const openAdvisor = () => options && modal.open({
-    title: "مشاور کلاس",
-    description: "یک مشاور یا مربی فعالِ همین سازمان را انتخاب کنید.",
-    content: <ClassAdvisorModal advisors={options.advisors} value={classroom.advisor?.id || null} saving={savingAdvisor} onSave={onAdvisor} onClose={modal.close} />,
-  });
+  const openAdvisor = () =>
+    options &&
+    modal.open({
+      title: copy.classAdvisor,
+      description: copy.advisorDescription,
+      content: (
+        <ClassAdvisorModal
+          advisors={options.advisors}
+          value={classroom.advisor?.id || null}
+          saving={savingAdvisor}
+          onSave={onAdvisor}
+          onClose={modal.close}
+        />
+      ),
+    });
   const confirmDelete = async () => {
     const confirmed = await modal.confirm({
-      title: "حذف کلاس؟",
-      description: `کلاس «${classroom.name}» و فهرست کتاب‌ها و دانش‌آموزان آن حذف می‌شود.`,
+      title: copy.deleteTitle,
+      description: copy.deleteDescription(classroom.name),
       tone: "danger",
-      confirmLabel: "حذف کلاس",
+      confirmLabel: copy.deleteClass,
       confirmationText: classroom.name,
     });
     if (confirmed) onDelete();
@@ -354,38 +384,42 @@ function ClassDetail({
       <div>
         <h2 className="text-sm font-bold">{classroom.name}</h2>
         <p className="mt-1 text-xs text-slate-500">
-          {classroom.code} · {classroom.enrollmentCount}/{classroom.capacity} دانش‌آموز
+          {classroom.code} · {classroom.enrollmentCount}/{classroom.capacity} {copy.students}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {canManage ? (
           <Button size="sm" variant="ghost" onClick={onEdit}>
             <Pencil size={14} />
-            ویرایش کلاس
+            {copy.edit}
           </Button>
         ) : null}
-        {canManage ? <Button size="sm" variant="ghost" disabled={!options} onClick={openAdvisor}>مشاور کلاس</Button> : null}
+        {canManage ? (
+          <Button size="sm" variant="ghost" disabled={!options} onClick={openAdvisor}>
+            {copy.classAdvisor}
+          </Button>
+        ) : null}
         {canManage ? (
           <Button size="sm" variant="soft" disabled={!options} onClick={openBooks}>
             <BookOpen size={14} />
-            مدیریت کتاب‌ها
+            {copy.manageBooks}
           </Button>
         ) : null}
         {canRoster ? (
           <Button size="sm" variant="soft" disabled={!options} onClick={openRoster}>
             <UsersRound size={14} />
-            مدیریت دانش‌آموزان
+            {copy.manageStudents}
           </Button>
         ) : null}
       </div>
       {loading ? (
-        <LoadingState label="در حال دریافت گزینه‌های کلاس…" />
+        <LoadingState label={copy.loadingOptions} />
       ) : options ? (
         <>
           <section className="grid gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
             <h3 className="flex items-center gap-1 text-xs font-bold">
               <BookOpen size={14} />
-              کتاب‌ها و دبیران
+              {copy.booksAndTeachers}
             </h3>
             {false && canManage && options ? (
               <>
@@ -465,7 +499,7 @@ function ClassDetail({
           <section className="grid gap-2 border-t pt-3 dark:border-slate-800">
             <h3 className="flex items-center gap-1 text-xs font-black">
               <UsersRound size={14} />
-              دانش‌آموزان واجد شرایط
+              {copy.eligibleStudents}
             </h3>
             {false && canRoster && options ? (
               <>
@@ -526,7 +560,7 @@ function ClassDetail({
               onClick={() => void confirmDelete()}
             >
               <Trash2 size={14} />
-              حذف کلاس
+              {copy.deleteClass}
             </Button>
           ) : null}
         </>
@@ -547,6 +581,7 @@ function ClassBooksModal({
   onClose: () => void;
   saving: boolean;
 }) {
+  const copy = useClassesCopy();
   const [selected, setSelected] = useState(() =>
     classroom.books.map((book) => ({ bookId: book.bookId, teacherId: book.teacher.id })),
   );
@@ -582,7 +617,7 @@ function ClassBooksModal({
               </label>
               {row ? (
                 <label className="grid gap-1 text-xs font-bold text-slate-600 dark:text-slate-300">
-                  <span>دبیر مسئول</span>
+                  <span>{copy.responsibleTeacher}</span>
                   <select
                     className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
                     value={row.teacherId}
@@ -596,7 +631,7 @@ function ClassBooksModal({
                       )
                     }
                   >
-                    <option value="">انتخاب دبیر</option>
+                    <option value="">{copy.selectTeacher}</option>
                     {options.teachers.map((teacher) => (
                       <option key={teacher.id} value={teacher.id}>
                         {teacher.name}
@@ -605,7 +640,7 @@ function ClassBooksModal({
                   </select>
                 </label>
               ) : (
-                <small className="text-xs text-slate-400">این کتاب در کلاس فعال نیست.</small>
+                <small className="text-xs text-slate-400">{copy.inactiveBook}</small>
               )}
             </article>
           );
@@ -613,7 +648,7 @@ function ClassBooksModal({
       </div>
       <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
         <Button variant="ghost" onClick={onClose}>
-          انصراف
+          {copy.cancel}
         </Button>
         <Button
           loading={saving}
@@ -624,7 +659,7 @@ function ClassBooksModal({
           }}
         >
           <Save size={15} />
-          ذخیره کتاب‌ها
+          {copy.saveBooks}
         </Button>
       </div>
     </div>
@@ -646,34 +681,129 @@ function ClassEditorModal({
   onClose: () => void;
   saving: boolean;
 }) {
+  const copy = useClassesCopy();
   const [draft, setDraft] = useState(initialDraft);
   return (
-    <form className="grid gap-3" onSubmit={(event) => { event.preventDefault(); onSave(draft); }}>
+    <form
+      className="grid gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(draft);
+      }}
+    >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="سازمان">
-          <select required disabled={!!editingId} value={draft.organizationId} onChange={(event) => setDraft({ ...draft, organizationId: event.target.value })}>
-            {organizations.length !== 1 ? <option value="">سازمان را انتخاب کنید</option> : null}
-            {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+        <Field label={copy.organization}>
+          <select
+            required
+            disabled={!!editingId}
+            value={draft.organizationId}
+            onChange={(event) => setDraft({ ...draft, organizationId: event.target.value })}
+          >
+            {organizations.length !== 1 ? (
+              <option value="">{copy.selectOrganization}</option>
+            ) : null}
+            {organizations.map((organization) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.name}
+              </option>
+            ))}
           </select>
         </Field>
-        <Field label="سال تحصیلی"><Input required value={draft.schoolYear} onChange={(event) => setDraft({ ...draft, schoolYear: event.target.value })} /></Field>
-        <Field label="نام کلاس"><Input required value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="مثلاً دوازدهم تجربی الف" /></Field>
-        <Field label="کد کلاس"><Input required value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value })} placeholder="12-exp-a" /></Field>
-        <Field label="پایه">
-          <select value={draft.gradeId} onChange={(event) => setDraft({ ...draft, gradeId: Number(event.target.value) })}>
-            {Array.from({ length: 12 }, (_, index) => index + 1).map((grade) => <option key={grade} value={grade}>پایه {grade.toLocaleString("fa-IR")}</option>)}
+        <Field label={copy.schoolYear}>
+          <Input
+            required
+            value={draft.schoolYear}
+            onChange={(event) => setDraft({ ...draft, schoolYear: event.target.value })}
+          />
+        </Field>
+        <Field label={copy.className}>
+          <Input
+            required
+            value={draft.name}
+            onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+            placeholder={copy.classNamePlaceholder}
+          />
+        </Field>
+        <Field label={copy.classCode}>
+          <Input
+            required
+            value={draft.code}
+            onChange={(event) => setDraft({ ...draft, code: event.target.value })}
+            placeholder="12-exp-a"
+            dir="ltr"
+          />
+        </Field>
+        <Field label={copy.grade(0).replace(/0|۰/, "").trim()}>
+          <select
+            value={draft.gradeId}
+            onChange={(event) => setDraft({ ...draft, gradeId: Number(event.target.value) })}
+          >
+            {Array.from({ length: 12 }, (_, index) => index + 1).map((grade) => (
+              <option key={grade} value={grade}>
+                {copy.grade(grade)}
+              </option>
+            ))}
           </select>
         </Field>
-        <Field label="ظرفیت"><Input type="number" min={1} max={200} value={draft.capacity} onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) || 1 })} /></Field>
-        <Field label="نوع آموزش">
-          <select value={draft.educationTypeId} onChange={(event) => setDraft({ ...draft, educationTypeId: event.target.value, trackId: event.target.value === "general" ? "general" : draft.trackId })}>
-            <option value="general">عمومی</option><option value="theoretical">نظری</option><option value="technical_vocational">فنی و حرفه‌ای</option><option value="kar_danesh">کاردانش</option>
+        <Field label={copy.capacity}>
+          <Input
+            type="number"
+            min={1}
+            max={200}
+            value={draft.capacity}
+            onChange={(event) => setDraft({ ...draft, capacity: Number(event.target.value) || 1 })}
+          />
+        </Field>
+        <Field label={copy.educationType}>
+          <select
+            value={draft.educationTypeId}
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                educationTypeId: event.target.value,
+                trackId: event.target.value === "general" ? "general" : draft.trackId,
+              })
+            }
+          >
+            <option value="general">عمومی</option>
+            <option value="theoretical">نظری</option>
+            <option value="technical_vocational">فنی و حرفه‌ای</option>
+            <option value="kar_danesh">کاردانش</option>
           </select>
         </Field>
-        <Field label="رشته"><select value={draft.trackId} onChange={(event) => setDraft({ ...draft, trackId: event.target.value })}>{trackOptions(draft.educationTypeId).map((track) => <option key={track.id} value={track.id}>{track.label}</option>)}</select></Field>
+        <Field label={copy.track}>
+          <select
+            value={draft.trackId}
+            onChange={(event) => setDraft({ ...draft, trackId: event.target.value })}
+          >
+            {trackOptions(draft.educationTypeId, copy).map((track) => (
+              <option key={track.id} value={track.id}>
+                {track.label}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
-      <Field label="توضیح"><Textarea className="min-h-24" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Field>
-      <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800"><Button type="button" variant="ghost" onClick={onClose}>انصراف</Button><Button type="submit" loading={saving} disabled={!draft.organizationId || !draft.name.trim() || !draft.code.trim()}><Save size={15} />{editingId ? "ذخیره تغییرات" : "ساخت کلاس"}</Button></div>
+      <Field label={copy.description}>
+        <Textarea
+          className="min-h-24"
+          value={draft.description}
+          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+        />
+      </Field>
+      <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
+        <Button type="button" variant="ghost" onClick={onClose}>
+          {copy.cancel}
+        </Button>
+        <Button
+          type="submit"
+          loading={saving}
+          disabled={!draft.organizationId || !draft.name.trim() || !draft.code.trim()}
+        >
+          <Save size={15} />
+          {editingId ? copy.saveChanges : copy.createClass}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -691,14 +821,15 @@ function ClassRosterModal({
   onClose: () => void;
   saving: boolean;
 }) {
+  const copy = useClassesCopy();
   const [selected, setSelected] = useState(() => classroom.students.map((student) => student.id));
   const toggle = (id: string) =>
     setSelected((rows) => (rows.includes(id) ? rows.filter((item) => item !== id) : [...rows, id]));
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-900">
-        <span>انتخاب‌شده: {selected.length.toLocaleString("fa-IR")}</span>
-        <span>ظرفیت: {classroom.capacity.toLocaleString("fa-IR")}</span>
+        <span>{copy.selected(selected.length)}</span>
+        <span>{copy.capacityLabel(classroom.capacity)}</span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {options.eligibleStudents.map((student) => {
@@ -717,24 +848,22 @@ function ClassRosterModal({
               <span className="min-w-0">
                 <strong className="block truncate text-sm">{student.name}</strong>
                 <small className="mt-1 block truncate text-xs text-slate-500">
-                  {student.grade || "پایه نامشخص"} · {student.major || "رشته نامشخص"}
+                  {student.grade || copy.unknownGrade} · {student.major || copy.unknownTrack}
                 </small>
               </span>
               {active ? (
-                <Badge tone="green">ثبت‌نام</Badge>
+                <Badge tone="green">{copy.enrolled}</Badge>
               ) : (
-                <Badge tone="neutral">واجد شرایط</Badge>
+                <Badge tone="neutral">{copy.eligible}</Badge>
               )}
             </label>
           );
         })}
       </div>
-      {!options.eligibleStudents.length ? (
-        <EmptyState title="دانش‌آموز واجد شرایطی برای این پروفایل آموزشی پیدا نشد." />
-      ) : null}
+      {!options.eligibleStudents.length ? <EmptyState title={copy.noEligible} /> : null}
       <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
         <Button variant="ghost" onClick={onClose}>
-          انصراف
+          {copy.cancel}
         </Button>
         <Button
           loading={saving}
@@ -745,16 +874,76 @@ function ClassRosterModal({
           }}
         >
           <Save size={15} />
-          ذخیره فهرست
+          {copy.saveRoster}
         </Button>
       </div>
     </div>
   );
 }
 
-function ClassAdvisorModal({ advisors, value, saving, onSave, onClose }: { advisors: Array<{ id: string; name: string; roles: string[] }>; value: string | null; saving: boolean; onSave: (advisorId: string | null) => void; onClose: () => void }) {
+function ClassAdvisorModal({
+  advisors,
+  value,
+  saving,
+  onSave,
+  onClose,
+}: {
+  advisors: Array<{ id: string; name: string; roles: string[] }>;
+  value: string | null;
+  saving: boolean;
+  onSave: (advisorId: string | null) => void;
+  onClose: () => void;
+}) {
+  const copy = useClassesCopy();
   const [advisorId, setAdvisorId] = useState(value || "");
-  return <div className="grid gap-3"><div className="grid gap-2 sm:grid-cols-2"><label className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 ${!advisorId ? "border-brand bg-brand/5" : "border-slate-200 dark:border-slate-800"}`}><input type="radio" checked={!advisorId} onChange={() => setAdvisorId("")} /><span><strong className="block text-sm">بدون مشاور</strong><small className="text-xs text-slate-500">بعداً تعیین می‌شود</small></span></label>{advisors.map((advisor) => <label key={advisor.id} className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 ${advisorId === advisor.id ? "border-brand bg-brand/5" : "border-slate-200 dark:border-slate-800"}`}><input type="radio" checked={advisorId === advisor.id} onChange={() => setAdvisorId(advisor.id)} /><span><strong className="block text-sm">{advisor.name}</strong><small className="text-xs text-slate-500">{advisor.roles.includes("ADVISOR") ? "مشاور" : "مربی"}</small></span></label>)}</div><div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800"><Button variant="ghost" onClick={onClose}>انصراف</Button><Button loading={saving} onClick={() => { onSave(advisorId || null); onClose(); }}><Save size={15} />ذخیره مشاور</Button></div></div>;
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label
+          className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 ${!advisorId ? "border-brand bg-brand/5" : "border-slate-200 dark:border-slate-800"}`}
+        >
+          <input type="radio" checked={!advisorId} onChange={() => setAdvisorId("")} />
+          <span>
+            <strong className="block text-sm">{copy.noAdvisor}</strong>
+            <small className="text-xs text-slate-500">{copy.advisorLater}</small>
+          </span>
+        </label>
+        {advisors.map((advisor) => (
+          <label
+            key={advisor.id}
+            className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 ${advisorId === advisor.id ? "border-brand bg-brand/5" : "border-slate-200 dark:border-slate-800"}`}
+          >
+            <input
+              type="radio"
+              checked={advisorId === advisor.id}
+              onChange={() => setAdvisorId(advisor.id)}
+            />
+            <span>
+              <strong className="block text-sm">{advisor.name}</strong>
+              <small className="text-xs text-slate-500">
+                {advisor.roles.includes("ADVISOR") ? copy.advisorRole : copy.coachRole}
+              </small>
+            </span>
+          </label>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
+        <Button variant="ghost" onClick={onClose}>
+          {copy.cancel}
+        </Button>
+        <Button
+          loading={saving}
+          onClick={() => {
+            onSave(advisorId || null);
+            onClose();
+          }}
+        >
+          <Save size={15} />
+          {copy.saveAdvisor}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -765,18 +954,19 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </label>
   );
 }
-function trackOptions(type: string) {
-  if (type === "general") return [{ id: "general", label: "عمومی" }];
+function trackOptions(type: string, copy: ReturnType<typeof useClassesCopy>) {
+  const english = copy.locale === "en-US";
+  if (type === "general") return [{ id: "general", label: english ? "General" : "عمومی" }];
   if (type === "theoretical")
     return [
-      { id: "experimental_sciences", label: "علوم تجربی" },
-      { id: "math_physics", label: "ریاضی و فیزیک" },
-      { id: "humanities", label: "علوم انسانی" },
+      { id: "experimental_sciences", label: english ? "Experimental sciences" : "علوم تجربی" },
+      { id: "math_physics", label: english ? "Mathematics and physics" : "ریاضی و فیزیک" },
+      { id: "humanities", label: english ? "Humanities" : "علوم انسانی" },
     ];
   return [
-    { id: "industry", label: "صنعت" },
-    { id: "services", label: "خدمات" },
-    { id: "agriculture", label: "کشاورزی" },
-    { id: "art", label: "هنر" },
+    { id: "industry", label: english ? "Industry" : "صنعت" },
+    { id: "services", label: english ? "Services" : "خدمات" },
+    { id: "agriculture", label: english ? "Agriculture" : "کشاورزی" },
+    { id: "art", label: english ? "Art" : "هنر" },
   ];
 }

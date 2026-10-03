@@ -2,6 +2,8 @@ import { AlertTriangle } from "lucide-react";
 import { Badge } from "../../../shared/ui/ui";
 import { elapsed, needsAttention, stateLabel, stateTone } from "../lib/live-helpers";
 import type { LiveStudent } from "../model/live.types";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 
 export function StudentRow({
   student,
@@ -14,6 +16,8 @@ export function StudentRow({
   now: number;
   onClick: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   const attention = needsAttention(student);
 
   return (
@@ -51,12 +55,12 @@ export function StudentRow({
           {student.activeSession?.title ||
             student.currentView ||
             [student.grade, student.major].filter(Boolean).join(" • ") ||
-            "بدون فعالیت جاری"}
+            copy.noCurrentActivity}
         </small>
       </span>
 
       <span className="text-left">
-        <Badge tone={stateTone(student.state)}>{stateLabel(student.state)}</Badge>
+        <Badge tone={stateTone(student.state)}>{stateLabel(student.state, language)}</Badge>
 
         {student.activeSession?.startedAt ? (
           <small className="mt-1 block font-mono text-[10px] text-brand" dir="ltr">

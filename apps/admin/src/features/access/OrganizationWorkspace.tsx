@@ -21,6 +21,8 @@ import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
 import { roleLabels } from "../../shared/lib/role-ui";
 import { useAuth } from "../auth";
+import { useLocale } from "../../shared/ui/locale";
+import { accessCopy } from "./model/access-copy";
 import {
   acceptRelationship,
   addOrganizationMember,
@@ -97,6 +99,8 @@ function SectionHeader({
   description?: string;
   action?: React.ReactNode;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-3">
@@ -121,6 +125,8 @@ export function OrganizationWorkspace({
   organizationName: string;
 }) {
   const auth = useAuth();
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   const qc = useQueryClient();
   const modal = useModal();
   const [userId, setUserId] = useState("");
@@ -154,7 +160,7 @@ export function OrganizationWorkspace({
     onSuccess: async () => {
       setUserId("");
       setShowAddForm(false);
-      notify("عضو با نقش انتخاب‌شده به سازمان افزوده شد.");
+      notify(copy.memberAdded);
       await refresh();
     },
   });
@@ -172,9 +178,9 @@ export function OrganizationWorkspace({
       notify(
         variables.status
           ? variables.status === "ACTIVE"
-            ? "عضویت فعال شد."
-            : "عضویت غیرفعال شد."
-          : "نقش سازمانی عضو به‌روزرسانی شد.",
+            ? copy.memberActivated
+            : copy.memberSuspended
+          : copy.roleUpdated,
       );
       await refresh();
     },
@@ -182,7 +188,7 @@ export function OrganizationWorkspace({
   const remove = useMutation({
     mutationFn: (id: string) => removeOrganizationMember(organizationId, id),
     onSuccess: async () => {
-      notify("عضویت از سازمان حذف شد؛ حساب کاربری حفظ شده است.");
+      notify(copy.memberRemoved);
       await refresh();
     },
   });
@@ -245,15 +251,13 @@ export function OrganizationWorkspace({
               </span>
               <div>
                 <h2 className="text-lg font-black leading-tight">{organizationName}</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  مدیریت اعضا، نقش‌ها و ارتباط‌های سازمانی
-                </p>
+                <p className="mt-0.5 text-xs text-slate-500">{copy.organizationWorkspace}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <StatPill label="کل اعضا" value={members.data?.length ?? "—"} />
-              <StatPill label="فعال" value={activeMembers} />
-              <StatPill label="در انتظار" value={pendingCount} />
+              <StatPill label={copy.totalMembers} value={members.data?.length ?? "—"} />
+              <StatPill label={copy.active} value={activeMembers} />
+              <StatPill label={copy.pending} value={pendingCount} />
             </div>
           </div>
         </div>
@@ -265,20 +269,20 @@ export function OrganizationWorkspace({
         <Card className="p-5">
           <SectionHeader
             icon={<Users size={18} />}
-            title="اعضای سازمان"
-            description="افزودن، تغییر نقش و مدیریت وضعیت اعضا"
+            title={copy.members}
+            description={copy.membersDescription}
             action={
               <div className="flex items-center gap-2">
                 <div className="relative hidden sm:block">
                   <Search
                     size={14}
-                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
                   <input
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    placeholder="جستجوی عضو…"
-                    className="h-9 w-44 rounded-lg border border-slate-200 bg-white pr-8 pl-3 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-slate-700 dark:bg-slate-900"
+                    placeholder={copy.searchMember}
+                    className="h-9 w-44 rounded-lg border border-slate-200 bg-white pe-8 ps-3 text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-slate-700 dark:bg-slate-900"
                   />
                 </div>
                 <Button
@@ -286,7 +290,7 @@ export function OrganizationWorkspace({
                   onClick={() => setShowAddForm((v) => !v)}
                 >
                   <UserPlus size={16} />
-                  {showAddForm ? "بستن" : "افزودن عضو"}
+                  {showAddForm ? copy.close : copy.addMember}
                 </Button>
               </div>
             }
@@ -300,9 +304,9 @@ export function OrganizationWorkspace({
                 add.mutate();
               }}
             >
-              <Field label="کاربر">
+              <Field label={copy.user}>
                 <Select required value={userId} onChange={(e) => setUserId(e.target.value)}>
-                  <option value="">انتخاب کاربر…</option>
+                  <option value="">{copy.selectUser}</option>
                   {available.map((user) => (
                     <option key={user.id} value={user.id}>
                       {displayName(user)}
@@ -310,7 +314,7 @@ export function OrganizationWorkspace({
                   ))}
                 </Select>
               </Field>
-              <Field label="نقش سازمانی">
+              <Field label={copy.organizationRole}>
                 <Select value={role} onChange={(e) => setRole(e.target.value as RoleCode)}>
                   {roles.map((item) => (
                     <option key={item.value} value={item.value}>
@@ -322,12 +326,12 @@ export function OrganizationWorkspace({
               <div className="flex items-end gap-2">
                 <Button className="flex-1" loading={add.isPending} disabled={!userId}>
                   <UserPlus size={16} />
-                  افزودن
+                  {copy.add}
                 </Button>
               </div>
               {add.isError ? (
                 <p role="alert" className="md:col-span-3 text-sm text-rose-700">
-                  افزودن عضو ناموفق بود.
+                  {copy.addMemberFailed}
                 </p>
               ) : null}
             </form>
@@ -347,15 +351,15 @@ export function OrganizationWorkspace({
               role="alert"
               className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center dark:border-rose-900 dark:bg-rose-950/40"
             >
-              <p className="text-sm text-rose-700 dark:text-rose-300">اعضا دریافت نشدند.</p>
+              <p className="text-sm text-rose-700 dark:text-rose-300">{copy.membersFailed}</p>
               <Button variant="soft" className="mt-2" onClick={() => members.refetch()}>
-                تلاش دوباره
+                {copy.retry}
               </Button>
             </div>
           ) : !filteredMembers.length ? (
             <EmptyState
-              title={memberSearch ? "عضوی با این جستجو یافت نشد." : "این سازمان هنوز عضوی ندارد."}
-              description={!memberSearch ? "برای شروع، اولین عضو را اضافه کنید." : undefined}
+              title={memberSearch ? copy.noMemberSearch : copy.noMembers}
+              description={!memberSearch ? copy.noMembersHint : undefined}
             />
           ) : (
             <ul className="grid gap-2">
@@ -386,12 +390,12 @@ export function OrganizationWorkspace({
                               : "bg-slate-100 text-slate-500 ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700"
                           }`}
                         >
-                          {isActive ? "فعال" : "غیرفعال"}
+                          {isActive ? copy.active : copy.inactive}
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
                         {member.roles.map((item) => roleLabels[item] || item).join("، ") ||
-                          "بدون نقش"}
+                          copy.noRole}
                       </p>
                     </div>
 
@@ -481,11 +485,11 @@ export function OrganizationWorkspace({
         <Card className="p-5">
           <SectionHeader
             icon={<Link2 size={18} />}
-            title="ارتباط‌ها"
+            title={copy.relationships}
             description={
               pendingCount
                 ? `${pendingCount} درخواست در انتظار بررسی`
-                : "ارتباط بین کاربران و دانش‌آموزان"
+                : copy.relationshipsDescription
             }
             action={
               <Button
@@ -505,7 +509,7 @@ export function OrganizationWorkspace({
                 }
               >
                 <Link2 size={16} />
-                ارتباط جدید
+                {copy.newRelationship}
               </Button>
             }
           />
@@ -524,16 +528,13 @@ export function OrganizationWorkspace({
               role="alert"
               className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-center dark:border-rose-900 dark:bg-rose-950/40"
             >
-              <p className="text-sm text-rose-700 dark:text-rose-300">ارتباط‌ها دریافت نشدند.</p>
+              <p className="text-sm text-rose-700 dark:text-rose-300">{copy.relationshipsFailed}</p>
               <Button variant="soft" className="mt-2" onClick={() => relationships.refetch()}>
-                تلاش دوباره
+                {copy.retry}
               </Button>
             </div>
           ) : !relevant.length ? (
-            <EmptyState
-              title="درخواست ارتباطی وجود ندارد."
-              description="برای ایجاد ارتباط بین کاربران و دانش‌آموزان، ارتباط جدید بسازید."
-            />
+            <EmptyState title={copy.noRelationships} description={copy.noRelationshipsHint} />
           ) : (
             <ul className="grid gap-2">
               {relevant.map((item) => (

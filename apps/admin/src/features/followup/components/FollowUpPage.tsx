@@ -4,59 +4,60 @@ import { useAuth } from "../../auth";
 import { notify } from "../../../shared/ui/notifications";
 import { Badge, Button, Card, EmptyState, ErrorState } from "../../../shared/ui/ui";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
+import { useLocale } from "../../../shared/ui/locale";
 import { listRecoveryRequests, moderateRecoveryRequest } from "../api/followup.api";
+import { followupCopy } from "../model/followup-copy";
 
 export function FollowUpPage() {
   const auth = useAuth();
+  const { language } = useLocale();
+  const copy = followupCopy(language);
   const queryClient = useQueryClient();
   const requests = useQuery({ queryKey: ["recovery-requests"], queryFn: listRecoveryRequests });
   const moderate = useMutation({
     mutationFn: moderateRecoveryRequest,
     onSuccess: async () => {
-      notify("وضعیت درخواست پیگیری به‌روزرسانی شد.", "success");
+      notify(copy.updated, "success");
       await queryClient.invalidateQueries({ queryKey: ["recovery-requests"] });
     },
-    onError: () => notify("به‌روزرسانی درخواست انجام نشد.", "error"),
+    onError: () => notify(copy.updateFailed, "error"),
   });
   const pending = (requests.data ?? []).filter((item) => item.status === "pending");
 
   return (
     <section className="space-y-4">
       <ManagementPageHeader
-        eyebrow="عملیات پشتیبانی"
-        title="مرکز پیگیری"
-        description="درخواست‌های بازیابی برنامه در تمام محدوده مجاز شما"
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       {requests.isLoading ? (
         <Card role="status" className="p-8 text-center">
-          در حال دریافت درخواست‌ها…
+          {copy.loading}
         </Card>
       ) : null}
       {requests.isError ? (
         <ErrorState
-          title="درخواست‌های پیگیری دریافت نشد."
+          title={copy.loadFailed}
           action={
             <Button variant="soft" onClick={() => void requests.refetch()}>
-              <RefreshCw size={16} /> تلاش دوباره
+              <RefreshCw size={16} /> {copy.retry}
             </Button>
           }
         />
       ) : null}
       {!requests.isLoading && !requests.isError && !pending.length ? (
-        <EmptyState
-          title="درخواست بازیابی بازی وجود ندارد."
-          description="درخواست‌های تازه دانش‌آموزان در این بخش ظاهر می‌شوند."
-        />
+        <EmptyState title={copy.empty} description={copy.emptyDescription} />
       ) : null}
       <div className="grid gap-3 lg:grid-cols-2">
         {pending.map((item) => (
           <Card key={item.id} className="p-3 hover:border-brand/30">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <Badge tone="blue">درخواست بازیابی</Badge>
-                <h2 className="mt-2 font-bold">{item.student?.name ?? "دانش‌آموز"}</h2>
+                <Badge tone="blue">{copy.request}</Badge>
+                <h2 className="mt-2 font-bold">{item.student?.name ?? copy.student}</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  برنامه {item.planDate ?? item.plan_date ?? "—"}
+                  {copy.plan} {item.planDate ?? item.plan_date ?? "—"}
                 </p>
               </div>
             </div>
@@ -73,7 +74,7 @@ export function FollowUpPage() {
                   loading={moderate.isPending && moderate.variables?.id === item.id}
                   onClick={() => moderate.mutate({ id: item.id, status: "resolved" })}
                 >
-                  <CheckCircle2 size={15} /> حل شد
+                  <CheckCircle2 size={15} /> {copy.resolved}
                 </Button>
                 <Button
                   size="sm"
@@ -81,7 +82,7 @@ export function FollowUpPage() {
                   loading={moderate.isPending && moderate.variables?.id === item.id}
                   onClick={() => moderate.mutate({ id: item.id, status: "dismissed" })}
                 >
-                  <XCircle size={15} /> رد درخواست
+                  <XCircle size={15} /> {copy.dismiss}
                 </Button>
               </div>
             ) : null}

@@ -13,6 +13,8 @@ import {
   listOnboardingOrganizations,
 } from "../../../onboarding/api/onboarding.api";
 import { formatConversationTime } from "../../lib/chat-formatters";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function ConversationListItem({
   item,
@@ -29,50 +31,52 @@ export function ConversationListItem({
   onSelect: (item: Conversation) => void;
   onToggleFavorite: (id: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const modal = useModal();
   const auth = useAuth();
   const navigate = useNavigate();
   const preview = draft.trim()
-    ? `پیش‌نویس: ${draft.trim()}`
+    ? copy.draftPrefix.replace("{text}", draft.trim())
     : item.lastMessage?.type && item.lastMessage.type !== "text"
-      ? "پیام ساختاریافته"
-      : item.lastMessage?.text || "هنوز پیامی ثبت نشده";
+      ? copy.structuredMessage
+      : item.lastMessage?.text || copy.noMessagesShort;
 
   return (
     <div
       className={`group relative flex items-center border-b border-slate-100 transition hover:bg-slate-50 ${active ? "bg-teal-50/80 dark:bg-teal-950/40" : ""}`}
     >
       {active ? (
-        <i className="absolute inset-y-2 right-0 w-1 rounded-l-full bg-brand" aria-hidden="true" />
+        <i className="absolute inset-y-2 end-0 w-1 rounded-s-full bg-brand" aria-hidden="true" />
       ) : null}
       <button
         onClick={() => onSelect(item)}
-        aria-label={`باز کردن گفتگوی ${conversationLabel(item)}`}
-        className="mr-3 grid size-10 shrink-0 place-items-center rounded-xl text-right"
+        aria-label={copy.openConversation.replace("{name}", conversationLabel(item, copy))}
+        className="me-3 grid size-10 shrink-0 place-items-center rounded-xl text-start"
       >
         <span
           className={`relative grid size-10 place-items-center rounded-xl text-sm font-bold text-white shadow-sm ${item.type === "group" ? "bg-violet-600" : "bg-brand"}`}
         >
-          {item.type === "group" ? <Users size={18} /> : conversationLabel(item).slice(0, 1)}
+          {item.type === "group" ? <Users size={18} /> : conversationLabel(item, copy).slice(0, 1)}
           {item.presence?.online ? (
-            <i className="absolute bottom-0 left-0 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+            <i className="absolute bottom-0 start-0 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
           ) : null}
         </span>
       </button>
       <span
         style={{ contentVisibility: "auto", containIntrinsicSize: "64px" }}
-        className="min-w-0 flex-1 py-3 pl-1"
+        className="min-w-0 flex-1 py-3 ps-1"
       >
         <span className="min-w-0 flex-1">
           <span className="flex items-center justify-between gap-2">
             {item.type === "group" || !item.student ? (
               <button className="truncate font-bold" onClick={() => onSelect(item)}>
-                {conversationLabel(item)}
+                {conversationLabel(item, copy)}
               </button>
             ) : (
               <button
                 className="truncate font-bold decoration-brand/60 underline-offset-4 hover:text-brand hover:underline focus-visible:text-brand"
-                title="نمایش پروفایل دانش‌آموز"
+                title={copy.viewStudentProfile}
                 onClick={() =>
                   modal.open({
                     title: item.student!.name,
@@ -101,12 +105,12 @@ export function ConversationListItem({
           </span>
           {item.student ? (
             <small className="mt-0.5 block truncate text-[10px] text-slate-500">
-              {studentAffiliation(item)}
+              {studentAffiliation(item, copy, language)}
             </small>
           ) : null}
           <span className="mt-1 flex min-w-0 items-center gap-2">
             <button
-              className={`block min-w-0 flex-1 truncate text-right text-xs ${draft.trim() ? "font-semibold text-amber-700 dark:text-amber-300" : "text-slate-500"}`}
+              className={`block min-w-0 flex-1 truncate text-start text-xs ${draft.trim() ? "font-semibold text-amber-700 dark:text-amber-300" : "text-slate-500"}`}
               onClick={() => onSelect(item)}
             >
               {preview}
@@ -117,10 +121,10 @@ export function ConversationListItem({
       </span>
       <button
         type="button"
-        aria-label={favorite ? "حذف از مهم‌ها" : "افزودن به مهم‌ها"}
-        title={favorite ? "حذف از مهم‌ها" : "افزودن به مهم‌ها"}
+        aria-label={favorite ? copy.removeFavorite : copy.addFavorite}
+        title={favorite ? copy.removeFavorite : copy.addFavorite}
         onClick={() => onToggleFavorite(item.id)}
-        className={`ml-2 grid size-8 shrink-0 place-items-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/10 ${favorite ? "text-amber-500" : "text-slate-300 opacity-70 group-hover:opacity-100"}`}
+        className={`ms-2 grid size-8 shrink-0 place-items-center rounded-lg transition hover:bg-black/5 dark:hover:bg-white/10 ${favorite ? "text-amber-500" : "text-slate-300 opacity-70 group-hover:opacity-100"}`}
       >
         <Star size={15} fill={favorite ? "currentColor" : "none"} />
       </button>
@@ -128,17 +132,24 @@ export function ConversationListItem({
   );
 }
 
-function conversationLabel(item: Conversation) {
+function conversationLabel(item: Conversation, copy: Record<string, string>) {
   return item.type === "group"
-    ? item.title || "گروه"
-    : item.student?.name || item.peer?.name || item.title || "گفتگو";
+    ? item.title || copy.group
+    : item.student?.name || item.peer?.name || item.title || copy.conversation;
 }
 
-function studentAffiliation(item: Conversation) {
+function studentAffiliation(
+  item: Conversation,
+  copy: Record<string, string>,
+  language: "fa" | "en",
+) {
   const organization =
-    item.student?.organizations?.map((entry) => entry.name).join("، ") || "بدون سازمان";
-  const advisor = item.student?.advisors?.map((entry) => entry.name).join("، ") || "بدون مشاور";
-  return `${organization} · مشاور: ${advisor}`;
+    item.student?.organizations?.map((entry) => entry.name).join(language === "fa" ? "، " : ", ") ||
+    copy.noOrganization;
+  const advisor =
+    item.student?.advisors?.map((entry) => entry.name).join(language === "fa" ? "، " : ", ") ||
+    copy.noAdvisor;
+  return `${organization} · ${copy.advisorPrefix.replace("{name}", advisor)}`;
 }
 
 function StudentChatProfile({
@@ -154,26 +165,48 @@ function StudentChatProfile({
   canOpenStudent: boolean;
   onNavigate: (to?: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const student = conversation.student!;
   return (
     <div className="grid gap-4 text-sm">
       <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-900">
-        <ProfileValue label="نام کاربری" value={student.username || "ثبت نشده"} />
-        <ProfileValue label="پایه" value={student.grade || "ثبت نشده"} />
-        <ProfileValue label="رشته" value={student.major || "ثبت نشده"} />
-        <ProfileValue label="وضعیت" value={student.accountStatus || "فعال"} />
+        <ProfileValue
+          label={language === "fa" ? "نام کاربری" : "Username"}
+          value={student.username || (language === "fa" ? "ثبت نشده" : "Not set")}
+        />
+        <ProfileValue
+          label={language === "fa" ? "پایه" : "Grade"}
+          value={student.grade || (language === "fa" ? "ثبت نشده" : "Not set")}
+        />
+        <ProfileValue
+          label={language === "fa" ? "رشته" : "Major"}
+          value={student.major || (language === "fa" ? "ثبت نشده" : "Not set")}
+        />
+        <ProfileValue
+          label={language === "fa" ? "وضعیت" : "Status"}
+          value={student.accountStatus || (language === "fa" ? "فعال" : "Active")}
+        />
       </div>
       <ProfileList
         icon={<Building2 size={16} />}
-        title="سازمان‌ها"
+        title={language === "fa" ? "سازمان‌ها" : "Organizations"}
         values={student.organizations?.map((item) => item.name) || []}
-        empty="هنوز در سازمانی قرار نگرفته است."
+        empty={
+          language === "fa"
+            ? "هنوز در سازمانی قرار نگرفته است."
+            : "Not assigned to an organization yet."
+        }
       />
       <ProfileList
         icon={<UserRoundCog size={16} />}
-        title="مشاورهای مرتبط"
+        title={language === "fa" ? "مشاورهای مرتبط" : "Assigned advisors"}
         values={student.advisors?.map((item) => item.name) || []}
-        empty="هنوز مشاوری تخصیص داده نشده است."
+        empty={
+          language === "fa"
+            ? "هنوز مشاوری تخصیص داده نشده است."
+            : "No advisor has been assigned yet."
+        }
       />
       {canAssign ? <StudentAssignmentForm student={student} onSaved={onNavigate} /> : null}
       <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-800">
@@ -185,7 +218,7 @@ function StudentChatProfile({
               onNavigate(`/admin/students?studentId=${encodeURIComponent(student.id)}`)
             }
           >
-            پرونده کامل دانش‌آموز
+            {language === "fa" ? "پرونده کامل دانش‌آموز" : "Open student record"}
           </button>
         ) : null}
         {canManageOrganizations ? (
@@ -194,7 +227,7 @@ function StudentChatProfile({
             className="rounded-lg bg-slate-100 px-3 py-2 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-100"
             onClick={() => onNavigate("/admin/organizations")}
           >
-            مدیریت سازمان و مشاور
+            {language === "fa" ? "مدیریت سازمان و مشاور" : "Manage organization and advisor"}
           </button>
         ) : null}
       </div>
@@ -209,6 +242,7 @@ function StudentAssignmentForm({
   student: NonNullable<Conversation["student"]>;
   onSaved: () => void;
 }) {
+  const { language } = useLocale();
   const qc = useQueryClient();
   const [organizationId, setOrganizationId] = useState(student.organization?.id || "");
   const [advisorUserId, setAdvisorUserId] = useState(student.advisor?.id || "");
@@ -231,26 +265,36 @@ function StudentAssignmentForm({
     mutationFn: () => assignStudent(student.id, { mode: "MANUAL", organizationId, advisorUserId }),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["chat-conversations"] });
-      notify("سازمان و مشاور دانش‌آموز ذخیره شد.");
+      notify(
+        language === "fa"
+          ? "سازمان و مشاور دانش‌آموز ذخیره شد."
+          : "Student organization and advisor saved.",
+      );
       onSaved();
     },
   });
   return (
     <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-      <h3 className="font-bold">تخصیص سازمان و مشاور</h3>
+      <h3 className="font-bold">
+        {language === "fa" ? "تخصیص سازمان و مشاور" : "Assign organization and advisor"}
+      </h3>
       {organizations.isError || advisors.isError ? (
         <div role="alert" className="flex items-center justify-between gap-2 text-rose-700">
-          <span>دریافت گزینه‌های تخصیص ناموفق بود.</span>
+          <span>
+            {language === "fa"
+              ? "دریافت گزینه‌های تخصیص ناموفق بود."
+              : "Couldn’t load assignment options."}
+          </span>
           <Button
             variant="soft"
             onClick={() => void Promise.all([organizations.refetch(), advisors.refetch()])}
           >
-            تلاش دوباره
+            {language === "fa" ? "تلاش دوباره" : "Try again"}
           </Button>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="سازمان">
+          <Field label={language === "fa" ? "سازمان" : "Organization"}>
             <Select
               value={organizationId}
               disabled={organizations.isLoading}
@@ -259,7 +303,9 @@ function StudentAssignmentForm({
                 setAdvisorUserId("");
               }}
             >
-              <option value="">انتخاب سازمان</option>
+              <option value="">
+                {language === "fa" ? "انتخاب سازمان" : "Select organization"}
+              </option>
               {organizations.data?.map((organization) => (
                 <option key={organization.id} value={organization.id}>
                   {organization.name}
@@ -267,13 +313,13 @@ function StudentAssignmentForm({
               ))}
             </Select>
           </Field>
-          <Field label="مشاور">
+          <Field label={language === "fa" ? "مشاور" : "Advisor"}>
             <Select
               value={advisorUserId}
               disabled={!organizationId || advisors.isLoading}
               onChange={(event) => setAdvisorUserId(event.target.value)}
             >
-              <option value="">انتخاب مشاور</option>
+              <option value="">{language === "fa" ? "انتخاب مشاور" : "Select advisor"}</option>
               {eligible.map((advisor) => (
                 <option key={advisor.id} value={advisor.id}>
                   {[advisor.firstName, advisor.lastName].filter(Boolean).join(" ") ||
@@ -286,7 +332,7 @@ function StudentAssignmentForm({
       )}
       {save.isError ? (
         <p role="alert" className="text-rose-700">
-          ذخیره تخصیص ناموفق بود.
+          {language === "fa" ? "ذخیره تخصیص ناموفق بود." : "Couldn’t save the assignment."}
         </p>
       ) : null}
       <Button
@@ -294,7 +340,7 @@ function StudentAssignmentForm({
         disabled={!organizationId || !advisorUserId}
         onClick={() => save.mutate()}
       >
-        ذخیره تخصیص
+        {language === "fa" ? "ذخیره تخصیص" : "Save assignment"}
       </Button>
     </section>
   );

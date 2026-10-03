@@ -7,6 +7,8 @@ import { useEffect, useRef } from "react";
 import type { ChatMessage } from "../../../../shared/types/domain";
 
 import { Textarea } from "../../../../shared/ui/ui";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 import { EditPreview } from "./EditPreview";
 
@@ -46,6 +48,8 @@ export function MessageComposer({
 
   onAfterSend?: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const sendingRef = useRef(false);
@@ -173,8 +177,8 @@ min-h-11
 resize-none
 rounded-xl
 "
-            placeholder={disabled ? "ارسال پیام امکان‌پذیر نیست" : "پیام..."}
-            aria-label={disabled ? "ارسال پیام امکان‌پذیر نیست" : "متن پیام"}
+            placeholder={disabled ? copy.messageUnavailable : copy.messagePlaceholder}
+            aria-label={disabled ? copy.messageUnavailable : copy.messageText}
             aria-describedby="chat-composer-help"
             disabled={disabled}
             onChange={(e) => {
@@ -199,7 +203,7 @@ text-[10px]
 text-slate-400
 "
           >
-            <span>Shift+Enter خط جدید</span>
+            <span>{copy.newLineShortcut}</span>
 
             <span dir="ltr">{value.length}/3000</span>
           </div>
@@ -216,8 +220,8 @@ hover:bg-slate-100
 dark:hover:bg-slate-800
 "
           onClick={insertEmoji}
-          aria-label="افزودن شکلک"
-          title="افزودن شکلک"
+          aria-label={copy.addEmoji}
+          title={copy.addEmoji}
         >
           <Smile size={18} />
         </button>
@@ -225,8 +229,8 @@ dark:hover:bg-slate-800
         <button
           type="submit"
           disabled={!value.trim() || busy || disabled}
-          aria-label={busy ? "در حال ارسال پیام" : "ارسال پیام"}
-          title="ارسال پیام"
+          aria-label={busy ? copy.sendingMessage : copy.sendMessage}
+          title={copy.sendMessage}
           className="
 grid
 size-11

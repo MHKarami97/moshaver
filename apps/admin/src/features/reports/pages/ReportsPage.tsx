@@ -16,15 +16,12 @@ import { ReportCompactList } from "../components/ReportCompactList";
 import { ReportSummary } from "../components/ReportSummary";
 import { reportDate, reportText, summarizeReports } from "../report-utils";
 import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
+import { reportCopy } from "../model/report-copy";
 
 type ViewMode = "cards" | "compact";
 type SortMode = "newest" | "oldest";
 
-const presets = [
-  { days: 7, label: "۷ روز" },
-  { days: 14, label: "۱۴ روز" },
-  { days: 30, label: "۳۰ روز" },
-] as const;
+const presets = [7, 14, 30] as const;
 
 function validIsoDate(value: string | null) {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
@@ -33,6 +30,7 @@ function validIsoDate(value: string | null) {
 export function ReportsPage() {
   const students = useStudentSelection();
   const locale = useLocale();
+  const copy = reportCopy(locale.language);
   const [params, setParams] = useSearchParams();
   const [defaultRange] = useState(() => ({ from: addDays(todayIso(), -6), to: todayIso() }));
   const from = validIsoDate(params.get("from")) ? params.get("from")! : defaultRange.from;
@@ -86,15 +84,15 @@ export function ReportsPage() {
   return (
     <div className="grid gap-4 sm:gap-5">
       <ManagementPageHeader
-        eyebrow="افراد و دسترسی"
-        title="گزارش‌های دانش‌آموزان"
-        description="دانش‌آموز، بازه زمانی و گزارش را در یک جریان انتخاب و بررسی کنید."
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
       />
       <Card className="sticky top-14 z-10 shadow-[var(--shadow-surface)]">
         <div className="grid gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_minmax(160px,0.7fr)_minmax(160px,0.7fr)]">
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
-              <span>دانش‌آموز</span>
+              <span>{copy.student}</span>
               <StudentPicker
                 students={students.students}
                 value={students.studentId}
@@ -102,7 +100,7 @@ export function ReportsPage() {
               />
             </label>
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
-              <span>از تاریخ</span>
+              <span>{copy.from}</span>
               <DatePicker
                 value={from}
                 max={to}
@@ -110,7 +108,7 @@ export function ReportsPage() {
               />
             </label>
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
-              <span>تا تاریخ</span>
+              <span>{copy.to}</span>
               <DatePicker
                 value={to}
                 min={from}
@@ -121,16 +119,16 @@ export function ReportsPage() {
           <div className="flex flex-wrap items-center gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
               <CalendarRange size={15} />
-              بازه سریع:
+              {copy.quickRange}
             </span>
-            {presets.map((preset) => (
+            {presets.map((days) => (
               <button
-                key={preset.days}
+                key={days}
                 type="button"
-                onClick={() => applyPreset(preset.days)}
+                onClick={() => applyPreset(days)}
                 className="min-h-8 rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
-                {preset.label}
+                {copy.days(days)}
               </button>
             ))}
             <span className="mr-auto text-xs text-slate-400">
@@ -142,11 +140,11 @@ export function ReportsPage() {
 
       {!students.studentId ? (
         <Card>
-          <EmptyState title="برای دیدن گزارش‌ها ابتدا یک دانش‌آموز را انتخاب کنید." />
+          <EmptyState title={copy.selectStudent} />
         </Card>
       ) : reports.isLoading ? (
         <Card>
-          <div className="grid gap-3" aria-label="در حال دریافت گزارش‌ها">
+          <div className="grid gap-3" aria-label={copy.loading}>
             {[0, 1, 2].map((item) => (
               <div
                 key={item}
@@ -159,14 +157,12 @@ export function ReportsPage() {
         <Card>
           <div className="flex min-h-44 flex-col items-center justify-center gap-3 text-center">
             <div>
-              <strong className="text-sm text-slate-800">دریافت گزارش‌ها انجام نشد.</strong>
-              <p className="mt-1 text-xs text-slate-500">
-                اتصال یا پاسخ سرور را بررسی کنید و دوباره تلاش کنید.
-              </p>
+              <strong className="text-sm text-slate-800">{copy.loadFailed}</strong>
+              <p className="mt-1 text-xs text-slate-500">{copy.loadFailedDescription}</p>
             </div>
             <Button variant="soft" onClick={() => void reports.refetch()}>
               <RefreshCw size={16} />
-              تلاش دوباره
+              {copy.retry}
             </Button>
           </div>
         </Card>
@@ -178,35 +174,35 @@ export function ReportsPage() {
             <CollectionToolbar
               search={search}
               onSearchChange={(value) => setReportParams({ q: value })}
-              placeholder="جستجو در مسئله یا برنامه فردا"
-              resultLabel={`${visibleReports.length.toLocaleString("fa-IR")} گزارش از ${reports.data.length.toLocaleString("fa-IR")} مورد`}
+              placeholder={copy.search}
+              resultLabel={copy.results(visibleReports.length, reports.data.length)}
               filters={
                 <Select
                   className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs shadow-none"
-                  aria-label="ترتیب گزارش‌ها"
+                  aria-label={copy.order}
                   value={sort}
                   onChange={(event) => setReportParams({ sort: event.target.value as SortMode })}
                 >
-                  <option value="newest">جدیدترین</option>
-                  <option value="oldest">قدیمی‌ترین</option>
+                  <option value="newest">{copy.newest}</option>
+                  <option value="oldest">{copy.oldest}</option>
                 </Select>
               }
               actions={
                 <SegmentedControl
-                  ariaLabel="نوع نمایش"
+                  ariaLabel={copy.view}
                   value={view}
                   onValueChange={(next) => setReportParams({ view: next })}
                   options={[
                     {
                       value: "cards",
-                      ariaLabel: "نمای کارت",
-                      title: "نمای کارت",
+                      ariaLabel: copy.cards,
+                      title: copy.cards,
                       label: <LayoutGrid size={15} />,
                     },
                     {
                       value: "compact",
-                      ariaLabel: "نمای فشرده",
-                      title: "نمای فشرده",
+                      ariaLabel: copy.compact,
+                      title: copy.compact,
                       label: <List size={15} />,
                     },
                   ]}
@@ -228,15 +224,13 @@ export function ReportsPage() {
                 <ReportCompactList reports={visibleReports} formatDate={locale.formatDate} />
               )
             ) : (
-              <EmptyState title="گزارشی مطابق جستجوی شما پیدا نشد." />
+              <EmptyState title={copy.noMatches} />
             )}
           </Card>
         </>
       ) : (
         <Card>
-          <EmptyState
-            title={`برای بازه انتخابی گزارشی نیست. ${locale.formatDate(from)} تا ${locale.formatDate(to)}`}
-          />
+          <EmptyState title={copy.noRange(locale.formatDate(from), locale.formatDate(to))} />
         </Card>
       )}
     </div>

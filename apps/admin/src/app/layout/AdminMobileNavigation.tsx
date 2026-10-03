@@ -39,7 +39,7 @@ export function AdminMobileDrawer({
   direction: "rtl" | "ltr";
 }) {
   const auth = useAuth();
-  const { language } = useLocale();
+  const { language, profile } = useLocale();
   const copy = useAdminShellCopy();
   const visibleNavigation = localizedNavigationForCapabilities(
     auth.capabilities,
@@ -103,7 +103,8 @@ export function AdminMobileDrawer({
       />
       <aside
         ref={dialogRef}
-        className={`absolute inset-y-0 ${direction === "rtl" ? "right-0 border-l" : "left-0 border-r"} flex w-[min(90vw,22rem)] flex-col border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] shadow-2xl`}
+        className="absolute inset-y-0 start-0 flex w-[min(90vw,22rem)] flex-col border-e border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] shadow-2xl"
+        dir={direction}
         role="dialog"
         aria-modal="true"
         aria-label={copy.adminPortal}
@@ -165,7 +166,7 @@ export function AdminMobileDrawer({
                     >
                       {active ? (
                         <span
-                          className={`absolute inset-y-2 ${direction === "rtl" ? "right-0 rounded-l-full" : "left-0 rounded-r-full"} w-0.5 bg-brand`}
+                          className="absolute inset-y-2 start-0 w-0.5 rounded-e-full bg-brand"
                           aria-hidden="true"
                         />
                       ) : null}
@@ -176,7 +177,7 @@ export function AdminMobileDrawer({
                           className="min-w-5 rounded-full bg-rose-600 px-1 text-center text-[10px] font-black leading-5 text-white"
                           aria-label={copy.unreadNotifications(unread)}
                         >
-                          {Math.min(unread, 99).toLocaleString("fa-IR")}
+                          {Math.min(unread, 99).toLocaleString(profile.locale)}
                           {unread > 99 ? "+" : ""}
                         </span>
                       ) : null}

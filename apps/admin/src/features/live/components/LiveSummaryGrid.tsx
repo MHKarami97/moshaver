@@ -1,6 +1,8 @@
 import { AlertTriangle, BookOpenCheck, Clock3, PauseCircle, Users, Wifi } from "lucide-react";
 import type { LiveFilter, LiveSnapshot } from "../model/live.types";
 import { SummaryCard } from "./SummaryCard";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 
 export function LiveSummaryGrid({
   summary,
@@ -11,11 +13,13 @@ export function LiveSummaryGrid({
   filter: LiveFilter;
   onFilterChange: (filter: LiveFilter) => void;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   return (
     <section className="grid shrink-0 grid-cols-3 gap-2 lg:grid-cols-6">
       <SummaryCard
         icon={Users}
-        label="همه"
+        label={copy.all}
         value={summary?.total}
         active={filter === "all"}
         onClick={() => onFilterChange("all")}
@@ -23,7 +27,7 @@ export function LiveSummaryGrid({
 
       <SummaryCard
         icon={Wifi}
-        label="آنلاین"
+        label={copy.online}
         value={summary?.online}
         tone="green"
         active={filter === "online"}
@@ -32,7 +36,7 @@ export function LiveSummaryGrid({
 
       <SummaryCard
         icon={BookOpenCheck}
-        label="در حال مطالعه"
+        label={copy.studying}
         value={summary?.studying}
         tone="blue"
         active={filter === "studying"}
@@ -41,7 +45,7 @@ export function LiveSummaryGrid({
 
       <SummaryCard
         icon={PauseCircle}
-        label="توقف"
+        label={copy.paused}
         value={summary?.paused}
         tone="amber"
         active={filter === "paused"}
@@ -50,7 +54,7 @@ export function LiveSummaryGrid({
 
       <SummaryCard
         icon={Clock3}
-        label="در حال آزمون"
+        label={copy.takingExam}
         value={summary?.takingExam}
         tone="blue"
         active={filter === "taking_exam"}
@@ -59,7 +63,7 @@ export function LiveSummaryGrid({
 
       <SummaryCard
         icon={AlertTriangle}
-        label="نیازمند توجه"
+        label={copy.attention}
         value={summary?.attention}
         tone="red"
         active={filter === "attention"}

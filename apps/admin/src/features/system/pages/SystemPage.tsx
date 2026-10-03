@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
+import { useLocale } from "../../../shared/ui/locale";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
 import {
   downloadDatabaseBackup,
@@ -25,16 +26,19 @@ import { ReleasePanel } from "../components/ReleasePanel";
 import { SystemHistory } from "../components/SystemHistory";
 import { RelaxationMusicManager } from "../components/RelaxationMusicManager";
 import { ChatEmojiManager } from "../components/ChatEmojiManager";
+import { systemCopy } from "../system-locale";
 
 export type SystemView = "overview" | "releases" | "database" | "audit";
 function QueryError({ retry }: { retry: () => void }) {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   return (
     <EmptyState
-      title="دریافت اطلاعات ناموفق بود."
+      title={copy.queryFailed}
       action={
         <Button variant="soft" onClick={retry}>
           <RefreshCw size={15} />
-          تلاش دوباره
+          {copy.retry}
         </Button>
       }
     />
@@ -45,6 +49,8 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
   const auth = useAuth(),
     qc = useQueryClient(),
     modal = useModal();
+  const { language, profile } = useLocale();
+  const copy = systemCopy(language);
   const [file, setFile] = useState<File | null>(null);
   const [release, setRelease] = useState({ app: "admin", version: "", notes: "" });
   const canReadDatabase = auth.can("database.read"),
@@ -89,22 +95,20 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
   });
   const backup = useMutation({
     mutationFn: downloadDatabaseBackup,
-    onError: (e) =>
-      notify(e instanceof Error ? e.message : "دریافت نسخه پشتیبان انجام نشد.", "error"),
+    onError: (e) => notify(e instanceof Error ? e.message : copy.backupFailed, "error"),
   });
   const restore = useMutation({
-    mutationFn: () =>
-      file ? restoreDatabase(file) : Promise.reject(new Error("فایل انتخاب نشده است.")),
+    mutationFn: () => (file ? restoreDatabase(file) : Promise.reject(new Error(copy.noFile))),
     onSuccess: () => {
       setFile(null);
-      notify("پایگاه داده با موفقیت بازیابی شد.");
+      notify(copy.restored);
       void qc.invalidateQueries({ queryKey: ["system-database"] });
       // The database page renders restore events from the audit feed beside the
       // preflight. Refresh it immediately so the outcome is not stale until a
       // manual revisit.
       void qc.invalidateQueries({ queryKey: ["audit"] });
     },
-    onError: (e) => notify(e instanceof Error ? e.message : "بازیابی انجام نشد.", "error"),
+    onError: (e) => notify(e instanceof Error ? e.message : copy.restoreFailed, "error"),
   });
   const databaseAuditRows = (audit.data ?? []).filter((row) =>
     String(row.action || "").startsWith("database."),
@@ -113,19 +117,19 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
     mutationFn: () => saveAppRelease(release),
     onSuccess: () => {
       setRelease({ ...release, version: "", notes: "" });
-      notify("انتشار ثبت شد.");
+      notify(copy.releaseSaved);
       void qc.invalidateQueries({ queryKey: ["app-releases"] });
     },
-    onError: (e) => notify(e instanceof Error ? e.message : "ثبت انتشار انجام نشد.", "error"),
+    onError: (e) => notify(e instanceof Error ? e.message : copy.releaseFailed, "error"),
   });
   const updateVersion = useMutation({
     mutationFn: ({ app, value }: { app: string; value: { version: string; notes: string } }) =>
       saveAppVersion(app, value),
     onSuccess: () => {
-      notify("نسخه فعال به‌روزرسانی شد.");
+      notify(copy.versionSaved);
       void qc.invalidateQueries({ queryKey: ["app-versions"] });
     },
-    onError: (e) => notify(e instanceof Error ? e.message : "به‌روزرسانی نسخه انجام نشد.", "error"),
+    onError: (e) => notify(e instanceof Error ? e.message : copy.versionFailed, "error"),
   });
   async function download() {
     const result = await backup.mutateAsync();
@@ -135,36 +139,36 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
     anchor.download = result.filename;
     anchor.click();
     URL.revokeObjectURL(url);
-    notify("نسخه پشتیبان دانلود شد.");
+    notify(copy.backupDownloaded);
   }
 
   if (view === "overview") {
     const destinations = [
       {
         to: "/admin/releases",
-        title: "نسخه‌ها و انتشارها",
-        detail: "نسخه فعال و سابقه انتشار",
+        title: copy.releases,
+        detail: copy.releasesDetail,
         icon: PackageOpen,
         show: canReadReleases,
       },
       {
         to: "/admin/database",
-        title: "پایگاه داده",
-        detail: "اطلاعات، پشتیبان و بازیابی",
+        title: copy.database,
+        detail: copy.databaseDetail,
         icon: Database,
         show: canReadDatabase,
       },
       {
         to: "/admin/audit",
-        title: "ممیزی امنیتی",
-        detail: "رویدادهای حساس و قابل رهگیری",
+        title: copy.audit,
+        detail: copy.auditDetail,
         icon: ShieldCheck,
         show: canReadAudit,
       },
       {
         to: "/admin/settings",
-        title: "امنیت حساب من",
-        detail: "رمز، نشست‌ها و تنظیمات محلی",
+        title: copy.account,
+        detail: copy.accountDetail,
         icon: FileClock,
         show: true,
       },
@@ -176,17 +180,17 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-bold">
                 <Activity size={18} />
-                سرویس API
+                {copy.apiService}
               </span>
               <Badge tone={health.data?.status === "ok" ? "green" : "neutral"}>
-                {health.isLoading ? "در حال بررسی" : health.data?.status || "نامشخص"}
+                {health.isLoading ? copy.checking : health.data?.status || copy.unknown}
               </Badge>
             </div>
             {health.isError ? (
               <QueryError retry={() => void health.refetch()} />
             ) : (
               <p className="mt-3 text-sm text-slate-500">
-                {health.data?.service || "اتصال به سرویس v2"}
+                {health.data?.service || copy.apiConnection}
               </p>
             )}
           </Card>
@@ -194,16 +198,16 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-bold">
                 <Database size={18} />
-                آمادگی داده
+                {copy.dataReadiness}
               </span>
               <Badge tone={ready.data?.database === "ready" ? "green" : "neutral"}>
-                {ready.isLoading ? "در حال بررسی" : ready.data?.database || "نامشخص"}
+                {ready.isLoading ? copy.checking : ready.data?.database || copy.unknown}
               </Badge>
             </div>
             {ready.isError ? (
               <QueryError retry={() => void ready.refetch()} />
             ) : (
-              <p className="mt-3 text-sm text-slate-500">آزمون مستقیم اتصال پایگاه داده</p>
+              <p className="mt-3 text-sm text-slate-500">{copy.databaseProbe}</p>
             )}
           </Card>
         </section>
@@ -212,7 +216,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
             id="system-tools"
             className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-200"
           >
-            ابزارهای در دسترس شما
+            {copy.tools}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {destinations.map(({ to, title, detail, icon: Icon }) => (
@@ -242,7 +246,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
       <div className="grid gap-5">
         {!canManageReleases ? (
           <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
-            این بخش برای نقش شما فقط خواندنی است.
+            {copy.readOnly}
           </div>
         ) : null}
         {canManageReleases ? (
@@ -253,9 +257,9 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
             onSubmit={() =>
               void modal
                 .confirm({
-                  title: "ثبت انتشار جدید؟",
+                  title: copy.newReleaseTitle,
                   description: `${release.app} · ${release.version}`,
-                  confirmLabel: "ثبت انتشار",
+                  confirmLabel: copy.saveRelease,
                 })
                 .then((ok) => ok && saveRelease.mutate())
             }
@@ -271,7 +275,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
           onSave={(app, value) => updateVersion.mutate({ app, value })}
         />
         <SystemHistory
-          title="تاریخچه انتشارها"
+          title={copy.releaseTitle}
           rows={releases.data}
           loading={releases.isLoading}
           error={releases.isError}
@@ -287,25 +291,22 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
             <QueryError retry={() => void database.refetch()} />
           </Card>
         ) : (
-          <section
-            className="grid grid-cols-2 gap-3 lg:grid-cols-4"
-            aria-label="اطلاعات پایگاه داده"
-          >
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label={copy.databaseInfo}>
             {[
-              ["موتور", database.data?.engine],
-              ["وضعیت", database.data?.status],
-              ["مهاجرت‌ها", database.data?.migrations?.toLocaleString("fa-IR")],
+              [copy.engine, database.data?.engine],
+              [copy.status, database.data?.status],
+              [copy.migrations, database.data?.migrations?.toLocaleString(profile.locale)],
               [
-                "حجم",
+                copy.size,
                 database.data
-                  ? `${(database.data.sizeBytes / 1024 / 1024).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} MB`
+                  ? `${(database.data.sizeBytes / 1024 / 1024).toLocaleString(profile.locale, { maximumFractionDigits: 1 })} MB`
                   : undefined,
               ],
             ].map(([label, value]) => (
               <Card key={label} className="p-4">
                 <span className="text-xs text-slate-500">{label}</span>
                 <strong className="mt-2 block">
-                  {database.isLoading ? "در حال بررسی…" : value || "نامشخص"}
+                  {database.isLoading ? `${copy.checking}…` : value || copy.unknown}
                 </strong>
               </Card>
             ))}
@@ -323,17 +324,17 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
           onRestore={() =>
             void modal
               .confirm({
-                title: "بازیابی پایگاه داده؟",
-                description: `فایل ${file?.name || "انتخاب‌شده"} داده فعلی را جایگزین می‌کند و پیش از آن snapshot ساخته می‌شود.`,
+                title: copy.restoreTitle,
+                description: copy.restoreDescription(file?.name || copy.selectedFile),
                 tone: "danger",
-                confirmLabel: "بازیابی پایگاه داده",
+                confirmLabel: copy.restore,
               })
               .then((ok) => ok && restore.mutate())
           }
         />
         {canReadAudit ? (
           <SystemHistory
-            title="تاریخچه پشتیبان و بازیابی"
+            title={copy.backupHistory}
             rows={databaseAuditRows}
             loading={audit.isLoading}
             error={audit.isError}
@@ -342,7 +343,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
         ) : null}
         {canReadImports ? (
           <SystemHistory
-            title="تاریخچه ورود داده"
+            title={copy.importHistory}
             rows={imports.data}
             loading={imports.isLoading}
             error={imports.isError}
@@ -354,7 +355,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
   return (
     <div className="grid gap-5">
       <SystemHistory
-        title="رویدادهای ممیزی"
+        title={copy.auditEvents}
         rows={audit.data}
         loading={audit.isLoading}
         error={audit.isError}

@@ -35,6 +35,13 @@ export type AdminShellCopy = {
   languageSwitch: string;
   languageSwitchLabel: string;
   unreadNotifications: (count: number) => string;
+  preparingPage: string;
+  restoringSession: string;
+  retry: string;
+  goToLogin: string;
+  capabilityUnavailableTitle: string;
+  capabilityUnavailableDescription: string;
+  returnToWorkspace: string;
 };
 
 export const adminShellCopy: Record<AdminLanguage, AdminShellCopy> = {
@@ -70,6 +77,14 @@ export const adminShellCopy: Record<AdminLanguage, AdminShellCopy> = {
     languageSwitch: "English",
     languageSwitchLabel: "تغییر زبان به انگلیسی",
     unreadNotifications: (count) => `${count.toLocaleString("fa-IR")} اعلان خوانده‌نشده`,
+    preparingPage: "در حال آماده‌سازی صفحه",
+    restoringSession: "در حال بازیابی نشست…",
+    retry: "تلاش دوباره",
+    goToLogin: "رفتن به صفحه ورود",
+    capabilityUnavailableTitle: "این ابزار در نقش فعال شما نیست",
+    capabilityUnavailableDescription:
+      "از منوی حساب می‌توانید زمینه کاری را تغییر دهید یا به میز کار خود برگردید.",
+    returnToWorkspace: "بازگشت به میز کار",
   },
   en: {
     appTitle: "Moshaver | Advisor",
@@ -103,6 +118,14 @@ export const adminShellCopy: Record<AdminLanguage, AdminShellCopy> = {
     languageSwitch: "فارسی",
     languageSwitchLabel: "Switch language to Persian",
     unreadNotifications: (count) => `${count.toLocaleString("en-US")} unread notifications`,
+    preparingPage: "Preparing page",
+    restoringSession: "Restoring session…",
+    retry: "Try again",
+    goToLogin: "Go to sign in",
+    capabilityUnavailableTitle: "This tool is unavailable in your active role",
+    capabilityUnavailableDescription:
+      "Use the account menu to change your work context or return to your workspace.",
+    returnToWorkspace: "Return to workspace",
   },
 };
 export type SharedUiCopy = {
@@ -126,6 +149,14 @@ export type SharedUiCopy = {
   summaryAndFilters: string;
   emptyList: (label: string) => string;
   emptyRecords: string;
+  confirm: string;
+  cancel: string;
+  closeDialog: string;
+  confirmationInstruction: (phrase: string) => string;
+  confirmationPhrase: (phrase: string) => string;
+  holdToConfirm: string;
+  completed: string;
+  operationFailed: string;
 };
 export type LocationProfile = {
   id: LocationId;
@@ -163,6 +194,17 @@ export const locations: LocationProfile[] = [
   },
 ];
 
+export function locationLabel(profile: LocationProfile, language: AdminLanguage) {
+  if (language === "en") {
+    return {
+      iran: "Iran",
+      afghanistan: "Afghanistan",
+      international: "International",
+    }[profile.id];
+  }
+  return profile.label;
+}
+
 const key = "moshaver-admin-location";
 const sharedUiCopy: Record<AdminLanguage, SharedUiCopy> = {
   fa: {
@@ -186,6 +228,14 @@ const sharedUiCopy: Record<AdminLanguage, SharedUiCopy> = {
     summaryAndFilters: "خلاصه و فیلترها",
     emptyList: (label) => `${label} برای نمایش وجود ندارد.`,
     emptyRecords: "رکوردی وجود ندارد.",
+    confirm: "تأیید",
+    cancel: "انصراف",
+    closeDialog: "بستن پنجره",
+    confirmationInstruction: (phrase) => `برای تأیید، عبارت «${phrase}» را وارد کنید.`,
+    confirmationPhrase: (phrase) => `عبارت تأیید ${phrase}`,
+    holdToConfirm: "برای تأیید نگه دارید",
+    completed: "انجام شد",
+    operationFailed: "انجام عملیات ناموفق بود.",
   },
   en: {
     locale: "en-US",
@@ -208,6 +258,14 @@ const sharedUiCopy: Record<AdminLanguage, SharedUiCopy> = {
     summaryAndFilters: "Summary and filters",
     emptyList: (label) => `There are no ${label} to display.`,
     emptyRecords: "There are no records to display.",
+    confirm: "Confirm",
+    cancel: "Cancel",
+    closeDialog: "Close dialog",
+    confirmationInstruction: (phrase) => `Enter “${phrase}” to confirm.`,
+    confirmationPhrase: (phrase) => `Confirmation phrase ${phrase}`,
+    holdToConfirm: "Hold to confirm",
+    completed: "Completed",
+    operationFailed: "The operation could not be completed.",
   },
 };
 const LocaleContext = createContext<{
@@ -280,6 +338,10 @@ export function useLocale() {
 export function useAdminShellCopy() {
   const { language } = useLocale();
   return adminShellCopy[language];
+}
+
+export function useOptionalAdminLanguage(): AdminLanguage {
+  return useContext(LocaleContext)?.language || "fa";
 }
 
 /**

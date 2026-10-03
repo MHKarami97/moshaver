@@ -3,8 +3,12 @@ import { ChevronLeft } from "lucide-react";
 import { Card } from "../../../shared/ui/ui";
 import { quickActionsForRole } from "../model/role-experience";
 import { useAuth } from "../../auth";
+import { useLocale } from "../../../shared/ui/locale";
+import { dashboardCopy } from "../model/dashboard-copy";
 
 export function DashboardQuickActions() {
+  const { language } = useLocale();
+  const copy = dashboardCopy[language];
   const auth = useAuth();
   const actions = quickActionsForRole(auth.activeRole, auth.capabilities);
 
@@ -14,10 +18,8 @@ export function DashboardQuickActions() {
     <Card className="p-3">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-ink">گام بعدی شما</h2>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            ابزارهای مجاز برای نقش فعال؛ هر مورد شما را به محل انجام کار می‌برد.
-          </p>
+          <h2 className="text-sm font-bold text-ink">{copy.nextStep}</h2>
+          <p className="mt-0.5 text-[11px] text-slate-500">{copy.nextStepDescription}</p>
         </div>
         <span className="rounded-md bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
           {actions.length}
@@ -49,7 +51,7 @@ export function DashboardQuickActions() {
               <ChevronLeft
                 size={14}
                 aria-hidden="true"
-                className="shrink-0 text-slate-400 transition-transform group-hover:-translate-x-0.5 group-hover:text-brand"
+                className="shrink-0 text-slate-400 transition-transform rtl:group-hover:-translate-x-0.5 ltr:rotate-180 ltr:group-hover:translate-x-0.5 group-hover:text-brand"
               />
             </Link>
           );

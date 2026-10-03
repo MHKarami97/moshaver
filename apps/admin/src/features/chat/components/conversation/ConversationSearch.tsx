@@ -1,15 +1,7 @@
 import { Search } from "lucide-react";
 import type { ConversationFilter } from "../../model/chat.types";
-
-const filters: Array<[ConversationFilter, string]> = [
-  ["all", "همه"],
-  ["unread", "خوانده‌نشده"],
-  ["favorites", "مهم"],
-  ["drafts", "پیش‌نویس"],
-  ["online", "آنلاین"],
-  ["direct", "دانش‌آموزان"],
-  ["group", "گروه‌ها"],
-];
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function ConversationSearch({
   search,
@@ -22,6 +14,17 @@ export function ConversationSearch({
   onSearch: (value: string) => void;
   onFilter: (value: ConversationFilter) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
+  const filters: Array<[ConversationFilter, string]> = [
+    ["all", copy.all],
+    ["unread", copy.unread],
+    ["favorites", copy.favorites],
+    ["drafts", copy.drafts],
+    ["online", copy.online],
+    ["direct", copy.students],
+    ["group", copy.groups],
+  ];
   return (
     <>
       <label className="mt-3 flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10">
@@ -30,8 +33,8 @@ export function ConversationSearch({
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
-          placeholder="نام، پایه یا متن آخرین پیام"
-          aria-label="جستجوی گفتگوها"
+          placeholder={copy.placeholder}
+          aria-label={copy.search}
         />
         {search ? (
           <button
@@ -39,11 +42,11 @@ export function ConversationSearch({
             className="text-[11px] text-slate-400 hover:text-slate-700"
             onClick={() => onSearch("")}
           >
-            پاک
+            {copy.clear}
           </button>
         ) : null}
       </label>
-      <div className="mt-2 flex gap-1 overflow-x-auto pb-1" aria-label="فیلتر گفتگوها">
+      <div className="mt-2 flex gap-1 overflow-x-auto pb-1" aria-label={copy.filters}>
         {filters.map(([value, label]) => (
           <button
             type="button"

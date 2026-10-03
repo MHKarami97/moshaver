@@ -1,6 +1,8 @@
 import type { UseMutationResult, UseQueryResult } from "@tanstack/react-query";
 import { Laptop, RefreshCw, ShieldCheck, Smartphone } from "lucide-react";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { settingsCopy } from "../settings-locale";
 import type { Session } from "../model/settings.types";
 export function SessionsSettings({
   sessions,
@@ -13,6 +15,8 @@ export function SessionsSettings({
   formatDateTime: (value?: string | Date) => string;
   confirm: (id: string) => void;
 }) {
+  const { language, profile } = useLocale();
+  const copy = settingsCopy(language);
   return (
     <Card className="p-5 sm:p-6">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -21,13 +25,13 @@ export function SessionsSettings({
             <ShieldCheck size={20} />
           </span>
           <div>
-            <h3 className="font-bold">دستگاه‌ها و نشست‌ها</h3>
-            <p className="text-xs text-slate-500">
-              اگر دستگاهی را نمی‌شناسید، دسترسی آن را فوراً ببندید.
-            </p>
+            <h3 className="font-bold">{copy.sessionsTitle}</h3>
+            <p className="text-xs text-slate-500">{copy.sessionsDescription}</p>
           </div>
         </div>
-        <Badge>{(sessions.data?.length || 0).toLocaleString("fa-IR")} فعال</Badge>
+        <Badge>
+          {(sessions.data?.length || 0).toLocaleString(profile.locale)} {copy.active}
+        </Badge>
       </div>
       {sessions.isLoading ? (
         <div className="grid gap-2">
@@ -37,11 +41,11 @@ export function SessionsSettings({
         </div>
       ) : sessions.isError ? (
         <EmptyState
-          title="دریافت نشست‌ها ناموفق بود."
+          title={copy.sessionsLoadFailed}
           action={
             <Button variant="soft" onClick={() => void sessions.refetch()}>
               <RefreshCw size={14} />
-              تلاش دوباره
+              {copy.retry}
             </Button>
           }
         />
@@ -61,20 +65,20 @@ export function SessionsSettings({
                     <Laptop className="mt-0.5 shrink-0 text-slate-400" size={18} />
                   )}
                   <div className="min-w-0">
-                    <strong>{session.current ? "این دستگاه" : "دستگاه فعال"}</strong>
+                    <strong>{session.current ? copy.currentDevice : copy.activeDevice}</strong>
                     <p className="truncate text-xs text-slate-500" dir="ltr">
-                      {session.ipAddress || "IP نامشخص"} ·{" "}
-                      {(session.userAgent || "مرورگر نامشخص").slice(0, 100)}
+                      {session.ipAddress || copy.unknownIp} ·{" "}
+                      {(session.userAgent || copy.unknownBrowser).slice(0, 100)}
                     </p>
                     {session.lastSeenAt ? (
                       <small className="text-slate-400">
-                        آخرین فعالیت: {formatDateTime(session.lastSeenAt)}
+                        {copy.lastActivity}: {formatDateTime(session.lastSeenAt)}
                       </small>
                     ) : null}
                   </div>
                 </div>
                 {session.current ? (
-                  <Badge tone="green">فعلی</Badge>
+                  <Badge tone="green">{copy.current}</Badge>
                 ) : (
                   <Button
                     variant="danger"
@@ -82,7 +86,7 @@ export function SessionsSettings({
                     disabled={revoke.isPending}
                     onClick={() => confirm(session.id)}
                   >
-                    بستن دسترسی
+                    {copy.revoke}
                   </Button>
                 )}
               </div>
@@ -90,7 +94,7 @@ export function SessionsSettings({
           })}
         </div>
       ) : (
-        <EmptyState title="نشستی پیدا نشد." />
+        <EmptyState title={copy.noSessions} />
       )}
     </Card>
   );

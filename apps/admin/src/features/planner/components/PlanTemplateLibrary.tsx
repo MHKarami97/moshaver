@@ -4,6 +4,7 @@ import type { Plan } from "../../../shared/types/domain";
 import { StudentAllocationControl } from "../../../shared/ui/student-allocation-control";
 import { Button, EmptyState } from "../../../shared/ui/ui";
 import { notify } from "../../../shared/ui/notifications";
+import { useLocale } from "../../../shared/ui/locale";
 import { listClasses } from "../../education/api/classes.api";
 import {
   applyPlanTemplate,
@@ -12,6 +13,7 @@ import {
   publishPlanTemplate,
   type PlanTemplate,
 } from "../api/plan-templates.api";
+import { plannerCopy } from "../model/planner-copy";
 
 type Props = {
   organizationId: string;
@@ -57,6 +59,8 @@ export function PlanTemplateLibrary({
   onClose,
   showClose = true,
 }: Props) {
+  const locale = useLocale();
+  const copy = plannerCopy(locale.language);
   const client = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -116,7 +120,7 @@ export function PlanTemplateLibrary({
   });
 
   return (
-    <div className="grid gap-5" dir="rtl">
+    <div className="grid gap-5" dir={locale.profile.direction}>
       <p className="text-sm text-slate-600 dark:text-slate-300">
         الگوها فقط برای سازمان فعال ذخیره می‌شوند. پیش‌نویس زیر از {snapshot.length} روزِ بازهٔ فعلی
         ساخته می‌شود و وضعیت انجام فعالیت‌ها را کپی نمی‌کند.
@@ -177,9 +181,11 @@ export function PlanTemplateLibrary({
         </form>
       ) : null}
       <section className="grid gap-2">
-        <h3 className="text-sm font-bold">الگوهای سازمان</h3>
+        <h3 className="text-sm font-bold">
+          {locale.language === "fa" ? "الگوهای سازمان" : "Organization templates"}
+        </h3>
         {templates.isLoading ? (
-          <p className="text-sm text-slate-500">در حال دریافت الگوها…</p>
+          <p className="text-sm text-slate-500">{copy.loadingOrganizations}</p>
         ) : null}
         {templates.isError ? (
           <p className="text-sm text-rose-700" role="alert">
@@ -187,7 +193,13 @@ export function PlanTemplateLibrary({
           </p>
         ) : null}
         {!templates.isLoading && !templates.isError && !templates.data?.length ? (
-          <EmptyState title="هنوز الگویی ساخته نشده است" />
+          <EmptyState
+            title={
+              locale.language === "fa"
+                ? "هنوز الگویی ساخته نشده است"
+                : "No templates have been created yet"
+            }
+          />
         ) : null}
         {templates.data?.map((template) => (
           <article
@@ -257,7 +269,9 @@ export function PlanTemplateLibrary({
               disabled={!targetStudentIds.length || !targetStartDate}
               onClick={() => apply.mutate()}
             >
-              اعمال برای {targetStudentIds.length.toLocaleString("fa-IR")} دانش‌آموز
+              {locale.language === "fa" ? "اعمال برای" : "Apply to"}{" "}
+              {targetStudentIds.length.toLocaleString(locale.profile.locale)}{" "}
+              {locale.language === "fa" ? "دانش‌آموز" : "students"}
             </Button>
             <Button variant="ghost" onClick={() => setSelectedTemplate(null)}>
               انصراف

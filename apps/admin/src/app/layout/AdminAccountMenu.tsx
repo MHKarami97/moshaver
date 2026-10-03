@@ -7,20 +7,26 @@ import { ViewportPopover } from "../../shared/ui/popover";
 import { Button } from "../../shared/ui/ui";
 import { DevBackendSwitcher } from "../dev/DevBackendSwitcher";
 import { roleLabel, rolePortalTitle } from "../../shared/lib/role-ui";
+import { useAdminShellCopy, useLocale } from "../../shared/ui/locale";
 
 export function AdminAccountMenu() {
   const auth = useAuth();
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = useAdminShellCopy();
   const [open, setOpen] = useState(false);
   const displayName =
-    auth.user?.displayName || auth.user?.display_name || auth.user?.username || "مدیر";
-  const initial = displayName.trim()[0] || "م";
+    auth.user?.displayName ||
+    auth.user?.display_name ||
+    auth.user?.username ||
+    (language === "en" ? "Administrator" : "مدیر");
+  const initial = displayName.trim()[0] || (language === "en" ? "A" : "م");
 
   async function logout() {
     const confirmed = await modal.confirm({
-      title: "خروج از پنل؟",
-      description: "نشست این دستگاه بسته می‌شود.",
-      confirmLabel: "خروج",
+      title: copy.signOutConfirmTitle,
+      description: copy.signOutConfirmDescription,
+      confirmLabel: copy.signOut,
       tone: "danger",
     });
     if (!confirmed) return;
@@ -39,7 +45,7 @@ export function AdminAccountMenu() {
           {...props}
           type="button"
           className="flex h-10 min-w-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-1.5 text-right outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 sm:px-2"
-          aria-label="منوی حساب کاربری"
+          aria-label={copy.accountMenu}
           title={displayName}
         >
           <span
@@ -51,7 +57,7 @@ export function AdminAccountMenu() {
           <span className="hidden max-w-28 min-w-0 2xl:block">
             <strong className="block truncate text-xs">{displayName}</strong>
             <small className="block truncate text-[9px] text-slate-400">
-              {rolePortalTitle(auth.activeRole)}
+              {rolePortalTitle(auth.activeRole, language)}
             </small>
           </span>
         </button>
@@ -65,7 +71,7 @@ export function AdminAccountMenu() {
           <div className="min-w-0 flex-1">
             <strong className="block truncate text-sm">{displayName}</strong>
             <p className="flex items-center gap-1 text-[11px] text-slate-500">
-              <ShieldCheck size={13} /> {roleLabel(auth.activeRole)}
+              <ShieldCheck size={13} /> {roleLabel(auth.activeRole, language)}
             </p>
           </div>
         </div>
@@ -74,7 +80,7 @@ export function AdminAccountMenu() {
       <div className="grid gap-2 p-3">
         {(auth.context?.roles.length ?? 0) > 1 ? (
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
-            زمینه کاری
+            {copy.workContextLabel}
             <select
               className="h-10 rounded-lg border border-slate-200 bg-white px-2 dark:border-slate-700 dark:bg-slate-900"
               value={auth.activeRole ?? ""}
@@ -86,7 +92,7 @@ export function AdminAccountMenu() {
                 .filter((role) => role !== "STUDENT")
                 .map((role) => (
                   <option key={role} value={role}>
-                    {roleLabel(role)}
+                    {roleLabel(role, language)}
                   </option>
                 ))}
             </select>
@@ -94,7 +100,7 @@ export function AdminAccountMenu() {
         ) : null}
         {(auth.context?.availableOrganizations.length ?? 0) > 1 ? (
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
-            سازمان فعال
+            {copy.activeOrganization}
             <select
               className="h-10 rounded-lg border border-slate-200 bg-white px-2 dark:border-slate-700 dark:bg-slate-900"
               value={auth.context?.activeOrganization?.id ?? ""}
@@ -106,7 +112,7 @@ export function AdminAccountMenu() {
                 )
               }
             >
-              <option value="">انتخاب سازمان</option>
+              <option value="">{copy.selectOrganization}</option>
               {auth.context?.availableOrganizations.map((organization) => (
                 <option key={organization.id} value={organization.id}>
                   {organization.name}
@@ -116,7 +122,7 @@ export function AdminAccountMenu() {
           </label>
         ) : null}
         <div className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-2 dark:bg-slate-900 xl:hidden">
-          <span className="text-xs font-semibold text-slate-600">نمایش</span>
+          <span className="text-xs font-semibold text-slate-600">{copy.display}</span>
           <ThemeSwitcher />
         </div>
         <DevBackendSwitcher />
@@ -124,11 +130,11 @@ export function AdminAccountMenu() {
           className="w-full justify-start text-rose-700 hover:bg-rose-50"
           variant="ghost"
           loading={auth.status === "logging-out"}
-          loadingLabel="در حال خروج…"
+          loadingLabel={copy.signingOut}
           onClick={() => void logout()}
         >
           <LogOut size={16} />
-          خروج از پنل
+          {copy.signOut}
         </Button>
       </div>
     </ViewportPopover>

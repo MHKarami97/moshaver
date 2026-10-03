@@ -22,8 +22,12 @@ import { SessionStats } from "./SessionStats";
 import { StopwatchPanel } from "./StopwatchPanel";
 import { TimerPanel } from "./TimerPanel";
 import { WorldClockPanel } from "./WorldClockPanel";
+import { useLocale } from "../../../shared/ui/locale";
+import { clockCopy } from "../model/clock-copy";
 
 export function HeaderClock({ userId }: { userId?: string }) {
+  const { language, formatDate } = useLocale();
+  const copy = clockCopy[language];
   useClockRuntime();
   const now = useDigitalClock();
   const store = useClockStore();
@@ -70,7 +74,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label="ساعت و ابزارهای زمان"
+        aria-label={copy.tools}
         className="group flex h-10 max-w-[min(70vw,430px)] items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 outline-none transition hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
         <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand dark:bg-brand/15">
@@ -140,15 +144,15 @@ export function HeaderClock({ userId }: { userId?: string }) {
       "
             >
               {activeAlarm
-                ? "هشدار فعال"
+                ? copy.activeAlarm
                 : timer.status !== "idle"
                   ? `تایمر ${
                       timer.status === "finished"
-                        ? "پایان"
+                        ? copy.timerFinished
                         : formatCompactDuration(timer.remainingMs)
                     }`
                   : stopwatch.running
-                    ? `کرنومتر ${formatCompactDuration(stopwatch.elapsedMs)}`
+                    ? `${copy.stopwatch} ${formatCompactDuration(stopwatch.elapsedMs)}`
                     : formatShortDate(now)}
             </span>
 
@@ -164,7 +168,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
         dark:text-slate-500
       "
             >
-              {now.toLocaleDateString("fa-IR")}
+              {formatDate(now)}
             </span>
           </span>
         </span>
@@ -175,21 +179,23 @@ export function HeaderClock({ userId }: { userId?: string }) {
             <HeaderStatus
               icon={<Gauge size={12} />}
               value={formatCompactDuration(stopwatch.elapsedMs)}
-              title="کرنومتر در حال اجرا"
+              title={copy.stopwatchRunning}
             />
           )}
           {timer.status !== "idle" && (
             <HeaderStatus
               icon={timer.status === "paused" ? <Pause size={11} /> : <Timer size={12} />}
               value={
-                timer.status === "finished" ? "پایان" : formatCompactDuration(timer.remainingMs)
+                timer.status === "finished"
+                  ? copy.timerFinished
+                  : formatCompactDuration(timer.remainingMs)
               }
               title={
                 timer.status === "running"
-                  ? "تایمر در حال اجرا"
+                  ? copy.timerRunning
                   : timer.status === "paused"
-                    ? "تایمر متوقف شده"
-                    : "تایمر پایان یافته"
+                    ? copy.timerPaused
+                    : copy.timerFinishedTitle
               }
               attention={timer.status === "finished"}
             />
@@ -197,8 +203,8 @@ export function HeaderClock({ userId }: { userId?: string }) {
           {activeAlarm && (
             <HeaderStatus
               icon={<BellRing size={12} />}
-              value="هشدار"
-              title="هشدار فعال"
+              value={copy.alarms}
+              title={copy.activeAlarm}
               attention
             />
           )}
@@ -210,35 +216,35 @@ export function HeaderClock({ userId }: { userId?: string }) {
                 minute: "2-digit",
                 hour12: false,
               }).format(new Date(nextAlarm.at))}
-              title={`هشدار بعدی: ${nextAlarm.alarm.label}`}
+              title={`${copy.nextAlarm}: ${nextAlarm.alarm.label}`}
             />
           )}
         </span>
 
         <span
           className={`ml-0.5 hidden size-1.5 shrink-0 rounded-full sm:block ${session.isActive ? "bg-emerald-500" : session.isIdle ? "bg-amber-500" : "bg-slate-400"}`}
-          title={session.isIdle ? "کاربر غیرفعال است" : session.isActive ? "فعال" : "غیرفعال"}
+          title={session.isIdle ? copy.idle : session.isActive ? copy.active : copy.inactive}
         />
       </button>
 
       {open && (
         <div
           role="dialog"
-          aria-label="مرکز زمان"
-          className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(94vw,420px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/30"
+          aria-label={copy.center}
+          className="absolute start-0 top-[calc(100%+0.6rem)] z-50 w-[min(94vw,420px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/30"
         >
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
             <div>
-              <div className="text-xs font-bold text-slate-900 dark:text-white">مرکز زمان</div>
+              <div className="text-xs font-bold text-slate-900 dark:text-white">{copy.center}</div>
               <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-                ابزارها پس از بستن این پنل همچنان فعال می‌مانند
+                {copy.stayActive}
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
-              aria-label="بستن"
+              aria-label={copy.close}
             >
               <X size={16} />
             </button>
@@ -250,7 +256,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
               icon={<Clock3 size={14} />}
               onClick={() => clockActions.selectTab("clock")}
             >
-              ساعت
+              {copy.clock}
             </TabButton>
             <TabButton
               active={store.selectedTab === "stopwatch"}
@@ -258,7 +264,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
               badge={stopwatch.running}
               onClick={() => clockActions.selectTab("stopwatch")}
             >
-              کرنومتر
+              {copy.stopwatch}
             </TabButton>
             <TabButton
               active={store.selectedTab === "timer"}
@@ -266,7 +272,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
               badge={timer.status === "running" || timer.status === "finished"}
               onClick={() => clockActions.selectTab("timer")}
             >
-              تایمر
+              {copy.timer}
             </TabButton>
             <TabButton
               active={store.selectedTab === "alarm"}
@@ -274,14 +280,14 @@ export function HeaderClock({ userId }: { userId?: string }) {
               badge={Boolean(activeAlarm)}
               onClick={() => clockActions.selectTab("alarm")}
             >
-              هشدار
+              {copy.alarms}
             </TabButton>
             <TabButton
               active={store.selectedTab === "world"}
               icon={<Globe2 size={14} />}
               onClick={() => clockActions.selectTab("world")}
             >
-              جهانی
+              {copy.world}
             </TabButton>
           </div>
 
@@ -321,6 +327,8 @@ function HeaderStatus({
 }
 
 function ClockOverview({ now, session }: { now: Date; session: PlatformSessionStats }) {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const store = useClockStore();
   return (
@@ -341,7 +349,7 @@ function ClockOverview({ now, session }: { now: Date; session: PlatformSessionSt
       </div>
       <div className="flex items-center justify-between rounded-xl border border-brand/15 bg-brand/5 px-3 py-2.5 dark:bg-brand/10">
         <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-          زمان فعال این نشست
+          {copy.activeSessionTime}
         </span>
         <strong dir="ltr" className="font-mono text-sm tabular-nums text-brand">
           {formatDuration(session.currentSessionMs)}
@@ -352,21 +360,21 @@ function ClockOverview({ now, session }: { now: Date; session: PlatformSessionSt
         <button
           type="button"
           onClick={() => clockActions.setHour12(!store.preferences.hour12)}
-          className="rounded-xl border border-slate-200 bg-white p-2.5 text-right dark:border-slate-700 dark:bg-slate-800"
+          className="rounded-xl border border-slate-200 bg-white p-2.5 text-start dark:border-slate-700 dark:bg-slate-800"
         >
-          <span className="block text-[10px] text-slate-400">قالب ساعت</span>
+          <span className="block text-[10px] text-slate-400">{copy.clockFormat}</span>
           <strong className="mt-1 block text-xs text-slate-700 dark:text-slate-100">
-            {store.preferences.hour12 ? "۱۲ ساعته" : "۲۴ ساعته"}
+            {store.preferences.hour12 ? copy.twelveHour : copy.twentyFourHour}
           </strong>
         </button>
         <button
           type="button"
           onClick={() => clockActions.setSoundEnabled(!store.preferences.soundEnabled)}
-          className="rounded-xl border border-slate-200 bg-white p-2.5 text-right dark:border-slate-700 dark:bg-slate-800"
+          className="rounded-xl border border-slate-200 bg-white p-2.5 text-start dark:border-slate-700 dark:bg-slate-800"
         >
-          <span className="block text-[10px] text-slate-400">صدای ابزارها</span>
+          <span className="block text-[10px] text-slate-400">{copy.toolSounds}</span>
           <strong className="mt-1 block text-xs text-slate-700 dark:text-slate-100">
-            {store.preferences.soundEnabled ? "روشن" : "خاموش"}
+            {store.preferences.soundEnabled ? copy.on : copy.off}
           </strong>
         </button>
       </div>
@@ -396,7 +404,7 @@ function TabButton({
     >
       {icon}
       <span className="hidden 2xl:inline">{children}</span>
-      {badge && <span className="absolute left-1 top-1 size-1.5 rounded-full bg-rose-500" />}
+      {badge && <span className="absolute start-1 top-1 size-1.5 rounded-full bg-rose-500" />}
     </button>
   );
 }

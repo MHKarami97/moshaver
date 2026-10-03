@@ -1,8 +1,9 @@
 import { AlertTriangle, Target } from "lucide-react";
 import type { ReportRow } from "../api/reports.api";
 import { reportAccuracy, reportNumber } from "../report-utils";
-import { fa } from "../../../shared/lib/utils";
 import { AdminDataTable } from "../../../shared/ui/admin-data-table";
+import { useLocale } from "../../../shared/ui/locale";
+import { reportCopy } from "../model/report-copy";
 
 export function ReportCompactList({
   reports,
@@ -11,11 +12,14 @@ export function ReportCompactList({
   reports: ReportRow[];
   formatDate: (value?: string | Date) => string;
 }) {
+  const locale = useLocale();
+  const copy = reportCopy(locale.language);
+  const number = (value: number) => value.toLocaleString(locale.profile.locale);
   return (
     <AdminDataTable
       rows={reports}
       rowId={(row) => String(row.id ?? `${row.plan_date ?? row.planDate}-${row.created_at ?? ""}`)}
-      label="گزارش‌های روزانه"
+      label={copy.daily}
       mobileCard={(row) => {
         const date = row.plan_date ?? row.planDate;
         const accuracy = reportAccuracy(row);
@@ -24,24 +28,28 @@ export function ReportCompactList({
             <div className="flex items-start justify-between gap-3">
               <strong>{date ? formatDate(String(date)) : "—"}</strong>
               <span className="text-xs text-slate-500">
-                دقت: {accuracy === null ? "—" : `${fa(accuracy)}٪`}
+                {copy.accuracy}: {accuracy === null ? "—" : `${number(accuracy)}%`}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <Metric
-                label="مطالعه"
-                value={`${fa(reportNumber(row.study_hours ?? row.studyHours))} ساعت`}
+                label={copy.study}
+                value={`${number(reportNumber(row.study_hours ?? row.studyHours))} ${copy.hours}`}
               />
-              <Metric label="تست" value={fa(reportNumber(row.tests))} />
-              <Metric label="تمرکز" value={`${fa(reportNumber(row.focus))}/۱۰`} />
+              <Metric label={copy.tests} value={number(reportNumber(row.tests))} />
+              <Metric label={copy.focus} value={`${number(reportNumber(row.focus))}/10`} />
             </div>
             {row.problem || row.tomorrow ? (
-            <div className="grid gap-1 border-t border-[rgb(var(--border-subtle))] pt-2 text-xs">
+              <div className="grid gap-1 border-t border-[rgb(var(--border-subtle))] pt-2 text-xs">
                 {row.problem ? (
-                  <span className="text-rose-700">مسئله: {String(row.problem)}</span>
+                  <span className="text-rose-700">
+                    {copy.problem}: {String(row.problem)}
+                  </span>
                 ) : null}
                 {row.tomorrow ? (
-                  <span className="text-indigo-700">فردا: {String(row.tomorrow)}</span>
+                  <span className="text-indigo-700">
+                    {copy.tomorrow}: {String(row.tomorrow)}
+                  </span>
                 ) : null}
               </div>
             ) : null}
@@ -51,7 +59,7 @@ export function ReportCompactList({
       columns={[
         {
           id: "date",
-          header: "تاریخ",
+          header: copy.noDate,
           cell: (row) => {
             const date = row.plan_date ?? row.planDate;
             return (
@@ -63,28 +71,32 @@ export function ReportCompactList({
         },
         {
           id: "study",
-          header: "مطالعه",
-          cell: (row) => `${fa(reportNumber(row.study_hours ?? row.studyHours))} ساعت`,
+          header: copy.study,
+          cell: (row) => `${number(reportNumber(row.study_hours ?? row.studyHours))} ${copy.hours}`,
         },
-        { id: "tests", header: "تست", cell: (row) => fa(reportNumber(row.tests)) },
+        { id: "tests", header: copy.tests, cell: (row) => number(reportNumber(row.tests)) },
         {
           id: "accuracy",
-          header: "دقت",
+          header: copy.accuracy,
           cell: (row) => {
             const accuracy = reportAccuracy(row);
-            return accuracy === null ? "—" : `${fa(accuracy)}٪`;
+            return accuracy === null ? "—" : `${number(accuracy)}%`;
           },
         },
-        { id: "focus", header: "تمرکز", cell: (row) => `${fa(reportNumber(row.focus))}/۱۰` },
+        { id: "focus", header: copy.focus, cell: (row) => `${number(reportNumber(row.focus))}/10` },
         {
           id: "motivation",
-          header: "انگیزه",
-          cell: (row) => `${fa(reportNumber(row.motivation))}/۱۰`,
+          header: copy.motivation,
+          cell: (row) => `${number(reportNumber(row.motivation))}/10`,
         },
-        { id: "fatigue", header: "خستگی", cell: (row) => `${fa(reportNumber(row.fatigue))}/۱۰` },
+        {
+          id: "fatigue",
+          header: copy.fatigue,
+          cell: (row) => `${number(reportNumber(row.fatigue))}/10`,
+        },
         {
           id: "note",
-          header: "یادداشت",
+          header: copy.note,
           className: "max-w-[260px]",
           cell: (row) => (
             <div className="flex min-w-0 gap-2">

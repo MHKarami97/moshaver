@@ -73,23 +73,25 @@ describe("Admin v2 accessibility smoke", () => {
   it("has no automated violations on the role dashboard", async () => {
     const view = render(
       <MemoryRouter>
-        <RoleDashboard
-          data={{
-            context: "ADVISOR",
-            generatedAt: "2026-09-06T00:00:00.000Z",
-            assignedStudents: 2,
-            unreadConversations: 1,
-          }}
-          loading={false}
-          error={false}
-          refreshing={false}
-          attention={[]}
-          attentionLoading={false}
-          attentionError={false}
-          onRefresh={vi.fn()}
-          onRetry={vi.fn()}
-          onRetryAttention={vi.fn()}
-        />
+        <LocaleProvider>
+          <RoleDashboard
+            data={{
+              context: "ADVISOR",
+              generatedAt: "2026-09-06T00:00:00.000Z",
+              assignedStudents: 2,
+              unreadConversations: 1,
+            }}
+            loading={false}
+            error={false}
+            refreshing={false}
+            attention={[]}
+            attentionLoading={false}
+            attentionError={false}
+            onRefresh={vi.fn()}
+            onRetry={vi.fn()}
+            onRetryAttention={vi.fn()}
+          />
+        </LocaleProvider>
       </MemoryRouter>,
     );
     await expectAccessible(view.container);
@@ -97,30 +99,32 @@ describe("Admin v2 accessibility smoke", () => {
 
   it("has no automated violations on the student directory", async () => {
     const view = render(
-      <StudentList
-        students={[{ id: "student-1", name: "دانش‌آموز نمونه", username: "student.demo" }]}
-        total={1}
-        filteredTotal={1}
-        page={1}
-        pageCount={1}
-        pageSize={25}
-        setPage={vi.fn()}
-        setPageSize={vi.fn()}
-        selectedId="student-1"
-        search=""
-        setSearch={vi.fn()}
-        status="all"
-        counts={{ all: 1, active: 1, inactive: 0, archived: 0 }}
-        incomplete={0}
-        profileFilter="all"
-        sort="name"
-        sortDirection="asc"
-        onSort={vi.fn()}
-        onStatusChange={vi.fn()}
-        onIncompleteToggle={vi.fn()}
-        onClearFilters={vi.fn()}
-        onSelect={vi.fn()}
-      />,
+      <LocaleProvider>
+        <StudentList
+          students={[{ id: "student-1", name: "دانش‌آموز نمونه", username: "student.demo" }]}
+          total={1}
+          filteredTotal={1}
+          page={1}
+          pageCount={1}
+          pageSize={25}
+          setPage={vi.fn()}
+          setPageSize={vi.fn()}
+          selectedId="student-1"
+          search=""
+          setSearch={vi.fn()}
+          status="all"
+          counts={{ all: 1, active: 1, inactive: 0, archived: 0 }}
+          incomplete={0}
+          profileFilter="all"
+          sort="name"
+          sortDirection="asc"
+          onSort={vi.fn()}
+          onStatusChange={vi.fn()}
+          onIncompleteToggle={vi.fn()}
+          onClearFilters={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LocaleProvider>,
     );
     await expectAccessible(view.container);
   });
@@ -147,52 +151,56 @@ describe("Admin v2 accessibility smoke", () => {
 
   it("has no automated violations on the advisor inbox list", async () => {
     const view = render(
-      <AdvisorInboxPanel
-        mobilePanel="inbox"
-        rows={[]}
-        students={[]}
-        studentId=""
-        loading={false}
-        error={false}
-        recoveryPendingId=""
-        issuePendingId=""
-        onStudentChange={vi.fn()}
-        onRetry={vi.fn()}
-        onRecovery={vi.fn().mockResolvedValue(true)}
-        onIssue={vi.fn().mockResolvedValue(true)}
-        canManageRecovery
-        canManageIssues
-      />,
+      <LocaleProvider>
+        <AdvisorInboxPanel
+          mobilePanel="inbox"
+          rows={[]}
+          students={[]}
+          studentId=""
+          loading={false}
+          error={false}
+          recoveryPendingId=""
+          issuePendingId=""
+          onStudentChange={vi.fn()}
+          onRetry={vi.fn()}
+          onRecovery={vi.fn().mockResolvedValue(true)}
+          onIssue={vi.fn().mockResolvedValue(true)}
+          canManageRecovery
+          canManageIssues
+        />
+      </LocaleProvider>,
     );
     await expectAccessible(view.container);
   });
 
   it("has no automated violations on the chat conversation directory", async () => {
     const view = render(
-      <ConversationSidebar
-        visible
-        items={[]}
-        search=""
-        filter="all"
-        sort="recent"
-        favoriteIds={new Set()}
-        drafts={{}}
-        total={0}
-        unread={0}
-        loading={false}
-        error={false}
-        fetching={false}
-        hasMore={false}
-        fetchingMore={false}
-        onSearch={vi.fn()}
-        onFilter={vi.fn()}
-        onSort={vi.fn()}
-        onSelect={vi.fn()}
-        onToggleFavorite={vi.fn()}
-        onRetry={vi.fn()}
-        onMore={vi.fn()}
-        onGroupCreated={vi.fn()}
-      />,
+      <LocaleProvider>
+        <ConversationSidebar
+          visible
+          items={[]}
+          search=""
+          filter="all"
+          sort="recent"
+          favoriteIds={new Set()}
+          drafts={{}}
+          total={0}
+          unread={0}
+          loading={false}
+          error={false}
+          fetching={false}
+          hasMore={false}
+          fetchingMore={false}
+          onSearch={vi.fn()}
+          onFilter={vi.fn()}
+          onSort={vi.fn()}
+          onSelect={vi.fn()}
+          onToggleFavorite={vi.fn()}
+          onRetry={vi.fn()}
+          onMore={vi.fn()}
+          onGroupCreated={vi.fn()}
+        />
+      </LocaleProvider>,
     );
     await expectAccessible(view.container);
   });

@@ -19,6 +19,25 @@ describe("admin layout geometry", () => {
     ).toBe("lg:mr-[4.5rem]");
   });
 
+  it("moves the workspace away from the LTR start rail without changing its width budget", () => {
+    expect(
+      adminContentOffsetClass({
+        showContextRail: false,
+        mainCollapsed: false,
+        contextCollapsed: false,
+        direction: "ltr",
+      }),
+    ).toBe("lg:ml-64");
+    expect(
+      adminContentOffsetClass({
+        showContextRail: true,
+        mainCollapsed: true,
+        contextCollapsed: false,
+        direction: "ltr",
+      }),
+    ).toBe("lg:ml-[8.5rem] xl:ml-[17.5rem]");
+  });
+
   it("keeps the contextual rail compact on lg and respects its saved state on xl", () => {
     expect(
       adminContentOffsetClass({

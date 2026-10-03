@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet, useLocation } from "react-router
 import { lazy, Suspense, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "../shared/ui/ui";
+import { useAdminShellCopy } from "../shared/ui/locale";
 import { LoginPage, useAuth } from "../features/auth";
 import { AdminLayout } from "./layout/AdminLayout";
 import { educationCapabilities } from "./layout/admin-navigation";
@@ -79,15 +80,20 @@ const ResourcesPage = lazy(() =>
 const GuardianPage = lazy(() =>
   import("../features/guardian").then((module) => ({ default: module.GuardianPage })),
 );
-const PermissionRequestsPage = lazy(() => import("../features/permission-requests").then((module) => ({ default: module.PermissionRequestsPage })));
+const PermissionRequestsPage = lazy(() =>
+  import("../features/permission-requests").then((module) => ({
+    default: module.PermissionRequestsPage,
+  })),
+);
 
 function RouteScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }
 
 function RouteLoading() {
+  const copy = useAdminShellCopy();
   return (
-    <div role="status" className="grid gap-3" aria-label="در حال آماده‌سازی صفحه">
+    <div role="status" className="grid gap-3" aria-label={copy.preparingPage}>
       <div className="h-14 animate-pulse rounded-lg bg-[rgb(var(--surface-card))]" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[1, 2, 3, 4].map((item) => (
@@ -101,6 +107,7 @@ function RouteLoading() {
 
 function ProtectedRoute() {
   const auth = useAuth();
+  const copy = useAdminShellCopy();
   if (auth.status === "checking")
     return (
       <div className="grid min-h-screen place-items-center bg-paper p-4">
@@ -110,15 +117,15 @@ function ProtectedRoute() {
             aria-hidden="true"
           />
           <div>
-            <p className="font-bold text-slate-800">در حال بازیابی نشست…</p>
+            <p className="font-bold text-slate-800">{copy.restoringSession}</p>
             <p className="mt-2 text-sm text-slate-500">{auth.message}</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="soft" onClick={() => void auth.restore()}>
-              <RefreshCw size={16} /> تلاش دوباره
+              <RefreshCw size={16} /> {copy.retry}
             </Button>
             <Button variant="ghost" onClick={auth.stopRestore}>
-              رفتن به صفحه ورود
+              {copy.goToLogin}
             </Button>
           </div>
         </div>
@@ -141,6 +148,7 @@ export function CapabilityRoute({
   children: ReactNode;
 }) {
   const auth = useAuth();
+  const copy = useAdminShellCopy();
   const allowed =
     typeof capability === "string"
       ? auth.can(capability)
@@ -151,15 +159,13 @@ export function CapabilityRoute({
         role="alert"
         className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
       >
-        <h2 className="font-bold">این ابزار در نقش فعال شما نیست</h2>
-        <p className="mt-2 text-sm">
-          از منوی حساب می‌توانید زمینه کاری را تغییر دهید یا به میز کار خود برگردید.
-        </p>
+        <h2 className="font-bold">{copy.capabilityUnavailableTitle}</h2>
+        <p className="mt-2 text-sm">{copy.capabilityUnavailableDescription}</p>
         <a
           href="/admin"
           className="mt-4 inline-flex h-10 items-center rounded-lg bg-brand px-4 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
         >
-          بازگشت به میز کار
+          {copy.returnToWorkspace}
         </a>
       </div>
     );
@@ -217,7 +223,13 @@ export const router = createBrowserRouter([
           },
           {
             path: "permission-requests",
-            element: <CapabilityRoute capability="permission_requests.read"><RouteScreen><PermissionRequestsPage /></RouteScreen></CapabilityRoute>,
+            element: (
+              <CapabilityRoute capability="permission_requests.read">
+                <RouteScreen>
+                  <PermissionRequestsPage />
+                </RouteScreen>
+              </CapabilityRoute>
+            ),
           },
           {
             path: "classes",

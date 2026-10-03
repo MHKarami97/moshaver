@@ -2,8 +2,12 @@ import { CheckCircle2, Copy, Server } from "lucide-react";
 import { useState } from "react";
 import { getBackendTargetUrl } from "../../../shared/api/api";
 import { Button, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { settingsCopy } from "../settings-locale";
 
 export function ApiConnectionCard() {
+  const { language } = useLocale();
+  const copyText = settingsCopy(language);
   const [copied, setCopied] = useState(false);
   const target = getBackendTargetUrl();
   async function copy() {
@@ -18,8 +22,8 @@ export function ApiConnectionCard() {
           <Server size={20} />
         </span>
         <div>
-          <h3 className="font-bold">اتصال API</h3>
-          <p className="text-xs text-slate-500">مقصد واقعی درخواست‌های این پنل</p>
+          <h3 className="font-bold">{copyText.apiTitle}</h3>
+          <p className="text-xs text-slate-500">{copyText.apiDescription}</p>
         </div>
       </div>
       <div
@@ -32,11 +36,10 @@ export function ApiConnectionCard() {
         <p className="break-all font-mono">{target}</p>
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-500">
-          این برنامه فقط با قرارداد پایدار API v2 کار می‌کند.
-        </span>
+        <span className="text-xs text-slate-500">{copyText.apiContract}</span>
         <Button className="shrink-0" variant="soft" onClick={() => void copy()}>
-          {copied ? <CheckCircle2 size={15} /> : <Copy size={15} />} {copied ? "کپی شد" : "کپی"}
+          {copied ? <CheckCircle2 size={15} /> : <Copy size={15} />}{" "}
+          {copied ? copyText.copied : copyText.copy}
         </Button>
       </div>
     </Card>

@@ -15,9 +15,11 @@ import {
 import { useEffect, useState } from "react";
 import { useModal } from "../../../../shared/ui/modal";
 import { notifications } from "../../../../shared/ui/notifications";
+import { useLocale } from "../../../../shared/ui/locale";
 import { Badge, Button, Field, Input, Textarea } from "../../../../shared/ui/ui";
 import { api } from "../../../../shared/api/api";
-import { permissionLabels, roleLabel } from "../../model/permissions";
+import { permissionLabels } from "../../model/permissions";
+import { chatCopy } from "../../model/chat-copy";
 import type {
   ChatUser,
   GroupDetail,
@@ -26,17 +28,43 @@ import type {
   GroupRole,
 } from "../../model/group.types";
 
+function interpolate(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? `{${key}}`));
+}
+
+function localizedGroupRole(copy: Record<string, string>, role: GroupRole) {
+  return role === "owner" ? copy.owner : role === "admin" ? copy.admin : copy.member;
+}
+
+function localizedPermission(copy: Record<string, string>, key: keyof GroupPermissions) {
+  const keys: Record<keyof GroupPermissions, string> = {
+    members_can_send_messages: "permissionSend",
+    members_can_add_members: "permissionAddMembers",
+    members_can_invite: "permissionInvite",
+    members_can_react: "permissionReact",
+    members_can_use_mentions: "permissionMentions",
+    members_can_share_study_state: "permissionStudyState",
+    members_can_share_exam_results: "permissionExamResults",
+    members_can_share_learning_progress: "permissionLearningProgress",
+    members_can_edit_own_messages: "permissionEditOwn",
+    members_can_delete_own_messages: "permissionDeleteOwn",
+    admins_can_delete_messages: "permissionAdminsDelete",
+  };
+  return copy[keys[key]];
+}
+
 export function CreateGroupButton({ onCreated }: { onCreated: (id: string) => void }) {
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   return (
     <Button
       className="h-8 px-2 text-xs"
       variant="soft"
       onClick={() =>
         modal.open({
-          title: "ساخت گفتگوی گروهی",
-
-          description: "یک گفتگوی گروهی جدید بسازید و اعضای موردنظر را اضافه کنید.",
+          title: copy.createGroup,
+          description: copy.createGroupDescription,
 
           size: "lg",
 
@@ -46,15 +74,15 @@ export function CreateGroupButton({ onCreated }: { onCreated: (id: string) => vo
               onCreated={(id) => {
                 modal.close();
 
-                notifications.success("گفتگوی گروهی با موفقیت ساخته شد.", {
-                  description: "گروه جدید آماده استفاده است.",
+                notifications.success(copy.groupCreated, {
+                  description: copy.groupReady,
                 });
 
                 onCreated(id);
               }}
               onError={(error) => {
-                notifications.error("ساخت گفتگوی گروهی انجام نشد.", {
-                  description: error instanceof Error ? error.message : "خطای ناشناخته رخ داد.",
+                notifications.error(copy.createGroupFailed, {
+                  description: error instanceof Error ? error.message : copy.unknownError,
                 });
               }}
             />
@@ -62,7 +90,7 @@ export function CreateGroupButton({ onCreated }: { onCreated: (id: string) => vo
         })
       }
     >
-      <Plus size={15} /> گروه جدید
+      <Plus size={15} /> {copy.createGroup}
     </Button>
   );
 }
@@ -80,6 +108,8 @@ export function CreateGroupForm({
 
   onError?: (error: unknown) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [title, setTitle] = useState("");
 
   const [description, setDescription] = useState("");
@@ -132,7 +162,7 @@ export function CreateGroupForm({
         create.mutate();
       }}
     >
-      <Field label="نام گروه">
+      <Field label={copy.groupName}>
         <Input
           required
           minLength={2}
@@ -142,7 +172,7 @@ export function CreateGroupForm({
         />
       </Field>
 
-      <Field label="توضیحات">
+      <Field label={copy.groupDescription}>
         <Textarea
           rows={3}
           maxLength={500}
@@ -151,12 +181,10 @@ export function CreateGroupForm({
         />
       </Field>
 
-      <Field label="افزودن اعضای اولیه">
+      <Field label={copy.addInitialMembers}>
         <Input
           value={search}
-          placeholder="
-          نام یا نام کاربری
-          "
+          placeholder={copy.userNameOrUsername}
           onChange={(event) => setSearch(event.target.value)}
         />
       </Field>
@@ -215,7 +243,7 @@ export function CreateGroupForm({
                 justify-between
                 border-b
                 p-3
-                text-right
+                text-start
                 text-sm
                 hover:bg-slate-50
                 "
@@ -239,7 +267,7 @@ export function CreateGroupForm({
         "
       >
         <Button type="button" variant="ghost" disabled={create.isPending} onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
 
         <Button
@@ -247,7 +275,7 @@ export function CreateGroupForm({
           loading={create.isPending}
           disabled={title.trim().length < 2 || create.isPending}
         >
-          {create.isPending ? "در حال ساخت..." : "ساخت گروه"}
+          {create.isPending ? copy.sending : copy.createGroup}
         </Button>
       </div>
     </form>
@@ -262,13 +290,15 @@ export function GroupInfoButton({
   onChanged: () => void;
 }) {
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   return (
     <Button
       className="h-9 px-2 text-xs"
       variant="soft"
       onClick={() =>
         modal.open({
-          title: "اطلاعات و مدیریت گروه",
+          title: copy.groupInfo,
           size: "xl",
           content: (
             <GroupManager
@@ -281,7 +311,7 @@ export function GroupInfoButton({
       }
     >
       <Users size={16} />
-      <span className="hidden sm:inline">گروه</span>
+      <span className="hidden sm:inline">{copy.group}</span>
     </Button>
   );
 }
@@ -297,6 +327,8 @@ export function GroupManager({
 }) {
   const qc = useQueryClient();
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [candidateSearch, setCandidateSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const deferredCandidateSearch = useDebouncedValue(candidateSearch.trim(), 250);
@@ -344,19 +376,17 @@ export function GroupManager({
       body?: unknown;
     }) => api[method](path, body),
     onSuccess: () => {
-      notifications.success("تغییرات گروه ذخیره شد.");
+      notifications.success(copy.groupChangesSaved);
       refresh();
     },
     onError: (error) =>
-      notifications.error(error instanceof Error ? error.message : "عملیات گروه ناموفق بود."),
+      notifications.error(error instanceof Error ? error.message : copy.groupActionFailed),
   });
   if (detail.isLoading || members.isLoading)
     return <div className="h-72 animate-pulse rounded-lg bg-slate-100" />;
   if (!detail.data || detail.isError || members.isError)
     return (
-      <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-800">
-        دریافت اطلاعات گروه ناموفق بود.
-      </p>
+      <p className="rounded-md bg-rose-50 p-3 text-sm text-rose-800">{copy.groupInfoFailed}</p>
     );
   const group = detail.data,
     canManage = group.myRole === "owner" || group.myRole === "admin";
@@ -376,7 +406,7 @@ export function GroupManager({
         />
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <strong>اعضا</strong>
+            <strong>{copy.members}</strong>
             <Badge tone="blue">{group.memberCount}</Badge>
           </div>
           {group.memberCount > 12 ? (
@@ -384,8 +414,8 @@ export function GroupManager({
               className="mb-2"
               value={memberSearch}
               onChange={(event) => setMemberSearch(event.target.value)}
-              placeholder="جستجو میان اعضا"
-              aria-label="جستجو میان اعضای گروه"
+              placeholder={copy.searchMembers}
+              aria-label={copy.searchGroupMembers}
             />
           ) : null}
           <div className="max-h-72 overflow-auto rounded-md border">
@@ -420,22 +450,20 @@ export function GroupManager({
                 />
               ))
             ) : (
-              <p className="p-3 text-center text-sm text-slate-500">عضوی با این جستجو پیدا نشد.</p>
+              <p className="p-3 text-center text-sm text-slate-500">{copy.noMatchingMembers}</p>
             )}
           </div>
           {group.memberCount > 50 && !memberSearch ? (
-            <p className="mt-1 text-xs text-amber-700">
-              برای دسترسی به اعضای بیشتر، نام یا نام کاربری را جستجو کنید.
-            </p>
+            <p className="mt-1 text-xs text-amber-700">{copy.searchForMoreMembers}</p>
           ) : null}
         </section>
         {canManage || group.permissions.members_can_add_members ? (
           <section>
-            <Field label="افزودن عضو">
+            <Field label={copy.addMember}>
               <Input
                 value={candidateSearch}
                 onChange={(event) => setCandidateSearch(event.target.value)}
-                placeholder="نام یا نام کاربری"
+                placeholder={copy.userNameOrUsername}
               />
             </Field>
             {candidates.data?.length ? (
@@ -486,7 +514,7 @@ export function GroupManager({
           }
         >
           {group.muted ? <Bell size={16} /> : <BellOff size={16} />}
-          {group.muted ? "فعال‌کردن اعلان" : "بی‌صدا کردن"}
+          {group.muted ? copy.enableNotifications : copy.muteGroup}
         </Button>
         {group.myRole === "owner" ? (
           <Button
@@ -494,10 +522,10 @@ export function GroupManager({
             onClick={() =>
               void modal
                 .confirm({
-                  title: "بایگانی گروه؟",
-                  description: "گروه از فهرست گفتگوهای فعال همه اعضا خارج می‌شود.",
+                  title: copy.archiveGroupConfirm,
+                  description: copy.archiveGroupDescription,
                   tone: "danger",
-                  confirmLabel: "بایگانی",
+                  confirmLabel: copy.archive,
                 })
                 .then((ok) => {
                   if (ok)
@@ -511,7 +539,7 @@ export function GroupManager({
                 })
             }
           >
-            <Archive size={16} /> بایگانی گروه
+            <Archive size={16} /> {copy.archiveGroup}
           </Button>
         ) : (
           <Button
@@ -519,10 +547,10 @@ export function GroupManager({
             onClick={() =>
               void modal
                 .confirm({
-                  title: "ترک گروه؟",
-                  description: "برای دسترسی دوباره باید یکی از مدیران شما را به گروه اضافه کند.",
+                  title: copy.leaveGroupConfirm,
+                  description: copy.leaveGroupDescription,
                   tone: "danger",
-                  confirmLabel: "ترک گروه",
+                  confirmLabel: copy.leaveGroup,
                 })
                 .then((ok) => {
                   if (ok)
@@ -536,7 +564,7 @@ export function GroupManager({
                 })
             }
           >
-            <LogOut size={16} /> ترک گروه
+            <LogOut size={16} /> {copy.leaveGroup}
           </Button>
         )}
       </aside>
@@ -553,6 +581,8 @@ export function GroupMeta({
   busy: boolean;
   save: (body: object) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [title, setTitle] = useState(group.title),
     [description, setDescription] = useState(group.description);
   const canManage = group.myRole === "owner" || group.myRole === "admin";
@@ -560,8 +590,10 @@ export function GroupMeta({
     <section className="rounded-lg bg-slate-50 p-3">
       <div className="mb-3 flex items-center gap-2">
         <Shield size={18} />
-        <strong>مشخصات گروه</strong>
-        <Badge tone={group.myRole === "owner" ? "amber" : "blue"}>{roleLabel(group.myRole)}</Badge>
+        <strong>{copy.groupDetails}</strong>
+        <Badge tone={group.myRole === "owner" ? "amber" : "blue"}>
+          {localizedGroupRole(copy, group.myRole)}
+        </Badge>
       </div>
       {canManage ? (
         <div className="grid gap-2">
@@ -578,11 +610,11 @@ export function GroupMeta({
             disabled={busy || title.trim().length < 2}
             onClick={() => save({ title: title.trim(), description: description.trim() })}
           >
-            <Settings size={15} /> ذخیره مشخصات
+            <Settings size={15} /> {copy.saveDetails}
           </Button>
         </div>
       ) : (
-        <p className="text-sm text-slate-600">{group.description || "بدون توضیحات"}</p>
+        <p className="text-sm text-slate-600">{group.description || copy.noDescription}</p>
       )}
     </section>
   );
@@ -605,6 +637,8 @@ export function MemberRow({
   transfer: () => void;
   confirm: ReturnType<typeof useModal>["confirm"];
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const manageable = myRole === "owner" || (myRole === "admin" && member.role === "member");
   return (
     <div className="flex flex-wrap items-center gap-2 border-b p-2 text-sm">
@@ -617,7 +651,7 @@ export function MemberRow({
       <Badge
         tone={member.role === "owner" ? "amber" : member.role === "admin" ? "blue" : "neutral"}
       >
-        {roleLabel(member.role)}
+        {localizedGroupRole(copy, member.role)}
       </Badge>
       {myRole === "owner" && member.role !== "owner" ? (
         <>
@@ -627,18 +661,18 @@ export function MemberRow({
             className="text-xs text-brand"
             onClick={() => changeRole(member.role === "admin" ? "member" : "admin")}
           >
-            {member.role === "admin" ? "عضو شود" : "مدیر شود"}
+            {member.role === "admin" ? copy.becomeMember : copy.becomeAdmin}
           </button>
           <button
             type="button"
             disabled={busy}
-            aria-label={`انتقال مالکیت به ${member.name}`}
+            aria-label={interpolate(copy.transferOwnership, { name: member.name })}
             onClick={() =>
               void confirm({
-                title: "انتقال مالکیت گروه؟",
-                description: `${member.name} مالک جدید می‌شود و نقش شما به مدیر تغییر می‌کند.`,
+                title: copy.transferOwnershipConfirm,
+                description: interpolate(copy.transferOwnershipDescription, { name: member.name }),
                 tone: "danger",
-                confirmLabel: "انتقال مالکیت",
+                confirmLabel: copy.transferOwnershipAction,
               }).then((ok) => ok && transfer())
             }
           >
@@ -650,14 +684,14 @@ export function MemberRow({
         <button
           type="button"
           disabled={busy}
-          aria-label={`حذف ${member.name} از گروه`}
+          aria-label={interpolate(copy.removeMemberFromGroup, { name: member.name })}
           className="text-rose-700"
           onClick={() =>
             void confirm({
-              title: "حذف عضو از گروه؟",
-              description: `${member.name} دسترسی خود به این گفتگو را از دست می‌دهد.`,
+              title: copy.removeMemberConfirm,
+              description: interpolate(copy.removeMemberDescription, { name: member.name }),
               tone: "danger",
-              confirmLabel: "حذف عضو",
+              confirmLabel: copy.delete,
             }).then((ok) => ok && remove())
           }
         >
@@ -677,20 +711,22 @@ export function PermissionEditor({
   busy: boolean;
   save: (body: GroupPermissions) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [permissions, setPermissions] = useState(value);
   useEffect(() => setPermissions(value), [value]);
   return (
     <section className="rounded-lg border p-3">
-      <strong className="mb-2 block">دسترسی‌های اعضا</strong>
+      <strong className="mb-2 block">{copy.permissions}</strong>
       <div className="grid gap-2">
-        {permissionLabels.map(([key, label]) => (
+        {permissionLabels.map(([key]) => (
           <label key={key} className="flex items-center gap-2 text-xs">
             <input
               type="checkbox"
               checked={!!permissions[key]}
               onChange={(event) => setPermissions({ ...permissions, [key]: event.target.checked })}
             />
-            {label}
+            {localizedPermission(copy, key)}
           </label>
         ))}
       </div>
@@ -700,7 +736,7 @@ export function PermissionEditor({
         disabled={busy}
         onClick={() => save(permissions)}
       >
-        ذخیره دسترسی‌ها
+        {copy.savePermissions}
       </Button>
     </section>
   );

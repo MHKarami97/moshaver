@@ -1,6 +1,7 @@
 import { Activity } from "lucide-react";
 import { activityLabel, activityMeta } from "../lib/live-helpers";
 import type { LiveEvent } from "../model/live.types";
+import { useLocale } from "../../../shared/ui/locale";
 
 export function TimelineItem({
   event,
@@ -9,6 +10,7 @@ export function TimelineItem({
   event: LiveEvent;
   formatDateTime: (value?: string | Date) => string;
 }) {
+  const { language } = useLocale();
   return (
     <article className="flex gap-3 p-4 hover:bg-slate-50">
       <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-indigo-50 text-brand">
@@ -17,10 +19,10 @@ export function TimelineItem({
 
       <div className="min-w-0 flex-1">
         <strong className="text-sm">
-          {event.studentName} — {activityLabel(event.eventType)}
+          {event.studentName} — {activityLabel(event.eventType, language)}
         </strong>
 
-        <p className="mt-1 truncate text-xs text-slate-500">{activityMeta(event)}</p>
+        <p className="mt-1 truncate text-xs text-slate-500">{activityMeta(event, language)}</p>
       </div>
 
       <time className="shrink-0 text-[11px] text-slate-400">{formatDateTime(event.createdAt)}</time>

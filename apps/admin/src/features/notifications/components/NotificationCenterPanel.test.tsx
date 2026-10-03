@@ -27,7 +27,7 @@ vi.mock("../hooks/useAdminNotifications", () => ({
 }));
 vi.mock("../../../shared/ui/locale", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../shared/ui/locale")>()),
-  useLocale: () => ({ formatDateTime: (value: string) => value }),
+  useLocale: () => ({ language: "fa", formatDateTime: (value: string) => value }),
 }));
 
 describe("NotificationCenterPanel", () => {

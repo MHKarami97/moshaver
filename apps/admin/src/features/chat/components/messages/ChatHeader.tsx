@@ -6,6 +6,8 @@ import type { GroupDetail } from "../../model/group.types";
 import { GroupInfoButton } from "../group/GroupChatControls";
 import { chatApi } from "../../api/chat.api";
 import { notify } from "../../../../shared/ui/notifications";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 export function ChatHeader({
   conversation,
@@ -30,6 +32,8 @@ export function ChatHeader({
   onGroupChanged: () => void;
   canOverrideUsername?: boolean;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const [profileOpen, setProfileOpen] = useState(false);
   const peerId = conversation.type !== "group" ? conversation.peer?.id : undefined;
   const profile = useQuery({
@@ -39,8 +43,8 @@ export function ChatHeader({
   });
   const allowUsername = useMutation({
     mutationFn: () => chatApi.allowUsernameChange(peerId!),
-    onSuccess: () => notify("امکان تغییر نام کاربری فعال شد.", "success"),
-    onError: () => notify("فعال‌سازی ناموفق بود.", "error"),
+    onSuccess: () => notify(copy.usernameAllowed, "success"),
+    onError: () => notify(copy.usernameFailed, "error"),
   });
   return (
     <>
@@ -48,44 +52,55 @@ export function ChatHeader({
         <div className="flex min-w-0 items-center gap-2">
           <button
             className="grid size-9 shrink-0 place-items-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden"
-            aria-label="بازگشت به گفتگوها"
+            aria-label={copy.backToConversations}
             onClick={onBack}
           >
-            <ArrowRight size={19} />
+            <ArrowRight size={19} className={language === "fa" ? "" : "rotate-180"} />
           </button>
           <button
             type="button"
             disabled={!peerId}
             onClick={() => setProfileOpen(true)}
-            aria-label={peerId ? "مشاهده پروفایل گفتگو" : "تصویر گروه"}
+            aria-label={peerId ? copy.viewConversationProfile : copy.groupImage}
             className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-brand/10 font-bold text-brand disabled:opacity-100"
           >
             {conversation.peer?.avatarUrl ? (
               <img src={conversation.peer.avatarUrl} alt="" className="size-full object-cover" />
             ) : (
               (conversation.type === "group"
-                ? conversation.title || "گروه"
-                : conversation.student?.name || conversation.peer?.name || "گفتگو"
+                ? conversation.title || copy.group
+                : conversation.student?.name || conversation.peer?.name || copy.conversation
               ).slice(0, 1)
             )}
             {conversation.presence?.online ? (
-              <i className="absolute bottom-0 left-0 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800" />
+              <i className="absolute bottom-0 start-0 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-800" />
             ) : null}
           </button>
           <div className="min-w-0">
             <strong className="block truncate">
               {conversation.type === "group"
                 ? conversation.title
-                : conversation.student?.name || conversation.peer?.name || "گفتگو"}
+                : conversation.student?.name || conversation.peer?.name || copy.conversation}
             </strong>
             <span
               className={`text-xs ${conversation.presence?.online ? "text-emerald-600" : "text-slate-500"}`}
             >
               {conversation.type === "group"
-                ? `${conversation.memberCount || group?.memberCount || 0} عضو • ${groupLoading ? "در حال دریافت نقش" : group?.myRole === "owner" ? "مالک" : group?.myRole === "admin" ? "مدیر" : "عضو"}`
+                ? copy.membersRole
+                    .replace("{count}", String(conversation.memberCount || group?.memberCount || 0))
+                    .replace(
+                      "{role}",
+                      groupLoading
+                        ? copy.loadingRole
+                        : group?.myRole === "owner"
+                          ? copy.owner
+                          : group?.myRole === "admin"
+                            ? copy.admin
+                            : copy.member,
+                    )
                 : conversation.presence?.online
-                  ? "آنلاین"
-                  : conversation.student?.grade || "آفلاین"}
+                  ? copy.online
+                  : conversation.student?.grade || copy.offline}
             </span>
           </div>
         </div>
@@ -93,8 +108,8 @@ export function ChatHeader({
           <button
             type="button"
             aria-pressed={searchOpen}
-            title="جستجو در پیام‌ها (Ctrl/Cmd+F)"
-            aria-label="جستجو در پیام‌ها"
+            title={copy.searchMessagesShortcut}
+            aria-label={copy.searchMessages}
             className={`grid size-9 place-items-center rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-800 ${searchOpen ? "bg-brand/10 text-brand" : "text-slate-500"}`}
             onClick={onToggleSearch}
           >
@@ -114,7 +129,7 @@ export function ChatHeader({
             ) : (
               <CheckCheck size={17} />
             )}
-            <span className="hidden sm:inline">خوانده شد</span>
+            <span className="hidden sm:inline">{copy.markedRead}</span>
           </button>
         </div>
       </div>
@@ -123,14 +138,14 @@ export function ChatHeader({
           className="fixed inset-0 z-[90] grid place-items-end bg-slate-950/40 backdrop-blur-sm sm:place-items-center sm:p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="پروفایل گفتگو"
+          aria-label={copy.conversationProfile}
         >
           <article className="relative grid w-full max-w-md justify-items-center gap-2 rounded-t-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 sm:rounded-3xl">
             <button
               type="button"
-              className="absolute left-3 top-3 grid size-10 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="absolute start-3 top-3 grid size-10 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
               onClick={() => setProfileOpen(false)}
-              aria-label="بستن پروفایل"
+              aria-label={copy.closeProfile}
             >
               <X size={18} />
             </button>
@@ -150,7 +165,7 @@ export function ChatHeader({
                   @{profile.data.username}
                 </b>
                 <p className="max-w-sm text-center text-sm leading-7 text-slate-600 dark:text-slate-300">
-                  {profile.data.bio || "اطلاعات بیشتری ثبت نشده است."}
+                  {profile.data.bio || copy.noProfileBio}
                 </p>
                 {canOverrideUsername ? (
                   <button
@@ -159,12 +174,12 @@ export function ChatHeader({
                     disabled={allowUsername.isPending}
                     onClick={() => allowUsername.mutate()}
                   >
-                    اجازه تغییر نام کاربری
+                    {copy.allowUsername}
                   </button>
                 ) : null}
               </>
             ) : (
-              <p className="text-sm text-rose-600">دریافت پروفایل ناموفق بود.</p>
+              <p className="text-sm text-rose-600">{copy.profileFailed}</p>
             )}
           </article>
         </div>

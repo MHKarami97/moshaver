@@ -2,6 +2,7 @@ import { CheckCheck, RefreshCw } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocale } from "../../../shared/ui/locale";
+import { notificationCopy } from "../model/notification-copy";
 import { AdminList } from "../../../shared/ui/admin-list";
 import { Badge, Button } from "../../../shared/ui/ui";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
@@ -34,17 +35,18 @@ export function NotificationCenterPanel({
   items: AdminNotification[];
 }) {
   const notifications = useAdminNotifications();
-  const { formatDateTime } = useLocale();
+  const { formatDateTime, language } = useLocale();
+  const copy = notificationCopy[language];
   const navigate = useNavigate();
 
   return (
     <AdminList
-      label="اعلان‌های مدیر"
-      description="پیام‌ها، آزمون‌ها و اطلاعیه‌های بارگذاری‌شده را در همین‌جا پیگیری کنید."
+      label={copy.center}
+      description={copy.centerDescription}
       items={items}
       loading={notifications.loading}
       error={notifications.error}
-      errorTitle={notifications.errorMessage || "دریافت اعلان‌ها ناموفق بود."}
+      errorTitle={notifications.errorMessage || copy.loadFailed}
       onRetry={notifications.refresh}
       className={[
         mobilePanel === "inbox" ? "hidden lg:flex" : "flex",
@@ -54,10 +56,10 @@ export function NotificationCenterPanel({
       stickyHeader
       emptyTitle={
         filter === "unread"
-          ? "همه اعلان‌ها خوانده شده‌اند."
+          ? copy.allRead
           : search || typeFilter !== "all"
-            ? "اعلانی مطابق فیلتر پیدا نشد."
-            : "اعلانی وجود ندارد."
+            ? copy.noMatch
+            : copy.none
       }
       actions={
         <>
@@ -69,13 +71,13 @@ export function NotificationCenterPanel({
               onClick={notifications.markAllRead}
             >
               <CheckCheck size={15} />
-              خواندن همه
+              {copy.markAll}
             </Button>
           ) : null}
           <Button
             className="h-8 px-2"
             variant="ghost"
-            aria-label="تازه‌سازی اعلان‌ها"
+            aria-label={copy.refresh}
             loading={notifications.refreshing}
             onClick={notifications.refresh}
           >
@@ -87,19 +89,46 @@ export function NotificationCenterPanel({
         <CollectionToolbar
           search={search}
           onSearchChange={setSearch}
-          placeholder="جستجو در اعلان‌های بارگذاری‌شده"
-          searchLabel="جستجوی اعلان‌ها"
+          placeholder={copy.searchPlaceholder}
+          searchLabel={copy.search}
           searchInputType="text"
           onClear={search ? () => setSearch("") : undefined}
-          filters={<select className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs outline-none" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="نوع اعلان"><option value="all">همه نوع‌ها</option><option value="message">پیام</option><option value="exam">آزمون</option><option value="lesson">برنامه</option><option value="announcement">اطلاعیه</option></select>}
+          filters={
+            <select
+              className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs outline-none"
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              aria-label={copy.type}
+            >
+              <option value="all">{copy.allTypes}</option>
+              <option value="message">{copy.message}</option>
+              <option value="exam">{copy.exam}</option>
+              <option value="lesson">{copy.lesson}</option>
+              <option value="announcement">{copy.announcement}</option>
+            </select>
+          }
           actions={
             <SegmentedControl
-              ariaLabel="وضعیت خواندن اعلان‌ها"
+              ariaLabel={copy.readState}
               value={filter}
               onValueChange={setFilter}
               options={[
-                { value: "all", label: "همه" },
-                { value: "unread", label: <>خوانده‌نشده {notifications.unread > 0 ? <span className="rounded-full bg-rose-600 px-1.5 text-white">{notifications.unread.toLocaleString("fa-IR")}</span> : null}</> },
+                { value: "all", label: copy.all },
+                {
+                  value: "unread",
+                  label: (
+                    <>
+                      {copy.unread}{" "}
+                      {notifications.unread > 0 ? (
+                        <span className="rounded-full bg-rose-600 px-1.5 text-white">
+                          {notifications.unread.toLocaleString(
+                            language === "fa" ? "fa-IR" : "en-US",
+                          )}
+                        </span>
+                      ) : null}
+                    </>
+                  ),
+                },
               ]}
             />
           }
@@ -113,7 +142,7 @@ export function NotificationCenterPanel({
             loading={notifications.loadingMore}
             onClick={notifications.loadMore}
           >
-            نمایش اعلان‌های بیشتر
+            {copy.more}
           </Button>
         ) : null
       }
@@ -146,7 +175,7 @@ export function NotificationCenterPanel({
               </strong>
               <Badge tone={notificationTone(item.type)}>{notificationTypeLabel(item.type)}</Badge>
               {!item.isRead ? (
-                <span className="size-2 rounded-full bg-rose-600" aria-label="خوانده‌نشده" />
+                <span className="size-2 rounded-full bg-rose-600" aria-label={copy.unreadDot} />
               ) : null}
             </span>
 

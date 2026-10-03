@@ -4,6 +4,8 @@
 import { BookOpen } from "lucide-react";
 import { EducationSection } from "../model/eduction.types";
 import { EducationSectionCard } from "./EducationSectionGrid";
+import { useLocale } from "../../../shared/ui/locale";
+import { educationCopy } from "../model/education-copy";
 
 interface Props {
   sections: EducationSection[];
@@ -31,6 +33,8 @@ export function EducationSections({ sections }: Props) {
 }
 
 function EmptyState() {
+  const { language } = useLocale();
+  const copy = educationCopy(language);
   return (
     <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] px-6 py-12 text-center">
       <span
@@ -39,10 +43,8 @@ function EmptyState() {
       >
         <BookOpen size={22} />
       </span>
-      <p className="text-sm font-bold text-ink">هنوز بخشی برای نمایش وجود ندارد</p>
-      <p className="max-w-sm text-sm text-slate-500">
-        دسترسی شما به بخش‌های آموزش محدود است. در صورت نیاز با مدیر سیستم تماس بگیرید.
-      </p>
+      <p className="text-sm font-bold text-ink">{copy.noSections}</p>
+      <p className="max-w-sm text-sm text-slate-500">{copy.noPermissionDescription}</p>
     </div>
   );
 }

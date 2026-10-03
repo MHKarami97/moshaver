@@ -18,6 +18,8 @@ import {
   signalAuthEvent,
 } from "../lib/auth-session";
 import type { AuthState, AuthStatus } from "../model/auth.types";
+import { authSessionCopy } from "../model/auth-locale";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 
 export const AuthContext = createContext<AuthState | null>(null);
 
@@ -25,11 +27,13 @@ const MAX_RESTORE_ATTEMPTS = 3;
 const RESTORE_RETRY_DELAY_MS = 1_800;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const language = useOptionalAdminLanguage();
+  const copy = authSessionCopy(language);
   const [user, setUser] = useState<User | null>(null);
   const [accountContext, setAccountContext] = useState<AccountContext | null>(null);
   const [activeRole, setActiveRoleState] = useState<AccountContext["roles"][number] | null>(null);
   const [status, setStatus] = useState<AuthStatus>("checking");
-  const [message, setMessage] = useState("در حال بررسی نشست امن…");
+  const [message, setMessage] = useState(copy.sessionChecking);
   const operation = useRef(0);
   const retryTimer = useRef<number>();
   const restoreAttempts = useRef(0);
@@ -56,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setStatus((value) => (value === "authenticated" ? value : "checking"));
 
-    setMessage("در حال بررسی نشست امن…");
+    setMessage(copy.sessionChecking);
 
     try {
       const raw = await getCurrentUser();
@@ -73,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionStorage.setItem(PENDING_LOGOUT_KEY, "1");
         }
 
-        finishLocalLogout("این حساب مدیر نیست.");
+        finishLocalLogout(copy.nonAdminAccount);
         return;
       }
 
@@ -97,22 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       restoreAttempts.current += 1;
 
       if (restoreAttempts.current >= MAX_RESTORE_ATTEMPTS) {
-        finishLocalLogout(
-          "پس از ۳ تلاش، سرور پاسخ نداد. می‌توانید دوباره تلاش کنید یا وارد حساب شوید.",
-          false,
-        );
+        finishLocalLogout(copy.serverUnresponsive, false);
         return;
       }
 
       setStatus("checking");
 
-      setMessage(
-        `ارتباط با سرور برقرار نشد؛ تلاش ${restoreAttempts.current} از ${MAX_RESTORE_ATTEMPTS} انجام شد و دوباره تلاش می‌کنیم…`,
-      );
+      setMessage(copy.serverUnreachable(restoreAttempts.current, MAX_RESTORE_ATTEMPTS));
 
       retryTimer.current = window.setTimeout(() => void restore(), RESTORE_RETRY_DELAY_MS);
     }
-  }, [finishLocalLogout]);
+  }, [copy, finishLocalLogout]);
 
   useEffect(() => {
     if (sessionStorage.getItem(PENDING_LOGOUT_KEY) === "1") {
@@ -121,15 +120,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logoutRequest()
         .then(() => {
           sessionStorage.removeItem(PENDING_LOGOUT_KEY);
-          finishLocalLogout("خروج قبلی تکمیل شد.");
+          finishLocalLogout(copy.previousLogoutComplete);
         })
-        .catch(() => finishLocalLogout("خروج قبلی هنوز منتظر اتصال اینترنت است.", false));
+        .catch(() => finishLocalLogout(copy.previousLogoutPending, false));
     } else {
       void restore();
     }
 
     const stopAuthFailure = onAuthFailure((error) =>
-      finishLocalLogout(error.message || "نشست پایان یافته است. دوباره وارد شوید."),
+      finishLocalLogout(error.message || copy.sessionExpired),
     );
 
     const sync = () => {
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (sessionStorage.getItem(PENDING_LOGOUT_KEY) === "1") {
         void logoutRequest().then(() => {
           sessionStorage.removeItem(PENDING_LOGOUT_KEY);
-          finishLocalLogout("خروج سرور هم تکمیل شد.");
+          finishLocalLogout(copy.serverLogoutComplete);
         });
       } else {
         sync();
@@ -160,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         if (data.kind === "logout") {
-          finishLocalLogout("نشست در تب دیگری خارج شد.", false);
+          finishLocalLogout(copy.sessionExpired, false);
         } else if (data.kind === "login") {
           void restore();
         }
@@ -182,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", online);
       window.removeEventListener("storage", storage);
     };
-  }, [finishLocalLogout, restore]);
+  }, [copy, finishLocalLogout, restore]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -193,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       stopRestore() {
         window.clearTimeout(retryTimer.current);
         restoreAttempts.current = 0;
-        finishLocalLogout("بازیابی نشست متوقف شد. برای ادامه وارد حساب شوید.", false);
+        finishLocalLogout(copy.restoreStopped, false);
       },
 
       async login(username, password) {
@@ -210,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           context = await getAccountContext();
         } catch (error) {
           await logoutRequest().catch(() => sessionStorage.setItem(PENDING_LOGOUT_KEY, "1"));
-          finishLocalLogout("تأیید دسترسی مدیریتی انجام نشد.");
+          finishLocalLogout(copy.accessVerificationFailed);
           throw error;
         }
         const contextUser = normalizeUser({
@@ -225,8 +224,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sessionStorage.setItem(PENDING_LOGOUT_KEY, "1");
           }
 
-          finishLocalLogout("این حساب مدیر نیست.");
-          throw new Error("این حساب مدیر نیست.");
+          finishLocalLogout(copy.nonAdminAccount);
+          throw new Error(copy.nonAdminAccount);
         }
 
         sessionStorage.removeItem(PENDING_LOGOUT_KEY);
@@ -249,12 +248,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await logoutRequest();
           sessionStorage.removeItem(PENDING_LOGOUT_KEY);
-          finishLocalLogout("با موفقیت خارج شدید.");
+          finishLocalLogout(copy.signedOut);
         } catch (error) {
           finishLocalLogout(
             error instanceof ApiError && error.status === 0
-              ? "خروج محلی انجام شد؛ خروج سرور پس از اتصال تکمیل می‌شود."
-              : "با موفقیت خارج شدید.",
+              ? copy.localLogoutPending
+              : copy.signedOut,
           );
         }
       },
@@ -287,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setApiWorkContext(activeRole ?? undefined, organization?.id);
       },
     }),
-    [finishLocalLogout, message, restore, status, user, accountContext, activeRole],
+    [copy, finishLocalLogout, message, restore, status, user, accountContext, activeRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

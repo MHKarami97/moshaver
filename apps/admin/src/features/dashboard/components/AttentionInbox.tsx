@@ -14,6 +14,7 @@ import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { cn, fa } from "../../../shared/lib/utils";
 import { useLocale } from "../../../shared/ui/locale";
+import { dashboardCopy } from "../model/dashboard-copy";
 import type { AttentionSeverity, AttentionStudent } from "../model/dashboard.types";
 
 type Filter = "all" | "red" | "yellow";
@@ -40,7 +41,8 @@ export function AttentionInbox({
   onRetry: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const { formatDateTime } = useLocale();
+  const { formatDateTime, language } = useLocale();
+  const copy = dashboardCopy[language];
 
   const filtered = useMemo(
     () => students.filter((student) => filter === "all" || student.severity === filter),
@@ -55,24 +57,49 @@ export function AttentionInbox({
       <header className="flex flex-col gap-3 border-b border-[rgb(var(--border-subtle))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-slate-900 dark:text-white">دانش‌آموزان نیازمند توجه</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">{copy.attentionTitle}</h3>
             <Badge tone={critical ? "red" : warning ? "amber" : "green"}>
               {fa(students.length)}
             </Badge>
           </div>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-            بر اساس مرورهای عقب‌افتاده، عملکرد آزمون و آخرین فعالیت واقعی.
+            {copy.attentionDescription}
           </p>
         </div>
 
         <SegmentedControl
-          ariaLabel="فیلتر شدت توجه"
+          ariaLabel={copy.attentionFilter}
           value={filter}
           onValueChange={setFilter}
           options={[
-            { value: "all", label: <>همه {fa(students.length)}</> },
-            { value: "red", label: <>بحرانی {fa(critical)}</> },
-            { value: "yellow", label: <>هشدار {fa(warning)}</> },
+            {
+              value: "all",
+              label: (
+                <>
+                  {copy.all}{" "}
+                  {language === "fa"
+                    ? fa(students.length)
+                    : students.length.toLocaleString("en-US")}
+                </>
+              ),
+            },
+            {
+              value: "red",
+              label: (
+                <>
+                  {copy.critical}{" "}
+                  {language === "fa" ? fa(critical) : critical.toLocaleString("en-US")}
+                </>
+              ),
+            },
+            {
+              value: "yellow",
+              label: (
+                <>
+                  {copy.warning} {language === "fa" ? fa(warning) : warning.toLocaleString("en-US")}
+                </>
+              ),
+            },
           ]}
         />
       </header>
@@ -89,10 +116,10 @@ export function AttentionInbox({
       ) : error ? (
         <div className="p-4">
           <EmptyState
-            title="فهرست توجه دریافت نشد."
+            title={copy.loadFailed}
             action={
               <Button variant="soft" onClick={onRetry}>
-                تلاش دوباره
+                {copy.retry}
               </Button>
             }
           />
@@ -118,13 +145,13 @@ export function AttentionInbox({
                       {student.name}
                     </strong>
                     <Badge tone={severityTone(student.severity)}>
-                      {student.severity === "red" ? "بحرانی" : "هشدار"}
+                      {student.severity === "red" ? copy.critical : copy.warning}
                     </Badge>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400">
                     <span>
                       {[student.grade, student.major].filter(Boolean).join(" · ") ||
-                        "پروفایل آموزشی"}
+                        copy.academicProfile}
                     </span>
                     <span className="flex items-center gap-1">
                       {online ? (
@@ -133,10 +160,10 @@ export function AttentionInbox({
                         <Activity size={10} />
                       )}
                       {online
-                        ? "آنلاین"
+                        ? copy.online
                         : student.lastSeenAt
                           ? `آخرین فعالیت ${formatDateTime(student.lastSeenAt)}`
-                          : "بدون فعالیت ثبت‌شده"}
+                          : copy.noActivity}
                     </span>
                   </div>
                 </div>
@@ -162,7 +189,10 @@ export function AttentionInbox({
                   {student.remainingTasks > 0 ? (
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300">
                       <Clock3 size={13} />
-                      {fa(student.remainingTasks)} فعالیت باقی‌مانده
+                      {language === "fa"
+                        ? fa(student.remainingTasks)
+                        : student.remainingTasks.toLocaleString("en-US")}{" "}
+                      {copy.remainingTasks}
                     </span>
                   ) : null}
                 </div>
@@ -172,14 +202,14 @@ export function AttentionInbox({
                     to={`/admin/communication/notifications?studentId=${encodeURIComponent(student.id)}`}
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white transition hover:brightness-90"
                   >
-                    پیگیری
+                    {copy.followUp}
                     <ChevronLeft size={14} />
                   </Link>
                   <Link
                     to={`/admin/students?studentId=${encodeURIComponent(student.id)}`}
                     className="grid size-9 place-items-center rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] text-slate-500 transition hover:border-brand/30 hover:text-brand dark:text-slate-300"
-                    aria-label={`بازکردن پروفایل ${student.name}`}
-                    title="پروفایل دانش‌آموز"
+                    aria-label={`${copy.openProfile} ${student.name}`}
+                    title={copy.profileTitle}
                   >
                     <UserRoundSearch size={16} />
                   </Link>
@@ -190,13 +220,7 @@ export function AttentionInbox({
         </div>
       ) : (
         <div className="p-4">
-          <EmptyState
-            title={
-              filter === "all"
-                ? "دانش‌آموزی با هشدار فعال وجود ندارد."
-                : "موردی در این سطح هشدار وجود ندارد."
-            }
-          />
+          <EmptyState title={filter === "all" ? copy.noAttention : copy.noSeverity} />
         </div>
       )}
     </Card>

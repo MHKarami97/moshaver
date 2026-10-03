@@ -3,10 +3,14 @@ import { useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useCountdownTimer } from "../hooks/useCountdownTimer";
 import { formatDuration } from "../lib/time";
+import { clockCopy } from "../model/clock-copy";
+import { useLocale } from "../../../shared/ui/locale";
 
 const PRESETS = [60, 5 * 60, 10 * 60, 25 * 60, 45 * 60, 60 * 60];
 
 export function TimerPanel() {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
   const timer = useCountdownTimer(200);
   const initial = useMemo(
     () => Math.max(1, Math.round(timer.durationMs / 60_000)),
@@ -32,10 +36,10 @@ export function TimerPanel() {
           {formatDuration(timer.remainingMs)}
         </div>
         <div className="mt-2 text-[10px] font-semibold text-slate-400">
-          {timer.status === "running" && "در حال اجرا — حتی با بستن پنل ادامه می‌دهد"}
-          {timer.status === "paused" && "مکث شده — زمان باقی‌مانده ذخیره شده است"}
-          {timer.status === "finished" && "زمان تمام شد"}
-          {timer.status === "idle" && "آماده شروع"}
+          {timer.status === "running" && copy.runningAfterClose}
+          {timer.status === "paused" && copy.pausedSaved}
+          {timer.status === "finished" && copy.timeFinished}
+          {timer.status === "idle" && copy.ready}
         </div>
       </div>
 
@@ -49,13 +53,15 @@ export function TimerPanel() {
                 onClick={() => setMinutes(seconds / 60)}
                 className={`min-h-9 rounded-lg border text-[11px] font-bold transition ${timer.durationMs === seconds * 1000 ? "border-brand/40 bg-brand/10 text-brand" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}
               >
-                {seconds < 3600 ? `${seconds / 60} دقیقه` : `${seconds / 3600} ساعت`}
+                {seconds < 3600
+                  ? `${seconds / 60} ${copy.minutes}`
+                  : `${seconds / 3600} ${language === "en" ? "hours" : "ساعت"}`}
               </button>
             ))}
           </div>
           <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-800">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              زمان دلخواه
+              {copy.customTime}
             </span>
             <input
               type="number"
@@ -68,13 +74,13 @@ export function TimerPanel() {
               className="mr-auto h-8 w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 text-center font-mono text-xs font-bold outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-900"
               dir="ltr"
             />
-            <span className="text-[10px] text-slate-400">دقیقه</span>
+            <span className="text-[10px] text-slate-400">{copy.minutes}</span>
             <button
               type="button"
               onClick={() => setMinutes(customMinutes)}
               className="h-8 rounded-lg bg-slate-100 px-2.5 text-[10px] font-bold text-slate-600 hover:text-brand dark:bg-slate-700 dark:text-slate-200"
             >
-              اعمال
+              {copy.apply}
             </button>
           </label>
         </>
@@ -88,16 +94,16 @@ export function TimerPanel() {
         >
           {timer.status === "running" ? (
             <>
-              <Pause size={17} /> توقف
+              <Pause size={17} /> {copy.stop}
             </>
           ) : (
             <>
               <Play size={17} />{" "}
               {timer.status === "paused"
-                ? "ادامه"
+                ? copy.continue
                 : timer.status === "finished"
-                  ? "شروع دوباره"
-                  : "شروع"}
+                  ? copy.restart
+                  : copy.start}
             </>
           )}
         </button>
@@ -105,7 +111,7 @@ export function TimerPanel() {
           type="button"
           onClick={timer.reset}
           className="grid size-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-          aria-label="ریست تایمر"
+          aria-label={copy.resetTimer}
         >
           <RotateCcw size={17} />
         </button>

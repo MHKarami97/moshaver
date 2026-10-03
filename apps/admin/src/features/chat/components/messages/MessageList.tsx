@@ -8,6 +8,8 @@ import type { GroupDetail } from "../../model/group.types";
 import { DateSeparator } from "./DateSeparator";
 import { EmojiReactionPicker } from "./EmojiReactionPicker";
 import { MessageContextMenu } from "./MessageContextMenu";
+import { useLocale } from "../../../../shared/ui/locale";
+import { chatCopy } from "../../model/chat-copy";
 
 type MessageAction = (method: "post" | "delete", path: string, body?: unknown) => void;
 
@@ -36,6 +38,8 @@ export function MessageList({
   onJumpToMessage: (id: string) => void;
   act: MessageAction;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   const byId = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
   return items.map((message, index) => {
     const mine = message.senderUserId
@@ -121,6 +125,8 @@ export function MessageBubble({
   onDelete?: () => void;
   onReact?: (emoji: string, remove: boolean) => void;
 }) {
+  const { language } = useLocale();
+  const copy = chatCopy[language];
   if (message.type === "system")
     return (
       <div className="my-2 text-center">
@@ -152,11 +158,11 @@ export function MessageBubble({
   return (
     <div className={`group/message flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
-        className={`relative max-w-[92%] border px-3 py-2 text-sm shadow-[0_1px_2px_rgba(24,45,39,0.08)] sm:max-w-[72%] lg:max-w-[68%] ${mine ? "chat-bubble-outgoing border-teal-200/70 rounded-2xl rounded-bl-md dark:border-teal-800" : "chat-bubble-incoming border-slate-200/80 rounded-2xl rounded-br-md"} ${!startsGroup ? (mine ? "rounded-bl-2xl" : "rounded-br-2xl") : ""} ${!endsGroup ? (mine ? "rounded-tl-md" : "rounded-tr-md") : ""} ${message.pending ? "opacity-70" : ""}`}
+        className={`relative max-w-[92%] border px-3 py-2 text-sm shadow-[0_1px_2px_rgba(24,45,39,0.08)] sm:max-w-[72%] lg:max-w-[68%] ${mine ? "chat-bubble-outgoing border-teal-200/70 rounded-2xl rounded-ee-md dark:border-teal-800" : "chat-bubble-incoming border-slate-200/80 rounded-2xl rounded-es-md"} ${!startsGroup ? (mine ? "rounded-ee-2xl" : "rounded-es-2xl") : ""} ${!endsGroup ? (mine ? "rounded-se-md" : "rounded-ss-md") : ""} ${message.pending ? "opacity-70" : ""}`}
       >
         {group && !mine && startsGroup ? (
           <strong className="mb-1 block text-xs text-violet-700 dark:text-violet-300">
-            {message.senderName || "عضو گروه"}
+            {message.senderName || copy.groupMember}
           </strong>
         ) : null}
         {message.replyToId ? (
@@ -164,27 +170,27 @@ export function MessageBubble({
             type="button"
             disabled={!onJumpToReply}
             onClick={onJumpToReply}
-            className="mb-2 block w-full rounded-lg border-r-2 border-brand bg-black/[0.035] px-2.5 py-1.5 text-right text-xs text-slate-600 transition hover:bg-black/[0.06] disabled:cursor-default dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
+            className="mb-2 block w-full rounded-lg border-s-2 border-brand bg-black/[0.035] px-2.5 py-1.5 text-start text-xs text-slate-600 transition hover:bg-black/[0.06] disabled:cursor-default dark:bg-white/[0.045] dark:hover:bg-white/[0.08]"
           >
             ↩{" "}
             {referenced
-              ? `${referenced.senderName || "عضو"}: ${referenced.text || "پیام ساختاریافته"}`
-              : "پیام قبلی"}
+              ? `${referenced.senderName || copy.member}: ${referenced.text || copy.structuredMessage}`
+              : copy.previousMessage}
           </button>
         ) : null}
-        <MessageBody message={message} />
+        <MessageBody message={message} language={language} />
         {message.reactions?.length ? (
           <div className="mt-2 flex flex-wrap gap-1">
             {message.reactions.map((reaction) => (
               <button
                 type="button"
                 key={reaction.emoji}
-                aria-label={`${reaction.emoji}، ${toFa(reaction.count)} واکنش`}
+                aria-label={`${reaction.emoji} ${language === "fa" ? toFa(reaction.count) : reaction.count} ${copy.reaction.replace("{emoji}", "")}`}
                 disabled={!onReact}
                 className={`rounded-full border px-2 py-0.5 text-xs shadow-sm disabled:cursor-default ${reaction.reacted ? "border-brand bg-teal-50 dark:bg-teal-950" : "bg-white dark:bg-slate-900"}`}
                 onClick={() => onReact?.(reaction.emoji, !!reaction.reacted)}
               >
-                {reaction.emoji} {toFa(reaction.count)}
+                {reaction.emoji} {language === "fa" ? toFa(reaction.count) : reaction.count}
               </button>
             ))}
           </div>
@@ -193,8 +199,8 @@ export function MessageBubble({
           className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400"
           dir="ltr"
         >
-          {message.pending ? "در حال ارسال" : formatTime(message.createdAt)}
-          {message.editedAt ? " • ویرایش‌شده" : ""}
+          {message.pending ? copy.sending : formatTime(message.createdAt)}
+          {message.editedAt ? ` • ${copy.edited}` : ""}
           {mine && !message.pending ? (
             message.seen ? (
               <CheckCheck size={13} className="text-sky-600" />
@@ -219,24 +225,32 @@ export function MessageBubble({
   );
 }
 
-export function MessageBody({ message }: { message: ChatMessage }) {
-  if (message.deletedAt) return <p className="italic text-slate-400">پیام حذف شده است.</p>;
+export function MessageBody({
+  message,
+  language = "fa",
+}: {
+  message: ChatMessage;
+  language?: "fa" | "en";
+}) {
+  const copy = chatCopy[language];
+  if (message.deletedAt) return <p className="italic text-slate-400">{copy.deletedMessage}</p>;
   const payload = message.payload || {};
   const type = String(message.type || "text").toLowerCase();
   if (!["text", "system"].includes(type)) {
     const labels: Record<string, string> = {
-      study_state: "📚 وضعیت مطالعه",
-      exam_result: "📊 نتیجه آزمون",
-      study_time: "⏱ زمان مطالعه",
-      current_activity: "📖 فعالیت فعلی",
-      learning_item: "🔁 مورد یادگیری",
+      study_state: language === "fa" ? "📚 وضعیت مطالعه" : "📚 Study status",
+      exam_result: language === "fa" ? "📊 نتیجه آزمون" : "📊 Exam result",
+      study_time: language === "fa" ? "⏱ زمان مطالعه" : "⏱ Study time",
+      current_activity: language === "fa" ? "📖 فعالیت فعلی" : "📖 Current activity",
+      learning_item: language === "fa" ? "🔁 مورد یادگیری" : "🔁 Learning item",
     };
     return (
       <div className="grid gap-2">
         <StructuredMessage
           type={type}
           payload={payload}
-          label={labels[type] || "اشتراک دانش‌آموز"}
+          label={labels[type] || (language === "fa" ? "اشتراک دانش‌آموز" : "Student update")}
+          language={language}
         />
         {message.text ? (
           <p className="whitespace-pre-wrap break-words leading-7">{message.text}</p>
@@ -245,7 +259,9 @@ export function MessageBody({ message }: { message: ChatMessage }) {
     );
   }
   return (
-    <p className="whitespace-pre-wrap break-words leading-7">{message.text || "پیام بدون متن"}</p>
+    <p className="whitespace-pre-wrap break-words leading-7">
+      {message.text || copy.noTextMessage}
+    </p>
   );
 }
 
@@ -253,11 +269,35 @@ export function StructuredMessage({
   type,
   payload,
   label,
+  language = "fa",
 }: {
   type: string;
   payload: Record<string, unknown>;
   label: string;
+  language?: "fa" | "en";
 }) {
+  const labels =
+    language === "fa"
+      ? {
+          subject: "درس",
+          result: "نتیجه",
+          today: "مطالعه امروز",
+          total: "مجموع مطالعه",
+          tests: "تعداد تست",
+          reviews: "مرورهای سررسید",
+          duration: "مدت",
+          minutes: "دقیقه",
+        }
+      : {
+          subject: "Subject",
+          result: "Result",
+          today: "Today’s study",
+          total: "Total study",
+          tests: "Test count",
+          reviews: "Due reviews",
+          duration: "Duration",
+          minutes: "minutes",
+        };
   return (
     <div
       data-message-type={type}
@@ -265,17 +305,41 @@ export function StructuredMessage({
     >
       <strong>{label}</strong>
       {payload.title ? <b>{String(payload.title)}</b> : null}
-      {payload.subject ? <span>درس: {String(payload.subject)}</span> : null}
-      {payload.percent != null ? <span>نتیجه: {String(payload.percent)}٪</span> : null}
+      {payload.subject ? (
+        <span>
+          {labels.subject}: {String(payload.subject)}
+        </span>
+      ) : null}
+      {payload.percent != null ? (
+        <span>
+          {labels.result}: {String(payload.percent)}%
+        </span>
+      ) : null}
       {payload.studyMinutes != null ? (
-        <span>مطالعه امروز: {String(payload.studyMinutes)} دقیقه</span>
+        <span>
+          {labels.today}: {String(payload.studyMinutes)} {labels.minutes}
+        </span>
       ) : null}
       {payload.totalMinutes != null ? (
-        <span>مجموع مطالعه: {String(payload.totalMinutes)} دقیقه</span>
+        <span>
+          {labels.total}: {String(payload.totalMinutes)} {labels.minutes}
+        </span>
       ) : null}
-      {payload.testCount != null ? <span>تعداد تست: {String(payload.testCount)}</span> : null}
-      {payload.reviews != null ? <span>مرورهای سررسید: {String(payload.reviews)}</span> : null}
-      {payload.minutes != null ? <span>مدت: {String(payload.minutes)} دقیقه</span> : null}
+      {payload.testCount != null ? (
+        <span>
+          {labels.tests}: {String(payload.testCount)}
+        </span>
+      ) : null}
+      {payload.reviews != null ? (
+        <span>
+          {labels.reviews}: {String(payload.reviews)}
+        </span>
+      ) : null}
+      {payload.minutes != null ? (
+        <span>
+          {labels.duration}: {String(payload.minutes)} {labels.minutes}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -283,7 +347,7 @@ export function StructuredMessage({
 export function MessageSkeleton() {
   return (
     <div className="grid gap-3">
-      {["w-2/5", "mr-auto w-3/5", "w-1/2", "mr-auto w-2/5"].map((width, index) => (
+      {["w-2/5", "me-auto w-3/5", "w-1/2", "me-auto w-2/5"].map((width, index) => (
         <div
           key={index}
           className={`chat-surface h-14 animate-pulse rounded-2xl opacity-70 ${width}`}

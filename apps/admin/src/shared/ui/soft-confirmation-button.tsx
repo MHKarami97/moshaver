@@ -3,6 +3,7 @@ import { Check, LoaderCircle, ShieldAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { cn } from "../lib/utils";
+import { useSharedUiCopy } from "./locale";
 
 type Variant = "primary" | "danger";
 
@@ -30,16 +31,6 @@ type Props = {
   onComplete: () => void;
 };
 
-function toPersianNumber(value: number) {
-  const numbers = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
-
-  return String(value).replace(/\d/g, (d) => numbers[Number(d)]);
-}
-
-function formatSeconds(seconds: number) {
-  return toPersianNumber(Math.ceil(seconds));
-}
-
 export function SoftConfirmButton({
   duration = 3000,
 
@@ -61,6 +52,7 @@ export function SoftConfirmButton({
 
   onComplete,
 }: Props) {
+  const copy = useSharedUiCopy();
   const [progress, setProgress] = useState(0);
 
   const [state, setState] = useState<State>("idle");
@@ -265,7 +257,8 @@ export function SoftConfirmButton({
           ) : holding ? (
             <>
               <ShieldAlert size={16} />
-              {progressLabel} {formatSeconds(secondsLeft)}
+              {progressLabel || copy.holdToConfirm}{" "}
+              {Math.ceil(secondsLeft).toLocaleString(copy.locale)}
             </>
           ) : (
             children

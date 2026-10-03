@@ -11,6 +11,7 @@ import {
   HTMLAttributes,
 } from "react";
 import { cn } from "../lib/utils";
+import { useSharedUiCopy } from "./locale";
 
 type ButtonProps = ComponentProps<"button"> & {
   variant?: "primary" | "soft" | "danger" | "ghost";
@@ -483,7 +484,8 @@ export function EmptyState({
   );
 }
 
-export function LoadingState({ label = "در حال دریافت..." }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const copy = useSharedUiCopy();
   return (
     <div
       role="status"
@@ -518,7 +520,7 @@ dark:text-slate-400
 
 "
     >
-      {label}
+      {label || copy.loading("")}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import { NavLink } from "react-router-dom";
 import { adminDestination } from "./admin-navigation";
 import type { AdminCurrentNavigation } from "./layout-types";
-import { useAdminShellCopy } from "../../shared/ui/locale";
+import { useAdminShellCopy, useLocale } from "../../shared/ui/locale";
 
 export function AdminContextSidebar({
   collapsed,
@@ -33,11 +33,12 @@ export function AdminContextSidebar({
   direction: "rtl" | "ltr";
 }) {
   const copy = useAdminShellCopy();
+  const { profile } = useLocale();
   const widthClasses = collapsed ? "w-16 p-2" : "w-16 p-2 xl:w-52 xl:p-3";
 
   return (
     <aside
-      className={`fixed inset-y-0 z-40 hidden flex-col border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] transition-[right,left,width,padding] duration-200 motion-reduce:transition-none lg:flex ${direction === "rtl" ? "right-0 border-l" : "left-0 border-r"} ${mainCollapsed ? (direction === "rtl" ? "right-[4.25rem]" : "left-[4.25rem]") : direction === "rtl" ? "right-60" : "left-60"} ${widthClasses}`}
+      className={`fixed inset-y-0 start-0 z-40 hidden flex-col border-e border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] transition-[inset-inline-start,width,padding] duration-200 motion-reduce:transition-none lg:flex ${mainCollapsed ? "start-[4.25rem]" : "start-60"} ${widthClasses}`}
       aria-label={copy.sectionNavigation(current.section)}
     >
       <div
@@ -73,8 +74,8 @@ export function AdminContextSidebar({
             ? "justify-center px-2"
             : "justify-center px-2 xl:justify-start xl:gap-2 xl:px-3";
           const badgeClasses = collapsed
-            ? "absolute -left-0.5 -top-0.5"
-            : "absolute -left-0.5 -top-0.5 xl:static xl:mr-auto";
+            ? "absolute -end-0.5 -top-0.5"
+            : "absolute -end-0.5 -top-0.5 xl:static xl:ms-auto";
 
           return (
             <NavLink
@@ -87,7 +88,7 @@ export function AdminContextSidebar({
             >
               {active ? (
                 <span
-                  className={`absolute inset-y-2 ${direction === "rtl" ? "right-0 rounded-l-full" : "left-0 rounded-r-full"} w-0.5 bg-brand`}
+                  className="absolute inset-y-2 start-0 w-0.5 rounded-e-full bg-brand"
                   aria-hidden="true"
                 />
               ) : null}
@@ -98,7 +99,7 @@ export function AdminContextSidebar({
                   className={`${badgeClasses} min-w-5 rounded-full bg-rose-600 px-1 text-center text-[10px] font-black leading-5 text-white`}
                   aria-label={copy.unreadNotifications(unread)}
                 >
-                  {Math.min(unread, 99).toLocaleString("fa-IR")}
+                  {Math.min(unread, 99).toLocaleString(profile.locale)}
                   {unread > 99 ? "+" : ""}
                 </span>
               ) : null}

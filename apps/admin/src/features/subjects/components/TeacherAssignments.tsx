@@ -4,11 +4,13 @@ import { UserPlus, Users } from "lucide-react";
 import { listOrganizationMembers } from "../../access/api/access.api";
 import { Button, EmptyState, Field, Select } from "../../../shared/ui/ui";
 import { useModal } from "../../../shared/ui/modal";
+import { useLocale } from "../../../shared/ui/locale";
 import {
   assignSubjectTeacher,
   getSubjectTeachers,
   unassignSubjectTeacher,
 } from "../api/subjects.api";
+import { subjectCopy } from "../subject-locale";
 
 export function TeacherAssignments({
   subjectId,
@@ -20,6 +22,8 @@ export function TeacherAssignments({
   const qc = useQueryClient(),
     [teacherId, setTeacherId] = useState("");
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = subjectCopy(language);
   const assignments = useQuery({
     queryKey: ["subject-teachers", subjectId, organizationId],
     queryFn: () => getSubjectTeachers(subjectId, organizationId),
@@ -43,10 +47,10 @@ export function TeacherAssignments({
   });
   const confirmRemove = async (teacherName: string, id: string) => {
     const confirmed = await modal.confirm({
-      title: "حذف تخصیص دبیر؟",
-      description: `دبیر «${teacherName}» از این درس جدا می‌شود.`,
+      title: copy.removeTeacherTitle,
+      description: copy.removeTeacherDescription(teacherName),
       tone: "danger",
-      confirmLabel: "حذف تخصیص",
+      confirmLabel: copy.removeAssignment,
     });
     if (confirmed) remove.mutate(id);
   };
@@ -65,9 +69,9 @@ export function TeacherAssignments({
           assign.mutate();
         }}
       >
-        <Field label="دبیر سازمان">
+        <Field label={copy.organizationTeacher}>
           <Select required value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-            <option value="">انتخاب دبیر…</option>
+            <option value="">{copy.selectTeacher}</option>
             {teachers.map((item) => (
               <option key={item.user.id} value={item.user.id}>
                 {[item.user.firstName, item.user.lastName].filter(Boolean).join(" ") ||
@@ -78,29 +82,29 @@ export function TeacherAssignments({
         </Field>
         <Button className="sm:mt-6" loading={assign.isPending} disabled={!teacherId}>
           <UserPlus size={16} />
-          تخصیص
+          {copy.assign}
         </Button>
       </form>
       {assign.isError ? (
         <p role="alert" className="text-sm text-rose-700">
-          تخصیص دبیر ناموفق بود؛ عضویت و نقش دبیر را بررسی کنید.
+          {copy.assignFailed}
         </p>
       ) : null}
       <div className="flex items-center gap-2">
         <Users size={16} />
-        <strong className="text-sm">دبیران این درس</strong>
+        <strong className="text-sm">{copy.assignedTeachers}</strong>
       </div>
       {assignments.isLoading ? (
         <div className="h-20 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
       ) : assignments.isError ? (
         <div role="alert">
-          <p className="text-sm text-rose-700">دبیران دریافت نشدند.</p>
+          <p className="text-sm text-rose-700">{copy.teachersLoadFailed}</p>
           <Button variant="soft" onClick={() => assignments.refetch()}>
-            تلاش دوباره
+            {copy.retry}
           </Button>
         </div>
       ) : !assignments.data?.length ? (
-        <EmptyState title="هنوز دبیری تخصیص داده نشده است." />
+        <EmptyState title={copy.noTeachers} />
       ) : (
         <div className="grid gap-2">
           {assignments.data.map((item) => (
@@ -123,7 +127,7 @@ export function TeacherAssignments({
                   )
                 }
               >
-                حذف تخصیص
+                {copy.removeAssignment}
               </Button>
             </div>
           ))}

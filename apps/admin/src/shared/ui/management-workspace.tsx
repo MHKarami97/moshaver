@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { useId, type CSSProperties, type ReactNode } from "react";
 import { cn } from "../lib/utils";
 import { useSharedUiCopy } from "./locale";
 import { Card, Input } from "./ui";
@@ -16,16 +16,34 @@ export function ManagementPageHeader({
   action?: ReactNode;
 }) {
   const copy = useSharedUiCopy();
+  const titleId = useId();
+  const descriptionId = useId();
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
+    <header
+      className="grid gap-4 border-b border-[rgb(var(--border-subtle))] pb-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
+    >
       <div className="min-w-0">
         <p className="text-xs font-bold text-brand">{eyebrow || copy.management}</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">{title}</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+        <h1
+          id={titleId}
+          className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.65rem]"
+        >
+          {title}
+        </h1>
+        <p
+          id={descriptionId}
+          className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400"
+        >
           {description}
         </p>
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? (
+        <div className="flex w-full shrink-0 flex-wrap gap-2 [&>*]:w-full sm:w-auto sm:justify-end sm:[&>*]:w-auto">
+          {action}
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -174,8 +192,12 @@ export function ManagementMasterDetail({
       className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_var(--management-detail)] 2xl:grid-cols-[minmax(0,1.4fr)_var(--management-detail)]"
       style={{ "--management-detail": detailWidth } as CSSProperties}
     >
-      <div className={directoryVisible ? "block" : "hidden xl:block"}>{directory}</div>
-      <div className={detailVisible ? `block ${detailLayout}` : `hidden xl:block ${detailLayout}`}>
+      <div className={directoryVisible ? "min-w-0" : "hidden min-w-0 xl:block"}>{directory}</div>
+      <div
+        className={
+          detailVisible ? `min-w-0 ${detailLayout}` : `hidden min-w-0 xl:block ${detailLayout}`
+        }
+      >
         {detail}
       </div>
     </section>

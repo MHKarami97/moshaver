@@ -20,6 +20,7 @@ import { useAuth } from "../auth";
 import { educationLabel } from "../../shared/lib/utils";
 import { notify } from "../../shared/ui/notifications";
 import { useModal } from "../../shared/ui/modal";
+import { useLocale } from "../../shared/ui/locale";
 import { StudentAllocationControl } from "../../shared/ui/student-allocation-control";
 import { listClasses } from "../education/api/classes.api";
 import { Badge, Button, Card, EmptyState, Input, Textarea } from "../../shared/ui/ui";
@@ -36,6 +37,7 @@ import {
   shareResource,
   updateResource,
 } from "./api/resources.api";
+import { resourcesCopy } from "./model/resources-copy";
 
 const empty: ResourceInput = {
   title: "",
@@ -50,6 +52,8 @@ const empty: ResourceInput = {
 export function ResourcesPage() {
   const auth = useAuth(),
     qc = useQueryClient();
+  const { language, formatDate } = useLocale();
+  const copy = resourcesCopy(language);
   const modal = useModal();
   const canManage = auth.can("learning_resources.manage"),
     canShare = auth.can("education.share");
@@ -92,10 +96,9 @@ export function ResourcesPage() {
       setSelectedId(resource.id);
       setEditing(resource.id);
       modal.close();
-      notify(editing ? "منبع به‌روزرسانی شد." : "منبع آموزشی ساخته شد.", "success");
+      notify(editing ? copy.resourceUpdated : copy.resourceCreated, "success");
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره منبع ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const remove = useMutation({
     mutationFn: deleteResource,
@@ -105,18 +108,18 @@ export function ResourcesPage() {
       setEditing(null);
       setSelectedId(null);
       setConfirmDelete(false);
-      notify("منبع حذف شد.", "success");
+      notify(copy.resourceDeleted, "success");
     },
-    onError: () => notify("حذف منبع ناموفق بود.", "error"),
+    onError: () => notify(copy.deleteFailed, "error"),
   });
   const share = useMutation({
     mutationFn: () => shareResource(selectedId!, shareTarget),
     onSuccess: () => {
       refresh();
       setShareTarget("");
-      notify("منبع برای دانش‌آموز انتخاب‌شده ارسال شد.", "success");
+      notify(copy.shared, "success");
     },
-    onError: () => notify("اشتراک‌گذاری منبع ناموفق بود.", "error"),
+    onError: () => notify(copy.shareFailed, "error"),
   });
   const visibleResources = useMemo(
     () =>
@@ -185,15 +188,15 @@ export function ResourcesPage() {
           title: item.title,
           description: item.description,
           type: item.type,
-          category: item.category || "عمومی",
+          category: item.category || copy.general,
           url: item.url,
           status: item.status,
           studentIds: item.assignments.map((assignment) => assignment.student.id),
         }
       : empty;
     modal.open({
-      title: item ? "ویرایش منبع آموزشی" : "منبع آموزشی جدید",
-      description: "مشخصات منبع و دانش‌آموزان دریافت‌کننده را در یک مرحله ثبت کنید.",
+      title: item ? copy.editResource : copy.newResource,
+      description: copy.editorDescription,
       size: "xl",
       content: (
         <ResourceEditorModal
@@ -202,6 +205,7 @@ export function ResourcesPage() {
           classes={classes.data || []}
           saving={save.isPending}
           editing={!!item}
+          copy={copy}
           onClose={modal.close}
           onSave={(next) => save.mutate({ id: item?.id || null, draft: next })}
         />
@@ -221,15 +225,15 @@ export function ResourcesPage() {
   };
   const confirmResourceDelete = async (resource: LearningResource) => {
     const confirmed = await modal.confirm({
-      title: "حذف منبع آموزشی؟",
-      description: `«${resource.title}» و تخصیص‌های آن حذف می‌شود.`,
+      title: copy.deleteTitle,
+      description: copy.deleteDescription(resource.title),
       tone: "danger",
-      confirmLabel: "حذف منبع",
+      confirmLabel: copy.deleteResource,
       confirmationText: resource.title,
     });
     if (confirmed) remove.mutate(resource.id);
   };
-  if (!canManage) return <EmptyState title="دسترسی مدیریت منابع آموزشی ندارید." />;
+  if (!canManage) return <EmptyState title={copy.noAccess} />;
   return (
     <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
       {/* <Card className="hidden grid gap-3 p-3 xl:sticky xl:top-16">
@@ -318,26 +322,22 @@ export function ResourcesPage() {
       </Card> */}
 
       <AdminList
-        label="فهرست منابع"
-        description="نتایج با فیلترهای بالا به‌روزرسانی می‌شوند."
+        label={copy.list}
+        description={copy.listDescription}
         items={visibleResources}
         loading={resources.isLoading}
         error={resources.isError}
         onRetry={() =>
           void Promise.all([resources.refetch(), students.refetch(), classes.refetch()])
         }
-        emptyTitle={
-          query || status !== "ALL" || category
-            ? "منبعی با این فیلتر نیست."
-            : "هنوز منبعی ساخته نشده است."
-        }
+        emptyTitle={query || status !== "ALL" || category ? copy.noFiltered : copy.noResources}
         emptyAction={
           <Button
             variant="soft"
             disabled={editorPrerequisitesLoading || editorPrerequisitesError}
             onClick={() => openEditor()}
           >
-            ساخت منبع
+            {copy.create}
           </Button>
         }
         toolbar={
@@ -345,35 +345,39 @@ export function ResourcesPage() {
             <CollectionToolbar
               search={query}
               onSearchChange={setQuery}
-              placeholder="جستجوی عنوان یا توضیح"
+              placeholder={copy.search}
               onClear={query ? () => setQuery("") : undefined}
               resultLabel={
                 <Badge tone={visibleResources.length ? "blue" : "neutral"}>
-                  {visibleResources.length.toLocaleString("fa-IR")} نتیجه
+                  {copy.results(visibleResources.length)}
                 </Badge>
               }
               filters={
                 <>
                   <select
                     className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs outline-none"
-                    aria-label="فیلتر وضعیت منبع"
+                    aria-label={copy.statusFilter}
                     value={status}
                     onChange={(event) => setStatus(event.target.value as typeof status)}
                   >
-                    <option value="ALL">همه وضعیت‌ها</option>
-                    <option value="PUBLISHED">منتشر</option>
-                    <option value="DRAFT">پیش‌نویس</option>
-                    <option value="ARCHIVED">بایگانی</option>
+                    <option value="ALL">{copy.allStatuses}</option>
+                    <option value="PUBLISHED">{copy.published}</option>
+                    <option value="DRAFT">{copy.draft}</option>
+                    <option value="ARCHIVED">{copy.archived}</option>
                   </select>
                   <select
                     className="h-8 max-w-32 border-0 bg-transparent px-2 text-xs outline-none"
-                    aria-label="فیلتر دسته منبع"
+                    aria-label={copy.categoryFilter}
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
                   >
-                    <option value="">همه دسته‌ها</option>
-                    {[...new Set((resources.data || []).map((item) => item.category || "عمومی"))]
-                      .sort((a, b) => a.localeCompare(b, "fa"))
+                    <option value="">{copy.allCategories}</option>
+                    {[
+                      ...new Set(
+                        (resources.data || []).map((item) => item.category || copy.general),
+                      ),
+                    ]
+                      .sort((a, b) => a.localeCompare(b, language))
                       .map((item) => (
                         <option key={item} value={item}>
                           {item}
@@ -385,20 +389,20 @@ export function ResourcesPage() {
               actions={
                 <>
                   <SegmentedControl
-                    ariaLabel="نوع نمایش منابع"
+                    ariaLabel={copy.list}
                     value={view}
                     onValueChange={setView}
                     options={[
                       {
                         value: "details",
-                        ariaLabel: "نمای ردیفی با جزئیات",
-                        title: "نمای ردیفی با جزئیات",
+                        ariaLabel: copy.detailsView,
+                        title: copy.detailsView,
                         label: <List size={15} />,
                       },
                       {
                         value: "grid",
-                        ariaLabel: "نمای سه‌ستونه",
-                        title: "نمای سه‌ستونه",
+                        ariaLabel: copy.gridView,
+                        title: copy.gridView,
                         label: <LayoutGrid size={15} />,
                       },
                     ]}
@@ -409,7 +413,7 @@ export function ResourcesPage() {
                     disabled={editorPrerequisitesLoading || editorPrerequisitesError}
                     onClick={() => openEditor()}
                   >
-                    <Plus size={15} /> جدید
+                    <Plus size={15} /> {copy.new}
                   </Button>
                 </>
               }
@@ -419,9 +423,9 @@ export function ResourcesPage() {
                 className="mt-2 flex flex-wrap items-center gap-1 text-xs text-rose-700"
                 role="alert"
               >
-                <span>دریافت فهرست دانش‌آموزان یا کلاس‌ها برای فرم منبع ناموفق بود.</span>
+                <span>{copy.prerequisitesFailed}</span>
                 <Button size="sm" variant="ghost" onClick={retryEditorPrerequisites}>
-                  تلاش دوباره
+                  {copy.retry}
                 </Button>
               </div>
             ) : null}
@@ -441,6 +445,8 @@ export function ResourcesPage() {
                 setSelectedId(item.id);
                 openEditor(item);
               }}
+              copy={copy}
+              formatDate={formatDate}
             />
           ))}
         </div>
@@ -721,6 +727,7 @@ function ResourceEditorModal({
   classes,
   saving,
   editing,
+  copy,
   onClose,
   onSave,
 }: {
@@ -729,6 +736,7 @@ function ResourceEditorModal({
   classes: Parameters<typeof StudentAllocationControl>[0]["classes"];
   saving: boolean;
   editing: boolean;
+  copy: ReturnType<typeof resourcesCopy>;
   onClose: () => void;
   onSave: (draft: ResourceInput) => void;
 }) {
@@ -762,17 +770,17 @@ function ResourceEditorModal({
       }}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="عنوان">
+        <Field label={copy.title}>
           <Input
             required
             minLength={2}
             maxLength={180}
             value={draft.title}
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-            placeholder="عنوان کوتاه و روشن"
+            placeholder={copy.titlePlaceholder}
           />
         </Field>
-        <Field label="پیوند HTTPS">
+        <Field label={copy.link}>
           <Input
             required
             type="url"
@@ -782,40 +790,40 @@ function ResourceEditorModal({
             placeholder="https://…"
           />
         </Field>
-        <Field label="نوع">
+        <Field label={copy.type}>
           <Select
             value={draft.type}
             onChange={(value) => setDraft({ ...draft, type: value as ResourceInput["type"] })}
           >
-            <option value="LINK">پیوند</option>
-            <option value="VIDEO">ویدئو</option>
+            <option value="LINK">{copy.resourceLink}</option>
+            <option value="VIDEO">{copy.video}</option>
           </Select>
         </Field>
-        <Field label="وضعیت">
+        <Field label={copy.status}>
           <Select
             value={draft.status}
             onChange={(value) => setDraft({ ...draft, status: value as ResourceInput["status"] })}
           >
-            <option value="PUBLISHED">منتشر</option>
-            <option value="DRAFT">پیش‌نویس</option>
-            <option value="ARCHIVED">بایگانی</option>
+            <option value="PUBLISHED">{copy.published}</option>
+            <option value="DRAFT">{copy.draft}</option>
+            <option value="ARCHIVED">{copy.archived}</option>
           </Select>
         </Field>
-        <Field label="دسته‌بندی">
+        <Field label={copy.category}>
           <Input
             maxLength={80}
             value={draft.category}
             onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-            placeholder="مثلاً مرور، ویدئو، آزمون"
+            placeholder={copy.categoryPlaceholder}
           />
         </Field>
-        <Field label="دریافت‌کننده">
+        <Field label={copy.recipients}>
           <span className="flex h-10 items-center rounded-lg bg-slate-100 px-3 text-sm dark:bg-slate-900">
-            {draft.studentIds.length.toLocaleString("fa-IR")} دانش‌آموز
+            {copy.students(draft.studentIds.length)}
           </span>
         </Field>
       </div>
-      <Field label="توضیح">
+      <Field label={copy.description}>
         <Textarea
           className="min-h-20"
           maxLength={4000}
@@ -929,7 +937,7 @@ function ResourceEditorModal({
       />
       <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card)_/_96%)] px-1 pt-3 pb-1 shadow-[0_-8px_16px_rgb(15_23_42_/_0.04)]">
         <Button type="button" variant="ghost" onClick={onClose}>
-          انصراف
+          {copy.cancel}
         </Button>
         <Button
           type="submit"
@@ -937,7 +945,7 @@ function ResourceEditorModal({
           disabled={!draft.title.trim() || !draft.url.trim() || !draft.studentIds.length}
         >
           <Plus size={15} />
-          {editing ? "ذخیره تغییرات" : "ساخت و تخصیص"}
+          {editing ? copy.saveChanges : copy.createAndAssign}
         </Button>
       </div>
     </form>
@@ -976,14 +984,22 @@ function ResourceListItem({
   view,
   selected,
   onSelect,
+  copy,
+  formatDate,
 }: {
   item: LearningResource;
   view: "details" | "grid";
   selected: boolean;
   onSelect: () => void;
+  copy: ReturnType<typeof resourcesCopy>;
+  formatDate: (value?: string | Date, options?: Intl.DateTimeFormatOptions) => string;
 }) {
   const status =
-    item.status === "PUBLISHED" ? "منتشر" : item.status === "DRAFT" ? "پیش‌نویس" : "بایگانی";
+    item.status === "PUBLISHED"
+      ? copy.published
+      : item.status === "DRAFT"
+        ? copy.draft
+        : copy.archived;
   const icon = item.type === "VIDEO" ? <FileVideo2 size={18} /> : <Link2 size={18} />;
   const iconClass =
     item.type === "VIDEO" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700";
@@ -996,8 +1012,8 @@ function ResourceListItem({
         type="button"
         onClick={onSelect}
         className={`grid min-h-36 content-start gap-2 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${frame}`}
-        aria-label={`ویرایش منبع ${item.title}`}
-        title={`ویرایش ${item.title}`}
+        aria-label={copy.editResourceLabel(item.title)}
+        title={copy.editResourceLabel(item.title)}
       >
         <span className="flex items-start justify-between gap-2">
           <span className={`grid size-9 place-items-center rounded-lg ${iconClass}`}>{icon}</span>
@@ -1012,11 +1028,11 @@ function ResourceListItem({
         <span className="min-w-0">
           <strong className="block truncate text-sm text-ink">{item.title}</strong>
           <span className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500">
-            {item.description || "بدون توضیح"}
+            {item.description || copy.noDescription}
           </span>
         </span>
         <span className="mt-auto flex items-center justify-between">
-          <Badge tone="blue">{item.category || "عمومی"}</Badge>
+          <Badge tone="blue">{item.category || copy.general}</Badge>
           <small className="flex items-center gap-1 text-xs text-slate-500">
             <UsersRound size={12} />
             {item.assignments.length.toLocaleString("fa-IR")}
@@ -1029,28 +1045,25 @@ function ResourceListItem({
       type="button"
       onClick={onSelect}
       className={`grid w-full gap-3 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand md:grid-cols-[2.75rem_minmax(10rem,1fr)_minmax(12rem,1.5fr)_auto] md:items-center ${frame}`}
-      aria-label={`ویرایش منبع ${item.title}`}
-      title={`ویرایش ${item.title}`}
+      aria-label={copy.editResourceLabel(item.title)}
+      title={copy.editResourceLabel(item.title)}
     >
       <span className={`grid size-11 place-items-center rounded-xl ${iconClass}`}>{icon}</span>
       <span className="min-w-0">
         <strong className="block truncate text-sm text-ink">{item.title}</strong>
         <span className="mt-1 flex flex-wrap items-center gap-1">
-          <Badge tone="blue">{item.category || "عمومی"}</Badge>
+          <Badge tone="blue">{item.category || copy.general}</Badge>
           <small className="text-xs text-slate-500">
-            {item.type === "VIDEO" ? "ویدئو" : "پیوند"}
+            {item.type === "VIDEO" ? copy.video : copy.resourceLink}
           </small>
         </span>
       </span>
       <span className="min-w-0">
         <span className="block line-clamp-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-          {item.description || "بدون توضیح"}
+          {item.description || copy.noDescription}
         </span>
         <small className="mt-1 block text-xs text-slate-400">
-          آخرین تغییر:{" "}
-          {new Intl.DateTimeFormat("fa-IR", { dateStyle: "short" }).format(
-            new Date(item.updatedAt),
-          )}
+          {copy.updatedAt}: {formatDate(item.updatedAt, { dateStyle: "short" })}
         </small>
       </span>
       <span className="flex flex-wrap items-center justify-between gap-2 md:grid md:justify-items-end">
@@ -1063,7 +1076,7 @@ function ResourceListItem({
         </Badge>
         <small className="flex items-center gap-1 text-xs text-slate-500">
           <UsersRound size={13} />
-          {item.assignments.length.toLocaleString("fa-IR")} دریافت‌کننده
+          {copy.students(item.assignments.length)} {copy.recipientsLabel}
         </small>
       </span>
     </button>

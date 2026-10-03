@@ -6,12 +6,13 @@ import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
 import { ManagementPageHeader, ManagementStat, ManagementSummaryBar } from "../../shared/ui/management-workspace";
 import { useModal } from "../../shared/ui/modal";
 import { Badge, Button, Textarea } from "../../shared/ui/ui";
+import { useLocale } from "../../shared/ui/locale";
+import { permissionRequestsCopy } from "./permission-requests-locale";
 
 type Request = {
   id: string; studentName?: string; organizationName?: string; kind: string; title: string; details: string;
   requestedFor: string | null; status: "PENDING" | "APPROVED" | "REJECTED"; supervisorNote: string; createdAt: string | null;
 };
-const statusLabel = { PENDING: "در انتظار بررسی", APPROVED: "تأیید شده", REJECTED: "رد شده" } as const;
 const statusTone = { PENDING: "amber", APPROVED: "green", REJECTED: "red" } as const;
 
 export function PermissionRequestsPage() {
@@ -22,9 +23,11 @@ export function PermissionRequestsPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const modal = useModal();
+  const { language, profile } = useLocale();
+  const copy = permissionRequestsCopy(language);
   const load = () => {
     setLoading(true); setError("");
-    void api.get<Request[]>("/permission-requests").then(setRows).catch((value) => setError(value.message || "دریافت درخواست‌ها ناموفق بود.")).finally(() => setLoading(false));
+    void api.get<Request[]>("/permission-requests").then(setRows).catch((value) => setError(value.message || copy.loadFailed)).finally(() => setLoading(false));
   };
   useEffect(load, []);
   const visible = useMemo(() => {
@@ -41,7 +44,7 @@ export function PermissionRequestsPage() {
       setRows((current) => current.map((item) => (item.id === row.id ? updated : item)));
       return true;
     } catch (value) {
-      setError(value instanceof Error ? value.message : "ثبت تصمیم ناموفق بود.");
+      setError(value instanceof Error ? value.message : copy.saveFailed);
       return false;
     } finally {
       setBusy("");
@@ -50,10 +53,8 @@ export function PermissionRequestsPage() {
   function openDecisionModal(row: Request, next: "APPROVED" | "REJECTED") {
     const approving = next === "APPROVED";
     modal.open({
-      title: approving ? "تأیید درخواست مجوز" : "رد درخواست مجوز",
-      description: approving
-        ? "پس از ثبت، وضعیت درخواست برای دانش‌آموز تأیید می‌شود."
-        : "پس از ثبت، وضعیت درخواست برای دانش‌آموز رد می‌شود.",
+      title: approving ? copy.approveTitle : copy.rejectTitle,
+      description: approving ? copy.approveDescription : copy.rejectDescription,
       size: "md",
       content: (
         <PermissionDecisionModal
@@ -71,17 +72,17 @@ export function PermissionRequestsPage() {
   const pending = rows.filter((row) => row.status === "PENDING").length;
   return (
     <section className="grid gap-4">
-      <ManagementPageHeader eyebrow="سرپرستی سازمان" title="درخواست‌های مجوز" description="صف عملیاتی خروج از خوابگاه، مدرسه و سایر مجوزهای ثبت‌شده توسط دانش‌آموزان." action={<Button size="sm" variant="soft" loading={loading} onClick={load}><RefreshCw size={14} />به‌روزرسانی</Button>} />
-      <ManagementSummaryBar label="خلاصه درخواست‌ها">
+      <ManagementPageHeader eyebrow={copy.eyebrow} title={copy.title} description={copy.description} action={<Button size="sm" variant="soft" loading={loading} onClick={load}><RefreshCw size={14} />{copy.refresh}</Button>} />
+      <ManagementSummaryBar label={copy.summary}>
         <div className="grid min-w-[min(100%,32rem)] flex-1 grid-cols-3 gap-2">
-          <ManagementStat label="در انتظار" value={pending} active={status === "PENDING"} tone="warning" onClick={() => setStatus("PENDING")} />
-          <ManagementStat label="تأیید شده" value={rows.filter((row) => row.status === "APPROVED").length} active={status === "APPROVED"} tone="success" onClick={() => setStatus("APPROVED")} />
-          <ManagementStat label="همه موارد" value={rows.length} active={status === "ALL"} tone="muted" onClick={() => setStatus("ALL")} />
+          <ManagementStat label={copy.pending} value={pending} active={status === "PENDING"} tone="warning" onClick={() => setStatus("PENDING")} />
+          <ManagementStat label={copy.approved} value={rows.filter((row) => row.status === "APPROVED").length} active={status === "APPROVED"} tone="success" onClick={() => setStatus("APPROVED")} />
+          <ManagementStat label={copy.allItems} value={rows.length} active={status === "ALL"} tone="muted" onClick={() => setStatus("ALL")} />
         </div>
       </ManagementSummaryBar>
-      <AdminList label="صف درخواست‌ها" description="تصمیم شما بلافاصله برای دانش‌آموز اعلان می‌شود." items={visible} loading={loading} error={Boolean(error)} errorTitle={error || undefined} onRetry={load} emptyTitle={status === "PENDING" ? "درخواستی برای بررسی ندارید." : "درخواستی با این فیلتر وجود ندارد."} toolbar={<CollectionToolbar search={query} onSearchChange={setQuery} placeholder="جست‌وجوی دانش‌آموز، عنوان یا سازمان…" resultLabel={`${visible.length.toLocaleString("fa-IR")} نتیجه`} onClear={query || status !== "PENDING" ? () => { setQuery(""); setStatus("PENDING"); } : undefined} filters={( ["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((item) => <button key={item} type="button" className={`rounded px-2 py-1 text-[11px] ${status === item ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setStatus(item)}>{item === "ALL" ? "همه" : statusLabel[item]}</button>)} />}>
+      <AdminList label={copy.queue} description={copy.queueDescription} items={visible} loading={loading} error={Boolean(error)} errorTitle={error || undefined} onRetry={load} emptyTitle={status === "PENDING" ? copy.noPending : copy.noMatches} toolbar={<CollectionToolbar search={query} onSearchChange={setQuery} placeholder={copy.search} resultLabel={copy.result(visible.length, profile.locale)} onClear={query || status !== "PENDING" ? () => { setQuery(""); setStatus("PENDING"); } : undefined} filters={( ["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((item) => <button key={item} type="button" className={`rounded px-2 py-1 text-[11px] ${status === item ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setStatus(item)}>{item === "ALL" ? copy.all : copy.status[item]}</button>)} />}>
         <div className="divide-y divide-[rgb(var(--border-subtle))]">
-          {visible.map((row) => <article key={row.id} className="grid gap-3 px-1 py-3 sm:px-2 lg:grid-cols-[minmax(15rem,1fr)_auto] lg:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-ink">{row.title}</h2><Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge></div><p className="mt-1 text-xs text-slate-500">{row.studentName || "دانش‌آموز"} · {row.organizationName || "سازمان"} · {row.kind}</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{row.details}</p>{row.supervisorNote ? <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1.5 text-xs text-slate-600">یادداشت: {row.supervisorNote}</p> : null}</div>{row.status === "PENDING" ? <div className="flex shrink-0 gap-2"><Button size="sm" disabled={busy === row.id} onClick={() => openDecisionModal(row, "APPROVED")}><Check size={14} />تأیید</Button><Button size="sm" variant="danger" disabled={busy === row.id} onClick={() => openDecisionModal(row, "REJECTED")}><X size={14} />رد</Button></div> : null}</article>)}
+          {visible.map((row) => <article key={row.id} className="grid gap-3 px-1 py-3 sm:px-2 lg:grid-cols-[minmax(15rem,1fr)_auto] lg:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-ink">{row.title}</h2><Badge tone={statusTone[row.status]}>{copy.status[row.status]}</Badge></div><p className="mt-1 text-xs text-slate-500">{row.studentName || copy.student} · {row.organizationName || copy.organization} · {row.kind}</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{row.details}</p>{row.supervisorNote ? <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1.5 text-xs text-slate-600">{copy.note}: {row.supervisorNote}</p> : null}</div>{row.status === "PENDING" ? <div className="flex shrink-0 gap-2"><Button size="sm" disabled={busy === row.id} onClick={() => openDecisionModal(row, "APPROVED")}><Check size={14} />{copy.approve}</Button><Button size="sm" variant="danger" disabled={busy === row.id} onClick={() => openDecisionModal(row, "REJECTED")}><X size={14} />{copy.reject}</Button></div> : null}</article>)}
         </div>
       </AdminList>
     </section>

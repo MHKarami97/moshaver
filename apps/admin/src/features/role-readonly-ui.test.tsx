@@ -1,21 +1,27 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ReactElement } from "react";
 import { RetryRequestsPanel } from "./exams/components/RetryRequestsPanel";
 import { LearningHeader } from "./learning/components/LearningHeader";
 import { LearningRow } from "./learning/components/LearningRow";
 import { QuestionsSelector } from "./questions/components/QuestionsSelector";
+import { LocaleProvider } from "../shared/ui/locale";
+
+function renderWithLocale(node: ReactElement) {
+  return render(<LocaleProvider>{node}</LocaleProvider>);
+}
 
 afterEach(cleanup);
 
 describe("read-only role controls", () => {
   it("does not expose learning creation without a create capability", () => {
-    render(<LearningHeader students={[]} studentId="" onStudentChange={vi.fn()} />);
+    renderWithLocale(<LearningHeader students={[]} studentId="" onStudentChange={vi.fn()} />);
 
     expect(screen.queryByRole("button", { name: /مرور جدید/ })).not.toBeInTheDocument();
   });
 
   it("keeps learning history available without exposing mutation controls", () => {
-    render(
+    renderWithLocale(
       <LearningRow
         item={{
           id: "learning-1",
@@ -58,7 +64,7 @@ describe("read-only role controls", () => {
   });
 
   it("does not expose the optional student directory to a questions-only role", () => {
-    render(
+    renderWithLocale(
       <QuestionsSelector
         students={[]}
         showStudentPicker={false}

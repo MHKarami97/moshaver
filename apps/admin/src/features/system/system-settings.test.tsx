@@ -1,11 +1,16 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSecurityPanel } from "./components/AccountSecurityPanel";
 import { DatabaseBackupPanel } from "./components/DatabaseBackupPanel";
 import { AppVersionManager } from "./components/AppVersionManager";
 import type { PasswordDraft } from "./model/system.types";
+import { LocaleProvider } from "../../shared/ui/locale";
+
+function renderWithLocale(node: React.ReactElement) {
+  return render(<LocaleProvider>{node}</LocaleProvider>);
+}
 
 function PasswordHarness({ onSubmit }: { onSubmit: () => void }) {
   const [passwords, setPasswords] = useState<PasswordDraft>({
@@ -23,13 +28,14 @@ function PasswordHarness({ onSubmit }: { onSubmit: () => void }) {
   );
 }
 
+beforeEach(() => localStorage.setItem("moshaver-admin-location", "iran"));
 afterEach(cleanup);
 
 describe("system and security controls", () => {
   it("requires the current password, 12 characters, and matching confirmation", async () => {
     const user = userEvent.setup();
     const submit = vi.fn();
-    render(<PasswordHarness onSubmit={submit} />);
+    renderWithLocale(<PasswordHarness onSubmit={submit} />);
     const button = screen.getByRole("button", { name: /تغییر امن رمز/ });
     expect(button).toBeDisabled();
     const inputs = screen.getAllByLabelText(/رمز/);
@@ -44,7 +50,7 @@ describe("system and security controls", () => {
 
   it("rejects non-SQLite restore files before enabling a destructive action", () => {
     const setFile = vi.fn();
-    render(
+    renderWithLocale(
       <DatabaseBackupPanel
         file={null}
         busy={false}
@@ -62,7 +68,7 @@ describe("system and security controls", () => {
   });
 
   it("makes rollback and post-restore checks explicit before a restore", () => {
-    render(
+    renderWithLocale(
       <DatabaseBackupPanel
         file={null}
         busy={false}
@@ -81,7 +87,7 @@ describe("system and security controls", () => {
   it("edits the active app version through an accessible form", async () => {
     const user = userEvent.setup();
     const save = vi.fn();
-    render(
+    renderWithLocale(
       <AppVersionManager
         versions={[{ app: "admin", version: "2.0.0", notes: "stable", updatedAt: "2026-01-01" }]}
         loading={false}
@@ -98,5 +104,14 @@ describe("system and security controls", () => {
     await user.type(version, "2.1.0");
     await user.click(screen.getByRole("button", { name: /ذخیره/ }));
     expect(save).toHaveBeenCalledWith("admin", { version: "2.1.0", notes: "stable" });
+  });
+
+  it("uses English labels when the international locale is active", () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    renderWithLocale(<PasswordHarness onSubmit={vi.fn()} />);
+    expect(
+      screen.getByRole("heading", { name: "Password and authentication" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change password securely" })).toBeDisabled();
   });
 });

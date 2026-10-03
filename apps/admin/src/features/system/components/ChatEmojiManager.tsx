@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { chatApi } from "../../chat/api/chat.api";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { systemCopy } from "../system-locale";
 
 const catalog = [
   "❤️",
@@ -29,6 +31,8 @@ const catalog = [
 ];
 
 export function ChatEmojiManager() {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   const qc = useQueryClient();
   const configuration = useQuery({
     queryKey: ["chat-configuration"],
@@ -42,15 +46,15 @@ export function ChatEmojiManager() {
     mutationFn: () => chatApi.updateConfiguration(selected),
     onSuccess: (data) => {
       qc.setQueryData(["chat-configuration"], data);
-      notify("واکنش‌های گفتگو ذخیره شد.", "success");
+      notify(copy.emojiSaved, "success");
     },
-    onError: () => notify("ذخیره واکنش‌ها ناموفق بود.", "error"),
+    onError: () => notify(copy.emojiSaveFailed, "error"),
   });
   if (configuration.isError)
     return (
       <EmptyState
-        title="دریافت تنظیمات واکنش‌ها ناموفق بود."
-        action={<Button onClick={() => void configuration.refetch()}>تلاش دوباره</Button>}
+        title={copy.emojiConfigFailed}
+        action={<Button onClick={() => void configuration.refetch()}>{copy.retry}</Button>}
       />
     );
   return (
@@ -60,13 +64,11 @@ export function ChatEmojiManager() {
           <MessageCircleHeart size={20} />
         </span>
         <span>
-          <strong className="block text-sm">واکنش‌های گفتگو</strong>
-          <small className="mt-1 block text-xs text-slate-500">
-            حداکثر ۱۰ واکنش قابل استفاده در همه گفتگوهای دانش‌آموز و مدیریت را انتخاب کنید.
-          </small>
+          <strong className="block text-sm">{copy.chatEmojiTitle}</strong>
+          <small className="mt-1 block text-xs text-slate-500">{copy.chatEmojiDescription}</small>
         </span>
       </header>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="انتخاب واکنش‌های مجاز">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={copy.chatEmojiSelection}>
         {catalog.map((emoji) => {
           const active = selected.includes(emoji);
           return (
@@ -91,12 +93,10 @@ export function ChatEmojiManager() {
         })}
       </div>
       <footer className="flex items-center justify-between gap-3">
-        <small className="text-xs text-slate-500">
-          {selected.length.toLocaleString("fa-IR")} از ۱۰ انتخاب شده
-        </small>
+        <small className="text-xs text-slate-500">{copy.emojisSelected(selected.length)}</small>
         <Button disabled={!selected.length || save.isPending} onClick={() => save.mutate()}>
           <Save size={15} />
-          {save.isPending ? "در حال ذخیره" : "ذخیره واکنش‌ها"}
+          {save.isPending ? copy.saving : copy.saveEmojis}
         </Button>
       </footer>
     </Card>

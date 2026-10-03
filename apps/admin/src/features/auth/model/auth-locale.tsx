@@ -52,6 +52,18 @@ type AuthCopy = {
   demoInstruction: string;
   demoInstructionSuffix: string;
   demoRoles: Record<DemoRole, { label: string; description: string }>;
+  sessionChecking: string;
+  nonAdminAccount: string;
+  accessVerificationFailed: string;
+  serverUnreachable: (attempt: number, maximum: number) => string;
+  serverUnresponsive: string;
+  restoreStopped: string;
+  previousLogoutComplete: string;
+  previousLogoutPending: string;
+  sessionExpired: string;
+  serverLogoutComplete: string;
+  signedOut: string;
+  localLogoutPending: string;
 };
 
 export type DemoRole =
@@ -129,6 +141,20 @@ const copy: Record<AuthLanguage, AuthCopy> = {
       platformAdmin: { label: "مدیر پلتفرم", description: "سامانه، امنیت و همه سازمان‌ها" },
       multiRole: { label: "چندنقشی", description: "تعویض زمینه مشاور و دبیر" },
     },
+    sessionChecking: "در حال بررسی نشست امن…",
+    nonAdminAccount: "این حساب مدیر نیست.",
+    accessVerificationFailed: "تأیید دسترسی مدیریتی انجام نشد.",
+    serverUnreachable: (attempt, maximum) =>
+      `ارتباط با سرور برقرار نشد؛ تلاش ${attempt} از ${maximum} انجام شد و دوباره تلاش می‌کنیم…`,
+    serverUnresponsive:
+      "پس از ۳ تلاش، سرور پاسخ نداد. می‌توانید دوباره تلاش کنید یا وارد حساب شوید.",
+    restoreStopped: "بازیابی نشست متوقف شد. برای ادامه وارد حساب شوید.",
+    previousLogoutComplete: "خروج قبلی تکمیل شد.",
+    previousLogoutPending: "خروج قبلی هنوز منتظر اتصال اینترنت است.",
+    sessionExpired: "نشست پایان یافته است. دوباره وارد شوید.",
+    serverLogoutComplete: "خروج سرور هم تکمیل شد.",
+    signedOut: "با موفقیت خارج شدید.",
+    localLogoutPending: "خروج محلی انجام شد؛ خروج سرور پس از اتصال تکمیل می‌شود.",
   },
   en: {
     brandName: "MOSHAVER",
@@ -209,6 +235,19 @@ const copy: Record<AuthLanguage, AuthCopy> = {
         description: "Switch between advisor and teacher contexts",
       },
     },
+    sessionChecking: "Checking your secure session…",
+    nonAdminAccount: "This account does not have administrator access.",
+    accessVerificationFailed: "Administrator access could not be verified.",
+    serverUnreachable: (attempt, maximum) =>
+      `The server could not be reached. Attempt ${attempt} of ${maximum} completed; retrying…`,
+    serverUnresponsive: "The server did not respond after 3 attempts. Try again or sign in.",
+    restoreStopped: "Session recovery stopped. Sign in to continue.",
+    previousLogoutComplete: "The previous sign out is complete.",
+    previousLogoutPending: "The previous sign out will complete when you are back online.",
+    sessionExpired: "Your session has ended. Sign in again.",
+    serverLogoutComplete: "Server sign out is complete too.",
+    signedOut: "You have signed out.",
+    localLogoutPending: "You have signed out locally; server sign out will finish when online.",
   },
 };
 
@@ -249,4 +288,8 @@ export function useAuthLocale() {
   const context = useContext(AuthLocaleContext);
   if (!context) throw new Error("useAuthLocale must be used inside AuthLocaleProvider");
   return context;
+}
+
+export function authSessionCopy(language: AuthLanguage) {
+  return copy[language];
 }

@@ -1,4 +1,6 @@
 import { CheckSquare, X } from "lucide-react";
+import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy } from "../model/planner-copy";
 
 export function PlannerBatchToolbar({
   count,
@@ -9,6 +11,8 @@ export function PlannerBatchToolbar({
   onClear: () => void;
   onAction: (action: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   if (!count) return null;
 
   return (
@@ -22,26 +26,31 @@ export function PlannerBatchToolbar({
     >
       <CheckSquare size={16} />
 
-      <strong className="text-sm">{count} فعالیت انتخاب شده</strong>
+      <strong className="text-sm">
+        {copy.selectedActivities.replace(
+          "{count}",
+          count.toLocaleString(language === "fa" ? "fa-IR" : "en-US"),
+        )}
+      </strong>
 
       <button
         onClick={() => onAction("shift")}
         className="rounded-lg bg-white px-3 py-1 text-xs font-bold dark:bg-slate-800"
       >
-        جابه‌جایی زمان
+        {copy.moveTime}
       </button>
 
       <button
         onClick={() => onAction("publish")}
         className="rounded-lg bg-white px-3 py-1 text-xs font-bold dark:bg-slate-800"
       >
-        تغییر انتشار
+        {copy.changePublication}
       </button>
 
       <button
         onClick={onClear}
         className="ml-auto grid size-7 place-items-center rounded-lg"
-        aria-label="پاک کردن انتخاب"
+        aria-label={copy.clearSelection}
       >
         <X size={15} />
       </button>

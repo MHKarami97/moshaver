@@ -2,22 +2,17 @@ import { Bell, BellRing, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { ChangeEvent } from "react";
 import { useAlarms } from "../hooks/useAlarms";
-
-const DAYS = [
-  { id: 6, label: "ش" },
-  { id: 0, label: "ی" },
-  { id: 1, label: "د" },
-  { id: 2, label: "س" },
-  { id: 3, label: "چ" },
-  { id: 4, label: "پ" },
-  { id: 5, label: "ج" },
-];
+import { clockCopy, clockDays } from "../model/clock-copy";
+import { useLocale } from "../../../shared/ui/locale";
 
 export function AlarmPanel() {
+  const { language } = useLocale();
+  const copy = clockCopy[language];
+  const days = clockDays[language];
   const { alarms, activeAlarm, addAlarm, toggleAlarm, removeAlarm, dismiss, snooze } = useAlarms();
   const [hour, setHour] = useState(() => new Date(Date.now() + 60_000).getHours());
   const [minute, setMinute] = useState(() => new Date(Date.now() + 60_000).getMinutes());
-  const [label, setLabel] = useState("هشدار");
+  const [label, setLabel] = useState(copy.alarm);
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
 
   const active = activeAlarm ? alarms.find((alarm) => alarm.id === activeAlarm.alarmId) : undefined;
@@ -28,7 +23,7 @@ export function AlarmPanel() {
     );
   const add = async () => {
     await addAlarm({ hour, minute, label, repeatDays, snoozeMinutes: 5 });
-    setLabel("هشدار");
+    setLabel(copy.alarm);
   };
 
   return (
@@ -48,14 +43,14 @@ export function AlarmPanel() {
               onClick={() => snooze()}
               className="h-9 flex-1 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white hover:bg-amber-700"
             >
-              تعویق {active.snoozeMinutes} دقیقه
+              {copy.snooze} {active.snoozeMinutes} {copy.minutes}
             </button>
             <button
               type="button"
               onClick={dismiss}
               className="h-9 flex-1 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
             >
-              بستن
+              {copy.dismiss}
             </button>
           </div>
         </div>
@@ -64,7 +59,7 @@ export function AlarmPanel() {
       <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-800/70">
         <div className="flex items-center gap-2">
           <input
-            aria-label="ساعت"
+            aria-label={copy.hour}
             type="number"
             min={0}
             max={23}
@@ -76,7 +71,7 @@ export function AlarmPanel() {
           />
           <span className="font-bold text-slate-400">:</span>
           <input
-            aria-label="دقیقه"
+            aria-label={copy.minute}
             type="number"
             min={0}
             max={59}
@@ -89,7 +84,7 @@ export function AlarmPanel() {
           <input
             value={label}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setLabel(event.target.value)}
-            placeholder="عنوان هشدار"
+            placeholder={copy.alarmTitle}
             className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-900"
           />
           <button
@@ -97,12 +92,12 @@ export function AlarmPanel() {
             onClick={add}
             className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white hover:bg-brand-strong"
           >
-            <Plus size={15} /> افزودن
+            <Plus size={15} /> {copy.add}
           </button>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="ml-1 text-[10px] text-slate-500 dark:text-slate-400">تکرار:</span>
-          {DAYS.map((day) => (
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">{copy.repeat}</span>
+          {days.map((day) => (
             <button
               key={day.id}
               type="button"
@@ -114,17 +109,17 @@ export function AlarmPanel() {
           ))}
           <button
             type="button"
-            onClick={() => setRepeatDays(repeatDays.length === 7 ? [] : DAYS.map((day) => day.id))}
-            className="mr-auto text-[9px] font-bold text-brand"
+            onClick={() => setRepeatDays(repeatDays.length === 7 ? [] : days.map((day) => day.id))}
+            className="ms-auto text-[9px] font-bold text-brand"
           >
-            {repeatDays.length === 7 ? "پاک کردن" : "هر روز"}
+            {repeatDays.length === 7 ? copy.clear : copy.everyDay}
           </button>
         </div>
       </div>
 
       {alarms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          هنوز هشداری تنظیم نشده است.
+          {copy.noAlarms}
         </div>
       ) : (
         <div className="max-h-56 space-y-2 overflow-y-auto pr-0.5">
@@ -144,8 +139,8 @@ export function AlarmPanel() {
                 <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
                   {alarm.label}
                   {alarm.repeatDays.length
-                    ? ` • ${alarm.repeatDays.length === 7 ? "هر روز" : `${alarm.repeatDays.length} روز در هفته`}`
-                    : " • یک‌بار"}
+                    ? ` • ${alarm.repeatDays.length === 7 ? copy.everyDay : `${alarm.repeatDays.length} ${copy.daysPerWeek}`}`
+                    : ` • ${copy.once}`}
                 </div>
               </div>
               <button
@@ -153,13 +148,13 @@ export function AlarmPanel() {
                 onClick={() => toggleAlarm(alarm.id)}
                 className={`h-7 rounded-full px-2 text-[10px] font-bold ${alarm.enabled ? "bg-brand/10 text-brand" : "bg-slate-100 text-slate-500 dark:bg-slate-700"}`}
               >
-                {alarm.enabled ? "فعال" : "خاموش"}
+                {alarm.enabled ? copy.enabled : copy.disabled}
               </button>
               <button
                 type="button"
                 onClick={() => removeAlarm(alarm.id)}
                 className="grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-                aria-label="حذف هشدار"
+                aria-label={`${copy.deleteAlarm} ${alarm.label}`}
               >
                 <Trash2 size={14} />
               </button>

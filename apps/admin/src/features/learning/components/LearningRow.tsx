@@ -1,7 +1,9 @@
 import { Edit3, History, RefreshCw, Trash2 } from "lucide-react";
 import { todayIso } from "../../../shared/lib/utils";
 import { Badge, Button } from "../../../shared/ui/ui";
-import { isLearningDue, learningStatusLabel, type LearningItem } from "../model/learning-model";
+import { useLocale } from "../../../shared/ui/locale";
+import { isLearningDue, type LearningItem } from "../model/learning-model";
+import { learningCopy, learningStatusLabel } from "../learning-locale";
 
 export function LearningRow({
   item,
@@ -18,13 +20,19 @@ export function LearningRow({
   onHistory: () => void;
   onDelete?: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = learningCopy(language);
+  const numberLocale = language === "fa" ? "fa-IR" : "en-US";
   const due = isLearningDue(item, todayIso());
 
   return (
     <article
-      className={["rounded-lg border p-3 shadow-[var(--shadow-surface)]", due ? "border-rose-200 bg-rose-50/40" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))]"].join(
-        " ",
-      )}
+      className={[
+        "rounded-lg border p-3 shadow-[var(--shadow-surface)]",
+        due
+          ? "border-rose-200 bg-rose-50/40"
+          : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))]",
+      ].join(" ")}
     >
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1">
@@ -42,14 +50,14 @@ export function LearningRow({
                       : "amber"
               }
             >
-              {due ? "سررسیدشده" : learningStatusLabel(item.status)}
+              {due ? copy.due : learningStatusLabel(item.status, language)}
             </Badge>
           </div>
 
           <p className="mt-1 text-xs text-slate-500">
             {[item.subject, item.book, item.chapter, item.lesson, item.topic]
               .filter(Boolean)
-              .join(" · ") || "بدون دسته‌بندی"}
+              .join(" · ") || copy.uncategorized}
           </p>
         </div>
 
@@ -57,20 +65,25 @@ export function LearningRow({
           <Button
             className="size-9 p-0"
             variant="ghost"
-            aria-label="تاریخچه مرور"
+            aria-label={copy.history}
             onClick={onHistory}
           >
             <History size={15} />
           </Button>
 
           {onReview ? (
-            <Button className="size-9 p-0" variant="ghost" aria-label="ثبت مرور" onClick={onReview}>
+            <Button
+              className="size-9 p-0"
+              variant="ghost"
+              aria-label={copy.review}
+              onClick={onReview}
+            >
               <RefreshCw size={15} />
             </Button>
           ) : null}
 
           {onEdit ? (
-            <Button size="icon" variant="ghost" aria-label="ویرایش" onClick={onEdit}>
+            <Button size="icon" variant="ghost" aria-label={copy.edit} onClick={onEdit}>
               <Edit3 size={15} />
             </Button>
           ) : null}
@@ -79,7 +92,7 @@ export function LearningRow({
             <Button
               className="size-9 p-0 text-rose-700"
               variant="ghost"
-              aria-label="حذف"
+              aria-label={copy.remove}
               onClick={onDelete}
             >
               <Trash2 size={15} />
@@ -90,34 +103,39 @@ export function LearningRow({
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
         <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-          مرور بعدی: {formatDate(item.dueDate)}
+          {copy.nextReview}: {formatDate(item.dueDate)}
         </span>
 
         <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-          تسلط {item.mastery.toLocaleString("fa-IR")}
-          /۵
+          {copy.mastery} {item.mastery.toLocaleString(numberLocale)}/5
         </span>
 
         <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-          {item.reviewCount.toLocaleString("fa-IR")} مرور
+          {item.reviewCount.toLocaleString(numberLocale)} {copy.reviews}
         </span>
 
         <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
-          فاصله {item.intervalDays.toLocaleString("fa-IR")} روز
+          {copy.interval} {item.intervalDays.toLocaleString(numberLocale)} {copy.days}
         </span>
 
         {item.sourceAnswerId ? (
-          <span className="rounded-md bg-indigo-50 px-2 py-1 text-indigo-700">متصل به پاسخ آزمون</span>
+          <span className="rounded-md bg-indigo-50 px-2 py-1 text-indigo-700">
+            {copy.linkedAnswer}
+          </span>
         ) : null}
       </div>
 
       {item.note || item.hint ? (
         <details className="mt-2 text-xs text-slate-600">
-          <summary className="cursor-pointer font-semibold">یادداشت و راهنمای مرور</summary>
+          <summary className="cursor-pointer font-semibold">{copy.notesAndHint}</summary>
 
           {item.note ? <p className="mt-2">{item.note}</p> : null}
 
-          {item.hint ? <p className="mt-1 text-indigo-800">راهنما: {item.hint}</p> : null}
+          {item.hint ? (
+            <p className="mt-1 text-indigo-800">
+              {copy.hintPrefix} {item.hint}
+            </p>
+          ) : null}
         </details>
       ) : null}
     </article>

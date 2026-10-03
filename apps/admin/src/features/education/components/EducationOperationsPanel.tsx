@@ -4,16 +4,10 @@ import { Link } from "react-router-dom";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { ManagementStat } from "../../../shared/ui/management-workspace";
 import { Button, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { EducationOperationsOverview } from "../api/education-catalog.api";
 import type { EducationOperationsFilters } from "../model/education-operations";
-
-const remediationLabels = {
-  incompleteProfiles: "پرونده ناقص",
-  withoutPlan: "بدون برنامه",
-  withoutResources: "بدون منبع",
-  withoutExam: "بدون آزمون",
-  withoutReport: "بدون گزارش",
-} as const;
+import { educationCopy } from "../model/education-copy";
 
 export function EducationOperationsPanel({
   filters,
@@ -29,6 +23,8 @@ export function EducationOperationsPanel({
   >;
   onExport: (overview: EducationOperationsOverview) => void;
 }) {
+  const locale = useLocale();
+  const copy = educationCopy(locale.language);
   const clearFilters = () => onFiltersChange({ periodFrom: "", periodTo: "", cohortGrade: "" });
   const hasFilters = Boolean(filters.periodFrom || filters.periodTo || filters.cohortGrade);
 
@@ -37,30 +33,27 @@ export function EducationOperationsPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="education-operations-title" className="text-sm font-black text-ink">
-            پایش پوشش آموزشی
+            {copy.operations}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            بازه و پایه را انتخاب کنید، موارد نیازمند رسیدگی را باز کنید و نتیجه را برای پیگیری صادر
-            کنید.
-          </p>
+          <p className="mt-1 text-xs text-slate-500">{copy.operationsDescription}</p>
         </div>
         <Button
           variant="soft"
           size="sm"
           disabled={!operations.data}
           onClick={() => operations.data && onExport(operations.data)}
-          title="دریافت فایل CSV شاخص‌های فعلی"
+          title={copy.exportOperations}
         >
           <Download size={14} aria-hidden="true" />
-          دریافت CSV
+          CSV
         </Button>
       </div>
       <div
         className="flex flex-wrap items-end gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-900/60"
-        aria-label="فیلترهای پوشش آموزشی"
+        aria-label={copy.operationsFilters}
       >
         <label className="grid w-40 gap-1 text-xs text-slate-600 dark:text-slate-300">
-          <span>از تاریخ</span>
+          <span>{copy.from}</span>
           <DatePicker
             value={filters.periodFrom}
             max={filters.periodTo}
@@ -68,7 +61,7 @@ export function EducationOperationsPanel({
           />
         </label>
         <label className="grid w-40 gap-1 text-xs text-slate-600 dark:text-slate-300">
-          <span>تا تاریخ</span>
+          <span>{copy.to}</span>
           <DatePicker
             value={filters.periodTo}
             min={filters.periodFrom}
@@ -76,72 +69,70 @@ export function EducationOperationsPanel({
           />
         </label>
         <label className="grid w-32 gap-1 text-xs text-slate-600 dark:text-slate-300">
-          <span>پایه</span>
+          <span>{copy.grade}</span>
           <select
-            aria-label="پایه آموزشی"
+            aria-label={copy.grade}
             className="h-11 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950"
             value={filters.cohortGrade}
             onChange={(event) => onFiltersChange({ ...filters, cohortGrade: event.target.value })}
           >
-            <option value="">همه</option>
+            <option value="">{copy.all}</option>
             {Array.from({ length: 12 }, (_, index) => index + 1).map((grade) => (
               <option key={grade} value={grade}>
-                پایه {grade.toLocaleString("fa-IR")}
+                {copy.gradePrefix} {grade.toLocaleString(locale.profile.locale)}
               </option>
             ))}
           </select>
         </label>
         <Button variant="ghost" size="sm" disabled={!hasFilters} onClick={clearFilters}>
-          پاک‌سازی فیلترها
+          {copy.clearFilters}
         </Button>
       </div>
       {Boolean(filters.periodFrom) !== Boolean(filters.periodTo) ? (
         <p role="status" className="text-xs text-amber-700">
-          برای اعمال بازه، هر دو تاریخ را وارد کنید؛ تا آن زمان همه زمان‌ها نمایش داده می‌شود.
+          {copy.partialRange}
         </p>
       ) : null}
       {operations.isLoading ? (
         <p role="status" className="text-sm text-slate-500">
-          در حال محاسبه شاخص‌های آموزشی…
+          {copy.calculating}
         </p>
       ) : null}
       {operations.isError ? (
         <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-red-700">
-          <span>شاخص‌های آموزشی دریافت نشد.</span>
+          <span>{copy.operationsFailed}</span>
           <Button variant="soft" size="sm" onClick={() => void operations.refetch()}>
             <RefreshCw size={14} aria-hidden="true" />
-            تلاش دوباره
+            {locale.language === "fa" ? "تلاش دوباره" : "Try again"}
           </Button>
         </div>
       ) : null}
       {operations.data ? (
         <>
-          <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="پوشش آموزشی">
+          <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label={copy.coverage}>
             <ManagementStat
-              label="پرونده کامل"
+              label={copy.completeProfile}
               value={operations.data.students.complete}
               tone="success"
             />
             <ManagementStat
-              label="بدون برنامه"
+              label={copy.withoutPlan}
               value={operations.data.coverage.withoutPlan}
               tone="muted"
             />
             <ManagementStat
-              label="بدون منبع"
+              label={copy.withoutResources}
               value={operations.data.coverage.withoutResources}
               tone="muted"
             />
             <ManagementStat
-              label="میانگین آزمون"
+              label={copy.averageExam}
               value={operations.data.trends.averageExamPercentage ?? 0}
               tone="brand"
             />
           </section>
           <details className="group rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">
-            <summary className="cursor-pointer text-sm font-bold text-ink">
-              جزئیات پوشش و صف‌های پیگیری
-            </summary>
+            <summary className="cursor-pointer text-sm font-bold text-ink">{copy.details}</summary>
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
               <div className="grid gap-1.5">
                 {operations.data.distribution.map((item) => (
@@ -150,7 +141,7 @@ export function EducationOperationsPanel({
                     className="flex justify-between rounded-md bg-slate-50 px-2.5 py-1.5 text-xs dark:bg-slate-900"
                   >
                     <span>{item.label}</span>
-                    <strong>{item.count.toLocaleString("fa-IR")}</strong>
+                    <strong>{item.count.toLocaleString(locale.profile.locale)}</strong>
                   </div>
                 ))}
               </div>
@@ -158,7 +149,7 @@ export function EducationOperationsPanel({
                 {Object.entries(operations.data.remediation).map(([key, rows]) => (
                   <div key={key} className="rounded-md bg-slate-50 p-2 dark:bg-slate-900">
                     <h3 className="text-xs font-bold">
-                      {rows[0]?.reason || remediationLabels[key as keyof typeof remediationLabels]}
+                      {rows[0]?.reason || remediationLabel(key, copy)}
                     </h3>
                     {rows.length ? (
                       rows.slice(0, 3).map((student) => (
@@ -169,12 +160,13 @@ export function EducationOperationsPanel({
                         >
                           <span>{student.name}</span>
                           <span className="text-slate-500">
-                            پایه {student.grade?.toLocaleString("fa-IR") || "—"}
+                            {copy.gradePrefix}{" "}
+                            {student.grade?.toLocaleString(locale.profile.locale) || "—"}
                           </span>
                         </Link>
                       ))
                     ) : (
-                      <p className="mt-1 text-xs text-emerald-700">موردی ندارد.</p>
+                      <p className="mt-1 text-xs text-emerald-700">{copy.noItems}</p>
                     )}
                   </div>
                 ))}
@@ -185,4 +177,15 @@ export function EducationOperationsPanel({
       ) : null}
     </Card>
   );
+}
+
+function remediationLabel(key: string, copy: ReturnType<typeof educationCopy>) {
+  const labels: Record<string, string> = {
+    incompleteProfiles: copy.completeProfile,
+    withoutPlan: copy.withoutPlan,
+    withoutResources: copy.withoutResources,
+    withoutExam: copy.noQuestions,
+    withoutReport: copy.noItems,
+  };
+  return labels[key] || key;
 }

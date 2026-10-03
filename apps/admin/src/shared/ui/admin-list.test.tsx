@@ -53,4 +53,26 @@ describe("AdminList", () => {
 
     expect(container.querySelector("header")).toHaveClass("sticky", "z-20");
   });
+
+  it("assigns one labeled scroll owner and keeps an operational footer available", () => {
+    const { container } = render(
+      <AdminList
+        items={["الف"]}
+        label="نمونه"
+        scrollable
+        contentLabel="موارد نمونه"
+        stickyFooter
+        footer={<button type="button">صفحه بعد</button>}
+      >
+        {() => <p>الف</p>}
+      </AdminList>,
+    );
+
+    expect(screen.getByRole("region", { name: "موارد نمونه" })).toHaveClass(
+      "overflow-y-auto",
+      "overscroll-contain",
+    );
+    expect(container.querySelector("footer")).toHaveClass("sticky", "bottom-0");
+    expect(screen.getByRole("button", { name: "صفحه بعد" })).toBeVisible();
+  });
 });

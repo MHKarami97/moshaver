@@ -1,5 +1,7 @@
 import type { PortalOrganization } from "../../access/api/access.api";
 import { Button, EmptyState } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { plannerCopy } from "../model/planner-copy";
 
 export function TemplateOrganizationPicker({
   organizations,
@@ -10,14 +12,16 @@ export function TemplateOrganizationPicker({
   onSelect: (organizationId: string) => void;
   onClose?: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   if (!organizations.length)
     return (
       <div className="grid gap-4">
-        <EmptyState title="سازمانی برای الگوها وجود ندارد" />
+        <EmptyState title={copy.noTemplateOrganizations} />
         {onClose ? (
           <div className="flex justify-end">
             <Button variant="ghost" onClick={onClose}>
-              بستن
+              {copy.close}
             </Button>
           </div>
         ) : null}
@@ -26,9 +30,7 @@ export function TemplateOrganizationPicker({
 
   return (
     <div className="grid gap-3">
-      <p className="text-sm text-slate-600 dark:text-slate-300">
-        الگوهای برنامه متعلق به یک سازمان هستند. سازمان موردنظر را انتخاب کنید.
-      </p>
+      <p className="text-sm text-slate-600 dark:text-slate-300">{copy.templateOrganizationHelp}</p>
       <div className="grid max-h-80 gap-2 overflow-y-auto">
         {organizations.map((organization) => (
           <Button
@@ -45,7 +47,7 @@ export function TemplateOrganizationPicker({
       {onClose ? (
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>
-            انصراف
+            {copy.cancel}
           </Button>
         </div>
       ) : null}

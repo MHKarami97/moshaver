@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Button, Card, Input } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { systemCopy } from "../system-locale";
 // Matches the API default (`MAX_RESTORE_BODY`); production can raise both through
 // its deployment configuration, but the default UI must not invite a guaranteed 400.
 const MAX_BACKUP_SIZE = 64 * 1024 * 1024;
@@ -33,6 +35,8 @@ export function DatabaseBackupPanel({
   canRestore?: boolean;
   restoreEnabled?: boolean;
 }) {
+  const { language, profile } = useLocale();
+  const copy = systemCopy(language);
   const [acknowledged, setAcknowledged] = useState(false),
     [fileError, setFileError] = useState("");
   function choose(next: File | null) {
@@ -45,12 +49,12 @@ export function DatabaseBackupPanel({
     const extension = next.name.toLowerCase().split(".").pop();
     if (!["sqlite", "sqlite3", "db"].includes(extension || "")) {
       setFile(null);
-      setFileError("فقط فایل SQLite با پسوند db، sqlite یا sqlite3 پذیرفته می‌شود.");
+      setFileError(copy.invalidBackupFile);
       return;
     }
     if (next.size > MAX_BACKUP_SIZE) {
       setFile(null);
-      setFileError("حجم فایل بازیابی در تنظیمات پیش‌فرض باید کمتر از ۶۴ مگابایت باشد.");
+      setFileError(copy.oversizedBackupFile);
       return;
     }
     setFileError("");
@@ -65,10 +69,8 @@ export function DatabaseBackupPanel({
               <Database size={20} />
             </span>
             <div>
-              <h3 className="font-bold">نسخه پشتیبان پایگاه داده</h3>
-              <p className="text-xs text-slate-500">
-                پیش از تغییرات مهم یک نسخه سالم و قابل بازگشت دریافت کنید.
-              </p>
+              <h3 className="font-bold">{copy.backupTitle}</h3>
+              <p className="text-xs text-slate-500">{copy.backupDescription}</p>
             </div>
           </div>
           <Button
@@ -77,21 +79,19 @@ export function DatabaseBackupPanel({
             onClick={onDownload}
           >
             <Download size={16} />
-            دانلود نسخه جدید
+            {copy.downloadBackup}
           </Button>
           {!canBackup ? (
-            <p className="mt-2 text-xs text-slate-500">
-              مجوز تهیه نسخه پشتیبان برای نقش شما فعال نیست.
-            </p>
+            <p className="mt-2 text-xs text-slate-500">{copy.backupPermissionDenied}</p>
           ) : null}
         </section>
         <section className="rounded-xl border border-rose-200 bg-rose-50/50 p-3">
           <div className="mb-2 flex items-center gap-2 font-bold text-rose-800">
             <AlertTriangle size={17} />
-            بازیابی پرخطر
+            {copy.restoreRisk}
           </div>
           <Input
-            aria-label="فایل بازیابی SQLite"
+            aria-label={copy.restoreFileLabel}
             type="file"
             accept=".sqlite,.sqlite3,.db,application/vnd.sqlite3,application/octet-stream"
             disabled={!canRestore || !restoreEnabled || busy}
@@ -104,7 +104,10 @@ export function DatabaseBackupPanel({
                 {file.name}
               </span>
               <span>
-                {(file.size / 1024 / 1024).toLocaleString("fa-IR", { maximumFractionDigits: 1 })} MB
+                {(file.size / 1024 / 1024).toLocaleString(profile.locale, {
+                  maximumFractionDigits: 1,
+                })}{" "}
+                MB
               </span>
             </div>
           ) : null}
@@ -114,23 +117,16 @@ export function DatabaseBackupPanel({
             </p>
           ) : null}
           <div className="mt-3 rounded-lg border border-rose-200/80 bg-white/70 p-3 text-xs text-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
-            <p className="mb-2 font-bold text-rose-900 dark:text-rose-200">بررسی پیش از بازیابی</p>
-            <PreflightRow
-              ready={Boolean(file) && !fileError}
-              label="فایل SQLite و حجم آن در مرورگر بررسی شد"
-            />
-            <PreflightRow ready={canRestore} label="مجوز بازیابی برای نقش فعلی فعال است" />
-            <PreflightRow ready={restoreEnabled} label="بازیابی راه‌دور در سرور مجاز است" />
-            <PreflightRow ready label="سرور پیش از جایگزینی، snapshot بازگشت ایجاد می‌کند" />
-            <PreflightRow
-              ready
-              label="در خطای راه‌اندازی، snapshot به‌طور خودکار برگردانده می‌شود"
-            />
-            <PreflightRow ready label="پس از جایگزینی، سلامت SQLite دوباره بررسی می‌شود" />
-            <PreflightRow
-              ready
-              label="نتیجه را از تاریخچه عملیات و سلامت پایگاه داده بررسی می‌کنید"
-            />
+            <p className="mb-2 font-bold text-rose-900 dark:text-rose-200">
+              {copy.restorePreflight}
+            </p>
+            <PreflightRow ready={Boolean(file) && !fileError} label={copy.browserFileChecked} />
+            <PreflightRow ready={canRestore} label={copy.restorePermissionChecked} />
+            <PreflightRow ready={restoreEnabled} label={copy.remoteRestoreChecked} />
+            <PreflightRow ready label={copy.snapshotCreated} />
+            <PreflightRow ready label={copy.rollbackAutomatic} />
+            <PreflightRow ready label={copy.sqliteHealthChecked} />
+            <PreflightRow ready label={copy.outcomeInHistory} />
           </div>
           <label className="mt-3 flex items-start gap-2 text-xs text-slate-700">
             <input
@@ -139,7 +135,7 @@ export function DatabaseBackupPanel({
               checked={acknowledged}
               onChange={(event) => setAcknowledged(event.target.checked)}
             />
-            <span>می‌دانم داده فعلی جایگزین و سرویس برای راه‌اندازی مجدد متوقف می‌شود.</span>
+            <span>{copy.restoreAcknowledgement}</span>
           </label>
           <Button
             className="mt-3 w-full"
@@ -151,14 +147,12 @@ export function DatabaseBackupPanel({
             onClick={onRestore}
           >
             <Upload size={16} />
-            اعتبارسنجی و بازیابی
+            {copy.validateAndRestore}
           </Button>
           {!canRestore ? (
-            <p className="mt-2 text-xs text-rose-700">نقش شما مجوز بازیابی پایگاه داده را ندارد.</p>
+            <p className="mt-2 text-xs text-rose-700">{copy.restorePermissionDenied}</p>
           ) : !restoreEnabled ? (
-            <p className="mt-2 text-xs text-rose-700">
-              بازیابی راه‌دور در تنظیمات سرور غیرفعال است.
-            </p>
+            <p className="mt-2 text-xs text-rose-700">{copy.remoteRestoreDisabled}</p>
           ) : null}
         </section>
       </div>

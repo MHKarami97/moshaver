@@ -2,6 +2,8 @@ import { AlertTriangle, Clock3, MessageSquareText, RotateCcw, type LucideIcon } 
 import { Link } from "react-router-dom";
 import { Card } from "../../../shared/ui/ui";
 import { cn, fa } from "../../../shared/lib/utils";
+import { useLocale } from "../../../shared/ui/locale";
+import { dashboardCopy } from "../model/dashboard-copy";
 import type { FollowUpMetric } from "../model/dashboard.types";
 
 const icons: Record<FollowUpMetric["key"], LucideIcon> = {
@@ -21,12 +23,14 @@ const toneClass: Record<FollowUpMetric["tone"], string> = {
 };
 
 export function DashboardFollowUpCard({ items }: { items: FollowUpMetric[] }) {
+  const { language } = useLocale();
+  const copy = dashboardCopy[language];
   return (
     <Card className="p-0 dark:border-slate-800 dark:bg-slate-900">
       <header className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-        <h3 className="font-bold text-slate-900 dark:text-white">صف پیگیری امروز</h3>
+        <h3 className="font-bold text-slate-900 dark:text-white">{copy.todayFollowUp}</h3>
         <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-          موارد عملیاتی که نیاز به بررسی یا پاسخ دارند.
+          {copy.followUpDescription}
         </p>
       </header>
 

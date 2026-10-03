@@ -4,8 +4,12 @@ import { MessageCircle, RefreshCw } from "lucide-react";
 import { chatApi } from "../../chat/api/chat.api";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, Card, ErrorState, Field, Input, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { settingsCopy } from "../settings-locale";
 
 export function ChatProfileSettings() {
+  const { language } = useLocale();
+  const copy = settingsCopy(language);
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ["chat-profile", "me"], queryFn: chatApi.myProfile });
   const [draft, setDraft] = useState({ displayName: "", bio: "", avatarUrl: "" });
@@ -20,18 +24,18 @@ export function ChatProfileSettings() {
   const save = useMutation({
     mutationFn: () => chatApi.updateMyProfile(draft),
     onSuccess: async () => {
-      notify("پروفایل گفتگو ذخیره شد.", "success");
+      notify(copy.chatProfileSaved, "success");
       await queryClient.invalidateQueries({ queryKey: ["chat-profile"] });
     },
-    onError: () => notify("ذخیره پروفایل گفتگو انجام نشد.", "error"),
+    onError: () => notify(copy.chatProfileFailed, "error"),
   });
   if (profile.isError)
     return (
       <ErrorState
-        title="پروفایل گفتگو دریافت نشد."
+        title={copy.chatProfileLoadFailed}
         action={
           <Button variant="soft" onClick={() => void profile.refetch()}>
-            <RefreshCw size={16} /> تلاش دوباره
+            <RefreshCw size={16} /> {copy.retry}
           </Button>
         }
       />
@@ -39,11 +43,11 @@ export function ChatProfileSettings() {
   return (
     <Card className="p-5">
       <h2 className="flex items-center gap-2 font-black">
-        <MessageCircle size={18} /> پروفایل گفتگو
+        <MessageCircle size={18} /> {copy.chatProfile}
       </h2>
       {profile.isLoading ? (
         <p role="status" className="mt-4 text-sm text-slate-500">
-          در حال دریافت پروفایل…
+          {copy.loadingProfile}
         </p>
       ) : (
         <form
@@ -53,21 +57,21 @@ export function ChatProfileSettings() {
             save.mutate();
           }}
         >
-          <Field label="نام نمایشی">
+          <Field label={copy.displayName}>
             <Input
               maxLength={80}
               value={draft.displayName}
               onChange={(event) => setDraft({ ...draft, displayName: event.target.value })}
             />
           </Field>
-          <Field label="معرفی کوتاه">
+          <Field label={copy.bio}>
             <Textarea
               maxLength={500}
               value={draft.bio}
               onChange={(event) => setDraft({ ...draft, bio: event.target.value })}
             />
           </Field>
-          <Field label="نشانی تصویر (HTTPS)">
+          <Field label={copy.avatarUrl}>
             <Input
               dir="ltr"
               type="url"
@@ -76,7 +80,7 @@ export function ChatProfileSettings() {
             />
           </Field>
           <Button className="w-fit" loading={save.isPending}>
-            ذخیره پروفایل
+            {copy.saveProfile}
           </Button>
         </form>
       )}

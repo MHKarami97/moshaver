@@ -8,7 +8,8 @@ import {
   Target,
 } from "lucide-react";
 import { Card } from "../../../shared/ui/ui";
-import { fa } from "../../../shared/lib/utils";
+import { useLocale } from "../../../shared/ui/locale";
+import { reportCopy } from "../model/report-copy";
 
 export function ReportSummary({
   summary,
@@ -23,21 +24,26 @@ export function ReportSummary({
     fatigue: number;
   };
 }) {
+  const locale = useLocale();
+  const copy = reportCopy(locale.language);
+  const number = (value: number) => value.toLocaleString(locale.profile.locale);
   const items = [
-    ["تعداد گزارش", fa(summary.count), ClipboardList],
-    ["ساعت مطالعه", fa(Math.round(summary.studyHours * 10) / 10), BookOpen],
-    ["تعداد تست", fa(summary.tests), BarChart3],
-    ["دقت", `${fa(summary.accuracy)}٪`, CircleGauge],
-    ["میانگین تمرکز", `${fa(Math.round(summary.focus * 10) / 10)}/۱۰`, Brain],
-    ["میانگین انگیزه", `${fa(Math.round(summary.motivation * 10) / 10)}/۱۰`, Target],
-    ["میانگین خستگی", `${fa(Math.round(summary.fatigue * 10) / 10)}/۱۰`, Flame],
+    [copy.reportCount, number(summary.count), ClipboardList],
+    [copy.studyHours, number(Math.round(summary.studyHours * 10) / 10), BookOpen],
+    [copy.testCount, number(summary.tests), BarChart3],
+    [copy.accuracy, `${number(summary.accuracy)}%`, CircleGauge],
+    [copy.averageFocus, `${number(Math.round(summary.focus * 10) / 10)}/10`, Brain],
+    [copy.averageMotivation, `${number(Math.round(summary.motivation * 10) / 10)}/10`, Target],
+    [copy.averageFatigue, `${number(Math.round(summary.fatigue * 10) / 10)}/10`, Flame],
   ] as const;
   return (
     <Card>
       <div className="mb-3">
-        <h3 className="font-bold">خلاصه بازه انتخابی</h3>
+        <h3 className="font-bold">{copy.summary}</h3>
         <p className="mt-1 text-xs text-slate-500">
-          محاسبه‌شده از گزارش‌هایی که همین حالا دریافت شده‌اند.
+          {locale.language === "fa"
+            ? "محاسبه‌شده از گزارش‌هایی که همین حالا دریافت شده‌اند."
+            : "Calculated from the reports currently loaded."}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">

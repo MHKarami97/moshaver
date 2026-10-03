@@ -1,6 +1,8 @@
 import { Rocket } from "lucide-react";
 import { Button, Card, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { ReleaseDraft } from "../model/system.types";
+import { systemCopy } from "../system-locale";
 export function ReleasePanel({
   release,
   setRelease,
@@ -12,6 +14,8 @@ export function ReleasePanel({
   busy: boolean;
   onSubmit: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = systemCopy(language);
   const validVersion = /^v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(release.version.trim());
   return (
     <Card className="p-5 sm:p-6">
@@ -20,24 +24,22 @@ export function ReleasePanel({
           <Rocket size={20} />
         </span>
         <div>
-          <h3 className="font-bold">ثبت انتشار برنامه</h3>
-          <p className="text-xs text-slate-500">
-            نسخه قابل رهگیری همراه با توضیح کوتاه تغییرات ثبت کنید.
-          </p>
+          <h3 className="font-bold">{copy.releasePanelTitle}</h3>
+          <p className="text-xs text-slate-500">{copy.releasePanelDescription}</p>
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-[180px_180px_1fr_auto]">
-        <Field label="برنامه">
+        <Field label={copy.application}>
           <Select
             value={release.app}
             onChange={(event) => setRelease({ ...release, app: event.target.value })}
           >
-            <option value="admin">پنل مدیریت</option>
-            <option value="student">برنامه دانش‌آموز</option>
-            <option value="backend">بک‌اند</option>
+            <option value="admin">{copy.releaseAppAdmin}</option>
+            <option value="student">{copy.releaseAppStudent}</option>
+            <option value="backend">{copy.releaseAppBackend}</option>
           </Select>
         </Field>
-        <Field label="نسخه">
+        <Field label={copy.version}>
           <Input
             dir="ltr"
             placeholder="2.1.0"
@@ -45,11 +47,11 @@ export function ReleasePanel({
             onChange={(event) => setRelease({ ...release, version: event.target.value.trim() })}
           />
         </Field>
-        <Field label="یادداشت انتشار">
+        <Field label={copy.releaseNotes}>
           <Textarea
             maxLength={2000}
             rows={1}
-            placeholder="مهم‌ترین تغییرات این نسخه…"
+            placeholder={copy.releaseNotesPlaceholder}
             value={release.notes}
             onChange={(event) => setRelease({ ...release, notes: event.target.value })}
           />
@@ -60,12 +62,12 @@ export function ReleasePanel({
           disabled={!validVersion || busy}
           onClick={onSubmit}
         >
-          ثبت انتشار
+          {copy.saveRelease}
         </Button>
       </div>
       {release.version && !validVersion ? (
         <p className="mt-2 text-xs text-rose-600" role="alert">
-          نسخه را مانند 2.1.0 یا 2.1.0-beta.1 وارد کنید.
+          {copy.invalidVersion}
         </p>
       ) : null}
     </Card>

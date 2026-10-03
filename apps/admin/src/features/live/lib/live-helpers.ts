@@ -1,5 +1,7 @@
 import { normalizePersianText } from "../../../shared/lib/utils";
 import type { LiveEvent, LiveFilter, LiveState, LiveStudent } from "../model/live.types";
+import type { AdminLanguage } from "../../../shared/ui/locale";
+import { liveActivityCopy, liveStateCopy } from "../model/live-copy";
 
 export function needsAttention(student: LiveStudent) {
   return (
@@ -40,18 +42,8 @@ export function sortLiveStudents(students: LiveStudent[]) {
   );
 }
 
-export function stateLabel(state: LiveState) {
-  return (
-    (
-      {
-        online: "آنلاین",
-        offline: "آفلاین",
-        studying: "مطالعه",
-        paused: "توقف",
-        taking_exam: "آزمون",
-      } as const
-    )[state] || state
-  );
+export function stateLabel(state: LiveState, language: AdminLanguage = "fa") {
+  return liveStateCopy[language][state] || state;
 }
 
 export function stateTone(state: LiveState): "neutral" | "green" | "amber" | "blue" {
@@ -72,25 +64,11 @@ export function elapsed(now: number, start: string) {
     .join(":");
 }
 
-export function activityLabel(type: string) {
-  return (
-    (
-      {
-        "study.started": "شروع مطالعه",
-        "study.paused": "توقف مطالعه",
-        "study.resumed": "ادامه مطالعه",
-        "study.finished": "پایان مطالعه",
-        "task.done": "فعالیت انجام شد",
-        "task.partial": "فعالیت نیمه‌کاره",
-        "exam.started": "شروع آزمون",
-        "exam.submitted": "ثبت آزمون",
-        "screen.viewed": "مشاهده صفحه",
-      } as Record<string, string>
-    )[type] || type.replaceAll(".", " ")
-  );
+export function activityLabel(type: string, language: AdminLanguage = "fa") {
+  return liveActivityCopy[language][type] || type.replaceAll(".", " ");
 }
 
-export function activityMeta(event: LiveEvent) {
+export function activityMeta(event: LiveEvent, language: AdminLanguage = "fa") {
   const data = event.metadata || {};
 
   return String(
@@ -99,6 +77,6 @@ export function activityMeta(event: LiveEvent) {
       data.viewLabel ||
       data.view ||
       data.message ||
-      "جزئیات بیشتری ثبت نشده است.",
+      liveActivityCopy[language].empty,
   );
 }

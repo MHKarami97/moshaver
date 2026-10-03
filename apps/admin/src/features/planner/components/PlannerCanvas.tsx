@@ -18,6 +18,7 @@ import { Badge } from "../../../shared/ui/ui";
 import { ViewportPopover } from "../../../shared/ui/popover";
 import { fa, todayIso } from "../../../shared/lib/utils";
 import type { PlannerMode } from "../model/planner.types";
+import { plannerCopy, plannerTaskTypeLabel } from "../model/planner-copy";
 import {
   addMinutes,
   DEFAULT_TIMELINE_CONFIG,
@@ -28,7 +29,6 @@ import {
   minutesBetween,
   monthCells,
   parseDraggedTask,
-  taskTypeLabel,
   timeToPosition,
   minutesToTime,
 } from "../lib/planner-model";
@@ -52,7 +52,8 @@ export type CanvasProps = {
   onMoveTask: (taskId: string, planDate: string, start: string, end: string) => void;
 };
 export function PlannerCanvas(props: CanvasProps) {
-  const { formatDate } = useLocale();
+  const { formatDate, language } = useLocale();
+  const copy = plannerCopy(language);
   const [zoom, setZoom] = useState<"4h" | "2h" | "1h" | "30m">("1h");
   const activeDrag = useRef("");
   const activeDrop = useRef<{ day: string; start: string } | null>(null);
@@ -60,7 +61,11 @@ export function PlannerCanvas(props: CanvasProps) {
   if (props.loading) return <PlannerSkeleton />;
   if (props.mode === "list")
     return (
-      <VirtualList plans={props.plans} onEdit={props.readOnly ? undefined : props.onEditTask} onMove={props.readOnly ? undefined : props.onMoveTask} />
+      <VirtualList
+        plans={props.plans}
+        onEdit={props.readOnly ? undefined : props.onEditTask}
+        onMove={props.readOnly ? undefined : props.onMoveTask}
+      />
     );
   if (props.mode === "month")
     return (
@@ -76,7 +81,9 @@ export function PlannerCanvas(props: CanvasProps) {
                 onDrop={(event) => {
                   if (props.readOnly) return;
                   event.preventDefault();
-                  const data = parseDraggedTask(event.dataTransfer.getData("application/x-moshaver-task"));
+                  const data = parseDraggedTask(
+                    event.dataTransfer.getData("application/x-moshaver-task"),
+                  );
                   if (!data) return;
                   props.onMoveTask(data.id, day, data.start, data.end);
                 }}
@@ -89,13 +96,25 @@ export function PlannerCanvas(props: CanvasProps) {
                   })}
                 </strong>
                 <span className="mt-2 block text-xs text-slate-500">
-                  {fa(map.get(day)?.tasks.length || 0)} فعالیت
+                  {fa(map.get(day)?.tasks.length || 0)} {copy.activities}
                 </span>
                 {map
                   .get(day)
                   ?.tasks.slice(0, 2)
                   .map((t) => (
-                    <small key={t.id} draggable={!props.readOnly} onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-moshaver-task", JSON.stringify({ id: t.id, start: t.start, end: t.end })); }} className="mt-1 block truncate rounded bg-slate-100 px-1">
+                    <small
+                      key={t.id}
+                      draggable={!props.readOnly}
+                      onDragStart={(event) => {
+                        event.stopPropagation();
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData(
+                          "application/x-moshaver-task",
+                          JSON.stringify({ id: t.id, start: t.start, end: t.end }),
+                        );
+                      }}
+                      className="mt-1 block truncate rounded bg-slate-100 px-1"
+                    >
                       {t.start} {t.title || t.subject}
                     </small>
                   ))}
@@ -107,10 +126,14 @@ export function PlannerCanvas(props: CanvasProps) {
         </div>
       </div>
     );
-  const days = props.mode === "day" ? [props.date] : dateRange(props.range.from, props.range.to).reverse();
+  const days =
+    props.mode === "day" ? [props.date] : dateRange(props.range.from, props.range.to).reverse();
   // A compact all-day canvas avoids making the Planner page itself scroll.
   const slotMinutes = { "4h": 240, "2h": 120, "1h": 60, "30m": 30 }[zoom];
-  const timelineRange = getTimelineRange(props.plans.flatMap((plan) => plan.tasks), DEFAULT_TIMELINE_CONFIG);
+  const timelineRange = getTimelineRange(
+    props.plans.flatMap((plan) => plan.tasks),
+    DEFAULT_TIMELINE_CONFIG,
+  );
   const timelineSlots = zoomSlots(timelineRange.start, timelineRange.end, slotMinutes);
   const slotHeight = Math.max(18, Math.floor(620 / Math.max(1, timelineSlots.length - 1)));
   const timelineHeight = (timelineSlots.length - 1) * slotHeight;
@@ -138,9 +161,19 @@ export function PlannerCanvas(props: CanvasProps) {
             slotHeight={slotHeight}
             slotMinutes={slotMinutes}
             zoom={zoom}
+            language={language}
           />
         ))}
-        <SharedTimeRuler slots={timelineSlots} height={timelineHeight} slotHeight={slotHeight} zoom={zoom} onZoom={setZoom} onCreate={(start) => props.onQuickAdd(props.date, start)} disabled={props.readOnly} />
+        <SharedTimeRuler
+          language={language}
+          slots={timelineSlots}
+          height={timelineHeight}
+          slotHeight={slotHeight}
+          zoom={zoom}
+          onZoom={setZoom}
+          onCreate={(start) => props.onQuickAdd(props.date, start)}
+          disabled={props.readOnly}
+        />
       </div>
     </div>
   );
@@ -157,6 +190,7 @@ function DayColumn({
   slotHeight,
   slotMinutes,
   zoom,
+  language,
 }: {
   day: string;
   plan?: Plan;
@@ -169,13 +203,17 @@ function DayColumn({
   slotHeight: number;
   slotMinutes: number;
   zoom: "4h" | "2h" | "1h" | "30m";
+  language: "fa" | "en";
 }) {
+  const copy = plannerCopy(language);
   const config = DEFAULT_TIMELINE_CONFIG;
   const timelineSlots = zoomSlots(range.start, range.end, slotMinutes);
   function drop(event: DragEvent, targetStart?: string) {
     event.preventDefault();
     event.stopPropagation();
-    const data = parseDraggedTask(event.dataTransfer.getData("application/x-moshaver-task") || activeDrag.current);
+    const data = parseDraggedTask(
+      event.dataTransfer.getData("application/x-moshaver-task") || activeDrag.current,
+    );
     if (!data) return;
     activeDrop.current = null;
     const duration = Math.max(15, minutesBetween(data.start, data.end));
@@ -203,29 +241,29 @@ function DayColumn({
               })}
             </strong>
             <span className="text-[10px] text-slate-400">
-              {fa(plan?.tasks.length || 0)} فعالیت
-              {plan ? ` · ${plan.published ? "منتشر" : "پیش‌نویس"}` : ""}
+              {fa(plan?.tasks.length || 0)} {copy.activities}
+              {plan ? ` · ${plan.published ? copy.published : copy.draft}` : ""}
             </span>
           </button>
           {plan && !actions.readOnly ? (
             <div className="flex shrink-0 opacity-70 transition hover:opacity-100">
               <button
                 className="rounded p-1 hover:bg-slate-100"
-                aria-label="ویرایش برنامه روز"
+                aria-label={copy.editPlan}
                 onClick={() => actions.onEditPlan(plan)}
               >
                 <Pencil size={12} />
               </button>
               <button
                 className="rounded p-1 hover:bg-slate-100"
-                aria-label="کپی برنامه روز"
+                aria-label={copy.copyPlan}
                 onClick={() => actions.onDuplicatePlan(plan)}
               >
                 <Copy size={12} />
               </button>
               <button
                 className="rounded p-1 text-rose-600 hover:bg-rose-50"
-                aria-label="حذف برنامه روز"
+                aria-label={copy.deletePlan}
                 onClick={() => actions.onDeletePlan(plan)}
               >
                 <Trash2 size={12} />
@@ -235,40 +273,215 @@ function DayColumn({
         </div>
       </header>
       <div className="p-1">
-        <div dir="ltr" className="relative overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900" style={{ height: timelineHeight }}>
+        <div
+          dir="ltr"
+          className="relative overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+          style={{ height: timelineHeight }}
+        >
           <div dir="rtl" className="relative">
-            {timelineSlots.slice(0, -1).map((start, index) => <button type="button" key={start} data-planner-drop-date={day} data-planner-drop-time={start} aria-label={`ساخت فعالیت در ${start}`} className="after:pointer-events-none after:absolute after:right-0 after:top-0 after:w-3 after:border-t-2 after:border-dashed after:border-indigo-300/70 absolute inset-x-0 border-t border-dashed border-slate-300/90 text-transparent hover:bg-indigo-50/70 dark:border-slate-600 dark:after:border-indigo-500/70 dark:hover:bg-indigo-950/30" style={{ top: index * slotHeight, height: slotHeight }} disabled={actions.readOnly} onClick={() => actions.onQuickAdd(day, start)} onDragEnter={(event) => { if (!actions.readOnly) { activeDrop.current = { day, start }; event.preventDefault(); } }} onDragOver={(event) => { if (!actions.readOnly) { activeDrop.current = { day, start }; event.preventDefault(); } }} onDrop={(event) => !actions.readOnly && drop(event, start)} />)}
+            {timelineSlots.slice(0, -1).map((start, index) => (
+              <button
+                type="button"
+                key={start}
+                data-planner-drop-date={day}
+                data-planner-drop-time={start}
+                aria-label={copy.createActivityAt.replace("{time}", start)}
+                className="after:pointer-events-none after:absolute after:right-0 after:top-0 after:w-3 after:border-t-2 after:border-dashed after:border-indigo-300/70 absolute inset-x-0 border-t border-dashed border-slate-300/90 text-transparent hover:bg-indigo-50/70 dark:border-slate-600 dark:after:border-indigo-500/70 dark:hover:bg-indigo-950/30"
+                style={{ top: index * slotHeight, height: slotHeight }}
+                disabled={actions.readOnly}
+                onClick={() => actions.onQuickAdd(day, start)}
+                onDragEnter={(event) => {
+                  if (!actions.readOnly) {
+                    activeDrop.current = { day, start };
+                    event.preventDefault();
+                  }
+                }}
+                onDragOver={(event) => {
+                  if (!actions.readOnly) {
+                    activeDrop.current = { day, start };
+                    event.preventDefault();
+                  }
+                }}
+                onDrop={(event) => !actions.readOnly && drop(event, start)}
+              />
+            ))}
             {(plan?.tasks || []).map((task) => {
               const fallbackTime = minutesToTime(range.start);
-              const top = Math.max(0, timeToPosition(task.start || fallbackTime, range.start, slotHeight, slotMinutes));
-              const height = durationToHeight(task.start || fallbackTime, task.end || task.start || fallbackTime, slotHeight, slotMinutes);
-              const presentation = height < 24 ? "tiny" : height < 52 ? "compact" : height < 96 ? "standard" : "detail";
-              const overlaps = (plan?.tasks || []).filter((other) => (task.start || "") < (other.end || "") && (other.start || "") < (task.end || "")).sort((a, b) => a.id.localeCompare(b.id));
-              const lane = Math.max(0, overlaps.findIndex((other) => other.id === task.id));
-              return plan ? <div key={task.id} className="absolute" style={{ top: Math.max(0, top), height, width: `calc(${100 / overlaps.length}% - 4px)`, right: `calc(${lane * 100 / overlaps.length}% + 2px)` }}><CompactTask task={task} plan={plan} zoom={zoom} presentation={presentation} onEdit={actions.onEditTask} onDelete={actions.onDeleteTask} onDuplicate={actions.onDuplicateTask} onDragPayload={(payload) => { activeDrag.current = payload; }} onDragFinish={() => { const target = activeDrop.current; const data = parseDraggedTask(activeDrag.current); if (!target || !data) return; activeDrop.current = null; const duration = Math.max(15, minutesBetween(data.start, data.end)); actions.onMoveTask(data.id, target.day, target.start, addMinutes(target.start, duration)); }} readOnly={actions.readOnly} /></div> : null;
+              const top = Math.max(
+                0,
+                timeToPosition(task.start || fallbackTime, range.start, slotHeight, slotMinutes),
+              );
+              const height = durationToHeight(
+                task.start || fallbackTime,
+                task.end || task.start || fallbackTime,
+                slotHeight,
+                slotMinutes,
+              );
+              const presentation =
+                height < 24
+                  ? "tiny"
+                  : height < 52
+                    ? "compact"
+                    : height < 96
+                      ? "standard"
+                      : "detail";
+              const overlaps = (plan?.tasks || [])
+                .filter(
+                  (other) =>
+                    (task.start || "") < (other.end || "") &&
+                    (other.start || "") < (task.end || ""),
+                )
+                .sort((a, b) => a.id.localeCompare(b.id));
+              const lane = Math.max(
+                0,
+                overlaps.findIndex((other) => other.id === task.id),
+              );
+              return plan ? (
+                <div
+                  key={task.id}
+                  className="absolute"
+                  style={{
+                    top: Math.max(0, top),
+                    height,
+                    width: `calc(${100 / overlaps.length}% - 4px)`,
+                    right: `calc(${(lane * 100) / overlaps.length}% + 2px)`,
+                  }}
+                >
+                  <CompactTask
+                    language={language}
+                    task={task}
+                    plan={plan}
+                    zoom={zoom}
+                    presentation={presentation}
+                    onEdit={actions.onEditTask}
+                    onDelete={actions.onDeleteTask}
+                    onDuplicate={actions.onDuplicateTask}
+                    onDragPayload={(payload) => {
+                      activeDrag.current = payload;
+                    }}
+                    onDragFinish={() => {
+                      const target = activeDrop.current;
+                      const data = parseDraggedTask(activeDrag.current);
+                      if (!target || !data) return;
+                      activeDrop.current = null;
+                      const duration = Math.max(15, minutesBetween(data.start, data.end));
+                      actions.onMoveTask(
+                        data.id,
+                        target.day,
+                        target.start,
+                        addMinutes(target.start, duration),
+                      );
+                    }}
+                    readOnly={actions.readOnly}
+                  />
+                </div>
+              ) : null;
             })}
           </div>
-          {!(plan?.tasks.length) ? <div dir="rtl" className="pointer-events-none absolute inset-0 z-[5] grid place-items-center bg-indigo-50/90 p-3 text-center backdrop-blur-[1px] dark:bg-indigo-950/80">
-            <div className="grid max-w-52 gap-2">
-              <div><strong className="block text-xs text-slate-800 dark:text-slate-100">این روز هنوز فعالیتی ندارد</strong><p className="mt-1 text-[11px] text-slate-500">از یک زمان مشخص شروع کنید یا تنظیمات روز را کامل کنید.</p></div>
-              {!actions.readOnly ? <div className="pointer-events-auto flex flex-wrap justify-center gap-1.5"><button type="button" className="inline-flex items-center gap-1 rounded-md bg-brand px-2 py-1.5 text-xs font-bold text-white hover:bg-brand/90" onClick={() => actions.onQuickAdd(day, "08:00")}><Plus size={13} /> شروع برنامه‌ریزی</button><button type="button" className="rounded-md px-2 py-1.5 text-xs font-bold text-brand hover:bg-indigo-100 dark:hover:bg-indigo-900/40" onClick={() => plan ? actions.onEditPlan(plan) : actions.onCreate(day)}>تنظیمات روز</button></div> : null}
+          {!plan?.tasks.length ? (
+            <div
+              dir="rtl"
+              className="pointer-events-none absolute inset-0 z-[5] grid place-items-center bg-indigo-50/90 p-3 text-center backdrop-blur-[1px] dark:bg-indigo-950/80"
+            >
+              <div className="grid max-w-52 gap-2">
+                <div>
+                  <strong className="block text-xs text-slate-800 dark:text-slate-100">
+                    {copy.noActivityToday}
+                  </strong>
+                  <p className="mt-1 text-[11px] text-slate-500">{copy.noActivityTodayHelp}</p>
+                </div>
+                {!actions.readOnly ? (
+                  <div className="pointer-events-auto flex flex-wrap justify-center gap-1.5">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-md bg-brand px-2 py-1.5 text-xs font-bold text-white hover:bg-brand/90"
+                      onClick={() => actions.onQuickAdd(day, "08:00")}
+                    >
+                      <Plus size={13} /> {copy.startPlanning}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md px-2 py-1.5 text-xs font-bold text-brand hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                      onClick={() => (plan ? actions.onEditPlan(plan) : actions.onCreate(day))}
+                    >
+                      {copy.daySettings}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div> : null}
+          ) : null}
         </div>
       </div>
     </section>
   );
 }
 
-function SharedTimeRuler({ slots, height, slotHeight, zoom, onZoom, onCreate, disabled }: { slots: string[]; height: number; slotHeight: number; zoom: "4h" | "2h" | "1h" | "30m"; onZoom: (zoom: "4h" | "2h" | "1h" | "30m") => void; onCreate: (start: string) => void; disabled?: boolean }) {
+function SharedTimeRuler({
+  language,
+  slots,
+  height,
+  slotHeight,
+  zoom,
+  onZoom,
+  onCreate,
+  disabled,
+}: {
+  language: "fa" | "en";
+  slots: string[];
+  height: number;
+  slotHeight: number;
+  zoom: "4h" | "2h" | "1h" | "30m";
+  onZoom: (zoom: "4h" | "2h" | "1h" | "30m") => void;
+  onCreate: (start: string) => void;
+  disabled?: boolean;
+}) {
+  const copy = plannerCopy(language);
   const levels: Array<typeof zoom> = ["4h", "2h", "1h", "30m"];
   const index = levels.indexOf(zoom);
-  return <aside aria-label="خط‌کش زمان مشترک" className="sticky top-0 z-20 border-r border-slate-200 bg-slate-50/95 dark:border-slate-700 dark:bg-slate-800/95">
-    <div className="flex h-[53px] flex-col items-center justify-center gap-0.5 border-b border-slate-200 dark:border-slate-700"><button type="button" aria-label="جزئیات زمانی بیشتر" disabled={index === levels.length - 1} onClick={() => onZoom(levels[index + 1])} className="text-xs text-brand disabled:text-slate-300">+</button><span className="text-[8px] text-slate-500">{zoom}</span><button type="button" aria-label="جزئیات زمانی کمتر" disabled={index === 0} onClick={() => onZoom(levels[index - 1])} className="text-xs text-brand disabled:text-slate-300">−</button></div>
-    <div className="relative" style={{ height }} dir="ltr">
-      {slots.slice(0, -1).map((start, index) => <button type="button" key={start} aria-label={`ساخت فعالیت در زمان ${start}`} disabled={disabled} onClick={() => onCreate(start)} className={`absolute inset-x-0 -translate-y-1/2 px-1 text-center font-mono text-slate-400 hover:bg-indigo-100 hover:text-brand disabled:cursor-default ${zoom === "30m" ? "text-[9px]" : "text-[10px]"}`} style={{ top: index * slotHeight }}>{start}</button>)}
-    </div>
-  </aside>;
+  return (
+    <aside
+      aria-label={copy.sharedTimeRuler}
+      className="sticky top-0 z-20 border-r border-slate-200 bg-slate-50/95 dark:border-slate-700 dark:bg-slate-800/95"
+    >
+      <div className="flex h-[53px] flex-col items-center justify-center gap-0.5 border-b border-slate-200 dark:border-slate-700">
+        <button
+          type="button"
+          aria-label={copy.moreTimeDetail}
+          disabled={index === levels.length - 1}
+          onClick={() => onZoom(levels[index + 1])}
+          className="text-xs text-brand disabled:text-slate-300"
+        >
+          +
+        </button>
+        <span className="text-[8px] text-slate-500">{zoom}</span>
+        <button
+          type="button"
+          aria-label={copy.lessTimeDetail}
+          disabled={index === 0}
+          onClick={() => onZoom(levels[index - 1])}
+          className="text-xs text-brand disabled:text-slate-300"
+        >
+          −
+        </button>
+      </div>
+      <div className="relative" style={{ height }} dir="ltr">
+        {slots.slice(0, -1).map((start, index) => (
+          <button
+            type="button"
+            key={start}
+            aria-label={copy.createActivityAtTime.replace("{time}", start)}
+            disabled={disabled}
+            onClick={() => onCreate(start)}
+            className={`absolute inset-x-0 -translate-y-1/2 px-1 text-center font-mono text-slate-400 hover:bg-indigo-100 hover:text-brand disabled:cursor-default ${zoom === "30m" ? "text-[9px]" : "text-[10px]"}`}
+            style={{ top: index * slotHeight }}
+          >
+            {start}
+          </button>
+        ))}
+      </div>
+    </aside>
+  );
 }
 
 function zoomSlots(start: number, end: number, interval: number) {
@@ -279,6 +492,7 @@ function zoomSlots(start: number, end: number, interval: number) {
 }
 
 function CompactTask({
+  language,
   task,
   plan,
   onEdit,
@@ -290,6 +504,7 @@ function CompactTask({
   presentation,
   readOnly = false,
 }: {
+  language: "fa" | "en";
   task: PlanTask;
   plan: Plan;
   onEdit: (plan: Plan, task: PlanTask) => void;
@@ -301,6 +516,7 @@ function CompactTask({
   presentation: "tiny" | "compact" | "standard" | "detail";
   readOnly?: boolean;
 }) {
+  const copy = plannerCopy(language);
   const completed = isTaskComplete(task);
 
   const overdue = !completed && task.end && new Date(`${task.end}T23:59:59`) < new Date();
@@ -320,10 +536,7 @@ function CompactTask({
           start: task.start,
           end: task.end,
         });
-        e.dataTransfer.setData(
-          "application/x-moshaver-task",
-          payload,
-        );
+        e.dataTransfer.setData("application/x-moshaver-task", payload);
         onDragPayload?.(payload);
       }}
       onDragEnd={() => onDragFinish?.()}
@@ -348,19 +561,25 @@ function CompactTask({
       data-task-presentation={presentation}
     >
       {/* top row */}
-      <div className={`flex items-center justify-between gap-1 ${presentation === "tiny" ? "justify-center" : ""}`}>
+      <div
+        className={`flex items-center justify-between gap-1 ${presentation === "tiny" ? "justify-center" : ""}`}
+      >
         <div className="flex items-center gap-1">
-          {presentation !== "tiny" ? <GripVertical
-            size={12}
-            className="
+          {presentation !== "tiny" ? (
+            <GripVertical
+              size={12}
+              className="
               opacity-0
               transition
               group-hover:opacity-60
               text-slate-400
             "
-          /> : null}
+            />
+          ) : null}
 
-          {presentation !== "tiny" ? <Clock3 size={11} className={completed ? "text-emerald-600" : "text-slate-400"} /> : null}
+          {presentation !== "tiny" ? (
+            <Clock3 size={11} className={completed ? "text-emerald-600" : "text-slate-400"} />
+          ) : null}
 
           <span
             dir="ltr"
@@ -374,20 +593,22 @@ function CompactTask({
           </span>
         </div>
 
-        {presentation !== "tiny" ? <div className="flex items-center gap-1">
-          {overdue && <AlertTriangle size={12} className="text-red-500" />}
+        {presentation !== "tiny" ? (
+          <div className="flex items-center gap-1">
+            {overdue && <AlertTriangle size={12} className="text-red-500" />}
 
-          {completed && (
-            <CheckCircle2
-              size={13}
-              className="
+            {completed && (
+              <CheckCircle2
+                size={13}
+                className="
                 text-emerald-600
                 animate-in
                 zoom-in
               "
-            />
-          )}
-        </div> : null}
+              />
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* title */}
@@ -418,34 +639,37 @@ function CompactTask({
               completed ? "text-emerald-800 line-through" : "text-slate-800 dark:text-slate-100",
             ].join(" ")}
           >
-            {task.title || task.subject || task.type}
+            {task.title || task.subject || plannerTaskTypeLabel(task.type, language)}
           </strong>
         </div>
       ) : null}
 
       {/* status */}
-      {presentation === "standard" || presentation === "detail" ? <div className="mt-1 flex items-center justify-between">
-        <span
-          className={[
-            "rounded-full px-1.5 py-0.5 text-[9px]",
-            completed
-              ? "bg-emerald-100 text-emerald-700"
-              : overdue
-                ? "bg-red-100 text-red-700"
-                : "bg-slate-100 text-slate-600",
-          ].join(" ")}
-        >
-          {completed ? "✓ انجام‌شده" : overdue ? "تاخیر" : "برنامه‌ریزی"}
-        </span>
+      {presentation === "standard" || presentation === "detail" ? (
+        <div className="mt-1 flex items-center justify-between">
+          <span
+            className={[
+              "rounded-full px-1.5 py-0.5 text-[9px]",
+              completed
+                ? "bg-emerald-100 text-emerald-700"
+                : overdue
+                  ? "bg-red-100 text-red-700"
+                  : "bg-slate-100 text-slate-600",
+            ].join(" ")}
+          >
+            {completed ? `✓ ${copy.completed}` : overdue ? copy.overdue : copy.planned}
+          </span>
 
-        <span className="text-[9px] text-slate-400">
-          {task.duration ? `${task.duration} دقیقه` : ""}
-        </span>
-      </div> : null}
+          <span className="text-[9px] text-slate-400">
+            {task.duration ? `${task.duration} دقیقه` : ""}
+          </span>
+        </div>
+      ) : null}
 
       {/* hover actions */}
-      {presentation !== "tiny" ? <div
-        className="
+      {presentation !== "tiny" ? (
+        <div
+          className="
           absolute
           left-1
           top-1
@@ -455,32 +679,72 @@ function CompactTask({
           transition
           group-hover:opacity-100
         "
-      >
-        <span
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit(plan, task);
-          }}
-          className="
+        >
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(plan, task);
+            }}
+            className="
             rounded
             bg-white
             p-1
             shadow
             hover:bg-slate-100
           "
-        >
-          <Edit3 size={11} />
-        </span>
+          >
+            <Edit3 size={11} />
+          </span>
 
-        <ViewportPopover width={160} align="end" className="p-1" trigger={(props) => <button {...props} type="button" aria-label={`منوی ${task.title || "فعالیت"}`} onClick={(event) => { event.stopPropagation(); props.onClick?.(); }} className="rounded bg-white p-1 shadow hover:bg-slate-100"><MoreHorizontal size={11} /></button>}>
-          <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs hover:bg-slate-100" onClick={(event) => { event.stopPropagation(); onDuplicate(plan, task); }}><Copy size={14} />تکثیر ۳۰ دقیقه بعد</button>
-          <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs text-rose-700 hover:bg-rose-50" onClick={(event) => { event.stopPropagation(); onDelete(task); }}><Trash2 size={14} />حذف فعالیت</button>
-        </ViewportPopover>
-      </div> : null}
+          <ViewportPopover
+            width={160}
+            align="end"
+            className="p-1"
+            trigger={(props) => (
+              <button
+                {...props}
+                type="button"
+                aria-label={copy.taskMenu.replace("{title}", task.title || copy.activity)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onClick?.();
+                }}
+                className="rounded bg-white p-1 shadow hover:bg-slate-100"
+              >
+                <MoreHorizontal size={11} />
+              </button>
+            )}
+          >
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs hover:bg-slate-100"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDuplicate(plan, task);
+              }}
+            >
+              <Copy size={14} />
+              {copy.duplicateInThirtyMinutes}
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs text-rose-700 hover:bg-rose-50"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(task);
+              }}
+            >
+              <Trash2 size={14} />
+              {copy.deleteActivity}
+            </button>
+          </ViewportPopover>
+        </div>
+      ) : null}
 
       {/* expandable info */}
-      {presentation === "detail" ? <div
-        className="
+      {presentation === "detail" ? (
+        <div
+          className="
           grid
           max-h-0
           overflow-hidden
@@ -493,14 +757,15 @@ function CompactTask({
           group-hover:
           group-hover:
         "
-      >
-        <div className="flex items-center gap-1">
-          <FileText size={10} />
-          {task.subject}
-        </div>
+        >
+          <div className="flex items-center gap-1">
+            <FileText size={10} />
+            {task.subject}
+          </div>
 
-        {task.note && <div className="truncate">{task.note}</div>}
-      </div> : null}
+          {task.note && <div className="truncate">{task.note}</div>}
+        </div>
+      ) : null}
     </button>
   );
 }
@@ -514,6 +779,7 @@ function VirtualList({
   onEdit?: (plan: Plan, task: PlanTask) => void;
   onMove?: (taskId: string, planDate: string, start: string, end: string) => void;
 }) {
+  const { language } = useLocale();
   const tasks = plans.flatMap((plan) => plan.tasks.map((task) => ({ plan, task })));
   const [start, setStart] = useState(0);
   useEffect(() => setStart((c) => Math.min(c, Math.max(0, tasks.length - 1))), [tasks.length]);
@@ -531,13 +797,18 @@ function VirtualList({
             draggable={Boolean(onMove)}
             onDragStart={(event) => {
               event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("application/x-moshaver-task", JSON.stringify({ id: task.id, start: task.start, end: task.end }));
+              event.dataTransfer.setData(
+                "application/x-moshaver-task",
+                JSON.stringify({ id: task.id, start: task.start, end: task.end }),
+              );
             }}
             onDragOver={(event) => onMove && event.preventDefault()}
             onDrop={(event) => {
               if (!onMove) return;
               event.preventDefault();
-              const data = parseDraggedTask(event.dataTransfer.getData("application/x-moshaver-task"));
+              const data = parseDraggedTask(
+                event.dataTransfer.getData("application/x-moshaver-task"),
+              );
               if (!data || data.id === task.id) return;
               const duration = Math.max(15, minutesBetween(data.start, data.end));
               const targetStart = task.start || "00:00";
@@ -553,10 +824,10 @@ function VirtualList({
             </span>
             <strong className="truncate text-sm">
               {task.subject ? `${task.subject} — ` : ""}
-              {task.title || task.type}
+              {task.title || plannerTaskTypeLabel(task.type, language)}
             </strong>
             <span className="hidden sm:inline-flex">
-              <Badge>{taskTypeLabel(task.type)}</Badge>
+              <Badge>{plannerTaskTypeLabel(task.type, language)}</Badge>
             </span>
           </button>
         ))}

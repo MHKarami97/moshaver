@@ -25,6 +25,9 @@ export function AdminList<T>({
   className = "",
   contentClassName = "",
   stickyHeader = false,
+  scrollable = false,
+  stickyFooter = false,
+  contentLabel,
 }: {
   label: string;
   description?: string;
@@ -44,11 +47,22 @@ export function AdminList<T>({
   contentClassName?: string;
   /** Keeps the collection context and controls available inside a bounded scroll region. */
   stickyHeader?: boolean;
+  /**
+   * Gives the collection exactly one scrolling owner. Use only when the parent
+   * supplies a bounded height; feature rows must not add a second vertical scroller.
+   */
+  scrollable?: boolean;
+  /** Keeps pagination or bulk actions visible when this collection owns a bounded scroll region. */
+  stickyFooter?: boolean;
+  /** Names the scroll region for screen-reader users when `scrollable` is enabled. */
+  contentLabel?: string;
 }) {
   const copy = useSharedUiCopy();
   const content = typeof children === "function" ? children(items) : children;
   return (
-    <Card className={`min-w-0 overflow-visible p-0 ${className}`}>
+    <Card
+      className={`min-w-0 overflow-visible p-0 ${scrollable ? "flex min-h-0 flex-col" : ""} ${className}`}
+    >
       <header
         className={`grid gap-3 border-b border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted)_/_95%)] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4 ${stickyHeader ? "sticky top-0 z-20" : ""}`}
       >
@@ -66,7 +80,12 @@ export function AdminList<T>({
         {actions ? <div className="flex flex-wrap gap-2 sm:justify-end">{actions}</div> : null}
         {toolbar ? <div className="sm:col-span-2">{toolbar}</div> : null}
       </header>
-      <div className={`p-3 sm:p-4 ${contentClassName}`}>
+      <div
+        className={`min-w-0 p-3 sm:p-4 ${scrollable ? "min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]" : ""} ${contentClassName}`}
+        {...(scrollable
+          ? { role: "region", "aria-label": contentLabel || label, tabIndex: 0 }
+          : {})}
+      >
         {loading ? (
           <LoadingState label={copy.loading(label)} />
         ) : error ? (
@@ -88,7 +107,11 @@ export function AdminList<T>({
         )}
       </div>
       {footer ? (
-        <footer className="border-t border-[rgb(var(--border-subtle))] p-3">{footer}</footer>
+        <footer
+          className={`border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card)_/_96%)] p-3 ${stickyFooter ? "sticky bottom-0 z-10" : ""}`}
+        >
+          {footer}
+        </footer>
       ) : null}
     </Card>
   );

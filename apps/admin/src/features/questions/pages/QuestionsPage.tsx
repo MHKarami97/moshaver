@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { useModal } from "../../../shared/ui/modal";
 import { Button, Card } from "../../../shared/ui/ui";
 import { notify } from "../../../shared/ui/notifications";
+import { useLocale } from "../../../shared/ui/locale";
 import {
   createExamQuestion,
   deleteExamQuestion,
@@ -28,7 +29,10 @@ import {
   questionPayload,
 } from "../model/question-model";
 import type { QuestionDraft } from "../model/question-model";
+import { questionsCopy } from "../questions-locale";
 export function QuestionsPage() {
+  const { language } = useLocale();
+  const copy = questionsCopy(language);
   const [params, setParams] = useSearchParams();
   const auth = useAuth();
   const canReadStudents = auth.can("students.read");
@@ -78,14 +82,13 @@ export function QuestionsPage() {
         sortOrder: nextSortOrder + (editingId ? 0 : 1),
       });
       setEditingId("");
-      notify(variables.id ? "سؤال ویرایش شد." : "سؤال افزوده شد.");
+      notify(variables.id ? copy.saved : copy.created);
       setSubmitted(false);
       void qc.invalidateQueries({ queryKey: ["exam-questions", examId] });
       void qc.invalidateQueries({ queryKey: ["question-bank-exams"] });
       void qc.invalidateQueries({ queryKey: ["exams"] });
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره سؤال ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.saveFailed, "error"),
   });
   const remove = useMutation({
     mutationFn: (id: string) => deleteExamQuestion(examId, id),
@@ -95,13 +98,12 @@ export function QuestionsPage() {
         setEditingId("");
         setForm(emptyQuestion());
       }
-      notify("سؤال حذف شد.");
+      notify(copy.deleted);
       void qc.invalidateQueries({ queryKey: ["exam-questions", examId] });
       void qc.invalidateQueries({ queryKey: ["question-bank-exams"] });
       void qc.invalidateQueries({ queryKey: ["exams"] });
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "حذف سؤال ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.deleteFailed, "error"),
   });
   const visibleQuestions = useMemo(
     () => (questions.data ?? []).filter((item) => questionMatches(item, deferredSearch)),
@@ -120,7 +122,7 @@ export function QuestionsPage() {
       },
       { replace: true },
     );
-    notify("آزمون انتخاب‌شده در محدوده دسترسی شما نیست.", "warning");
+    notify(copy.selectedExamNotAvailable, "warning");
   }, [examId, exams.isSuccess, selectedExam, setParams]);
   const setSearch = (value: string) =>
     setParams(
@@ -139,7 +141,7 @@ export function QuestionsPage() {
     );
     setSubmitted(false);
     modal.open({
-      title: isEditing ? "ویرایش سؤال" : "سؤال جدید",
+      title: isEditing ? copy.editQuestion : copy.newQuestion,
       description: selectedExam?.title || "آزمون",
       size: "xl",
       content: (
@@ -194,18 +196,16 @@ export function QuestionsPage() {
       {selectedExam && auth.can("exams.assign") ? (
         <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
           <div>
-            <strong className="text-sm">مخاطبان آزمون</strong>
-            <p className="text-xs text-slate-500">
-              سؤال‌ها دسترسی مستقل ندارند و از مخاطبان «{selectedExam.title}» استفاده می‌کنند.
-            </p>
+            <strong className="text-sm">{copy.audience}</strong>
+            <p className="text-xs text-slate-500">{copy.audienceDescription(selectedExam.title)}</p>
           </div>
           <Button
             size="sm"
             variant="soft"
             onClick={() =>
               modal.open({
-                title: `مخاطبان آزمون: ${selectedExam.title}`,
-                description: "تخصیص مستقیم، کلاس و قواعد گروه هدف در یک محل مدیریت می‌شوند.",
+                title: copy.audienceModal(selectedExam.title),
+                description: copy.audienceModalDescription,
                 size: "xl",
                 content: (
                   <ExamAssignmentManager
@@ -217,47 +217,43 @@ export function QuestionsPage() {
               })
             }
           >
-            مدیریت مخاطبان
+            {copy.manageAudience}
           </Button>
         </Card>
       ) : null}
       {auth.can("question_bank.manage") ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
           <div>
-            <strong className="text-sm">بانک سؤال</strong>
-            <p className="text-xs text-slate-500">
-              منابع قابل‌استفادهٔ مجدد و ساخت متوازن آزمون را در یک پنجره مدیریت کنید.
-            </p>
+            <strong className="text-sm">{copy.questionBank}</strong>
+            <p className="text-xs text-slate-500">{copy.questionBankDescription}</p>
           </div>
           <Button
             size="sm"
             variant="soft"
             onClick={() =>
               modal.open({
-                title: "بانک سؤال و ساخت آزمون",
-                description: "سؤال‌های مستقل را مدیریت کنید یا ترکیب متوازن را پیش‌نمایش بگیرید.",
+                title: copy.questionBankModal,
+                description: copy.questionBankModalDescription,
                 size: "xl",
                 content: <QuestionBankPanel />,
               })
             }
           >
             <BookOpen size={15} />
-            باز کردن بانک <WandSparkles size={14} />
+            {copy.openBank} <WandSparkles size={14} />
           </Button>
         </Card>
       ) : null}
       <section className="grid min-h-0 gap-3">
         <Card className="flex flex-wrap items-center justify-between gap-2 p-3">
           <div>
-            <strong className="text-sm">فهرست سؤال‌ها</strong>
-            <p className="text-xs text-slate-500">
-              برای تمرکز بهتر، ایجاد و ویرایش در پنجره جداگانه انجام می‌شود.
-            </p>
+            <strong className="text-sm">{copy.list}</strong>
+            <p className="text-xs text-slate-500">{copy.listDescription}</p>
           </div>
           {canCreate ? (
             <Button size="sm" disabled={!examId} onClick={() => openQuestionEditor()}>
               <Plus size={15} />
-              سؤال جدید
+              {copy.newQuestion}
             </Button>
           ) : null}
         </Card>
@@ -275,9 +271,9 @@ export function QuestionsPage() {
           onBulkDelete={() =>
             void modal
               .confirm({
-                title: `حذف ${selected.length} سؤال؟`,
+                title: copy.bulkDeleteTitle(selected.length),
                 tone: "danger",
-                confirmLabel: "حذف همه",
+                confirmLabel: copy.deleteAll,
               })
               .then(async (ok) => {
                 if (!ok) return;
@@ -294,11 +290,8 @@ export function QuestionsPage() {
                     setForm({ ...emptyQuestion(), sortOrder: nextSortOrder });
                   }
                   failed.length
-                    ? notify(
-                        `${failed.length} سؤال حذف نشد؛ احتمالاً در سابقه آزمون استفاده شده است.`,
-                        "warning",
-                      )
-                    : notify("سؤال‌های انتخاب‌شده حذف شدند.");
+                    ? notify(copy.bulkDeleteFailed(failed.length), "warning")
+                    : notify(copy.bulkDeleted);
                   void qc.invalidateQueries({
                     queryKey: ["exam-questions", examId],
                   });
@@ -319,10 +312,10 @@ export function QuestionsPage() {
             q.id &&
             void modal
               .confirm({
-                title: "حذف سؤال؟",
-                description: "این سؤال از آزمون حذف می‌شود.",
+                title: copy.deleteQuestion,
+                description: copy.deleteQuestionDescription,
                 tone: "danger",
-                confirmLabel: "حذف",
+                confirmLabel: copy.delete,
               })
               .then((ok) => ok && remove.mutate(q.id!))
           }

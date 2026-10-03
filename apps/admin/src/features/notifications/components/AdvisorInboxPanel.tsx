@@ -8,6 +8,8 @@ import type {
   TaskIssueActionInput,
 } from "../model/notification.types";
 import { AdvisorInboxItem } from "./AdvisorInboxItem";
+import { useLocale } from "../../../shared/ui/locale";
+import { notificationCopy } from "../model/notification-copy";
 
 type StudentPickerProps = ComponentProps<typeof StudentPicker>;
 
@@ -42,18 +44,20 @@ export function AdvisorInboxPanel({
   canManageRecovery: boolean;
   canManageIssues: boolean;
 }) {
+  const { language } = useLocale();
+  const copy = notificationCopy[language];
   const actionableCount = rows.filter((row) =>
     row.kind === "recovery" ? canManageRecovery : row.kind === "issue" ? canManageIssues : false,
   ).length;
 
   return (
     <AdminList
-      label="صندوق پیگیری"
-      description="مشکلات و ریکاوری‌ها از همین صفحه قابل پاسخ و بستن هستند."
+      label={copy.inbox}
+      description={copy.inboxDescription}
       items={rows}
       loading={loading}
       error={error}
-      errorTitle="صندوق پیگیری دریافت نشد."
+      errorTitle={copy.inboxFailed}
       onRetry={onRetry}
       className={[
         mobilePanel === "notifications" ? "hidden lg:flex" : "flex",
@@ -61,14 +65,17 @@ export function AdvisorInboxPanel({
       ].join(" ")}
       contentClassName="min-h-0 flex-1 overflow-hidden"
       stickyHeader
-      emptyTitle="مورد فعالی برای این دانش‌آموز وجود ندارد."
+      emptyTitle={copy.noItems}
       actions={
         <div className="flex items-center gap-1.5">
           {actionableCount ? (
-            <Badge tone="red">{actionableCount.toLocaleString("fa-IR")} عملیاتی</Badge>
+            <Badge tone="red">
+              {actionableCount.toLocaleString(language === "fa" ? "fa-IR" : "en-US")}{" "}
+              {copy.operational}
+            </Badge>
           ) : null}
           <Badge tone={rows.length ? "amber" : "green"}>
-            {rows.length.toLocaleString("fa-IR")}
+            {rows.length.toLocaleString(language === "fa" ? "fa-IR" : "en-US")}
           </Badge>
         </div>
       }

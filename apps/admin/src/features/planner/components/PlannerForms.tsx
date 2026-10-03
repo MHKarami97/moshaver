@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 import type { Exam, PlanTask } from "../../../shared/types/domain";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { Button, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { PlanDraft, TaskDraft } from "../model/planner.types";
 import type { PlannerEducationBook } from "../api/planner.api";
-import { errorMessage, taskTypeLabel, validateTaskDraft } from "../lib/planner-model";
+import { errorMessage, validateTaskDraft } from "../lib/planner-model";
+import { plannerCopy, plannerTaskTypeLabel } from "../model/planner-copy";
 
 export function PlanForm({
   initial,
@@ -21,18 +23,17 @@ export function PlanForm({
   onSubmit: (data: PlanDraft) => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
   const isEmptyDay = !initial.title && !initial.dayLabel && !initial.motivationText;
   const applyStarter = (kind: "study" | "review") =>
     setData({
       ...data,
-      title: kind === "study" ? "برنامه مطالعاتی امروز" : "مرور و جمع‌بندی امروز",
-      dayLabel: kind === "study" ? "روز مطالعه" : "روز مرور",
-      motivationText:
-        kind === "study"
-          ? "با یک هدف کوچک و مشخص شروع کن؛ استمرار از کامل بودن مهم‌تر است."
-          : "مطالب مهم را با آرامش مرور کن و نکات نیازمند تمرین را مشخص کن.",
+      title: kind === "study" ? copy.studyDayTitle : copy.reviewDayTitle,
+      dayLabel: kind === "study" ? copy.studyDayLabel : copy.reviewDayLabel,
+      motivationText: kind === "study" ? copy.studyDayMotivation : copy.reviewDayMotivation,
     });
   return (
     <form
@@ -41,24 +42,40 @@ export function PlanForm({
         e.preventDefault();
         setError("");
         void Promise.resolve(onSubmit(data)).catch((reason) =>
-          setError(errorMessage(reason, "ذخیره برنامه انجام نشد.")),
+          setError(errorMessage(reason, copy.savePlanFailed)),
         );
       }}
     >
       {isEmptyDay ? (
         <section className="grid gap-2 rounded-xl border border-dashed border-brand/40 bg-indigo-50/70 p-3 dark:bg-indigo-950/20">
           <div>
-            <h4 className="text-sm font-black text-slate-900 dark:text-white">شروع تنظیم روز</h4>
-            <p className="text-xs text-slate-600 dark:text-slate-300">این روز هنوز عنوان یا پیام ندارد. یک متن آماده انتخاب کنید یا اطلاعات را خودتان وارد کنید.</p>
+            <h4 className="text-sm font-black text-slate-900 dark:text-white">
+              {copy.startDaySetup}
+            </h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{copy.emptyDayHelp}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="soft" className="h-8" onClick={() => applyStarter("study")}>شروع روز مطالعه</Button>
-            <Button type="button" variant="soft" className="h-8" onClick={() => applyStarter("review")}>روز مرور</Button>
+            <Button
+              type="button"
+              variant="soft"
+              className="h-8"
+              onClick={() => applyStarter("study")}
+            >
+              {copy.startStudyDay}
+            </Button>
+            <Button
+              type="button"
+              variant="soft"
+              className="h-8"
+              onClick={() => applyStarter("review")}
+            >
+              {copy.startReviewDay}
+            </Button>
           </div>
         </section>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="تاریخ ISO">
+        <Field label={copy.planDate}>
           <DatePicker
             required
             disabled={lockDate}
@@ -66,41 +83,41 @@ export function PlanForm({
             onChange={(planDate) => setData({ ...data, planDate })}
           />
         </Field>
-        <Field label="عنوان برنامه">
+        <Field label={copy.planTitle}>
           <Input
             value={data.title || ""}
             onChange={(e) => setData({ ...data, title: e.target.value })}
           />
         </Field>
-        <Field label="برچسب نمایش روز">
+        <Field label={copy.dayLabel}>
           <Input
             value={data.dayLabel || ""}
             onChange={(e) => setData({ ...data, dayLabel: e.target.value })}
           />
         </Field>
-        <Field label="تاریخ فارسی">
+        <Field label={copy.persianDate}>
           <Input
             value={data.persianDate || ""}
             onChange={(e) => setData({ ...data, persianDate: e.target.value })}
           />
         </Field>
-        <Field label="شناسه شمسی">
+        <Field label={copy.jalaliId}>
           <Input
             value={data.jalaliId || ""}
             onChange={(e) => setData({ ...data, jalaliId: e.target.value })}
           />
         </Field>
-        <Field label="وضعیت">
+        <Field label={copy.status}>
           <Select
             value={data.published ? "1" : "0"}
             onChange={(e) => setData({ ...data, published: e.target.value === "1" })}
           >
-            <option value="0">پیش‌نویس</option>
-            <option value="1">منتشر</option>
+            <option value="0">{copy.draft}</option>
+            <option value="1">{copy.published}</option>
           </Select>
         </Field>
       </div>
-      <Field label="پیام انگیزشی">
+      <Field label={copy.motivation}>
         <Textarea
           maxLength={600}
           rows={3}
@@ -135,9 +152,11 @@ export function TaskForm({
   onSubmit: (data: TaskDraft) => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
-  const duration = durationLabel(data.start, data.end);
+  const duration = durationLabel(data.start, data.end, copy, language);
   return (
     <form
       className="grid gap-3"
@@ -150,19 +169,17 @@ export function TaskForm({
         }
         setError("");
         void Promise.resolve(onSubmit(data)).catch((reason) =>
-          setError(errorMessage(reason, "ذخیره فعالیت انجام نشد.")),
+          setError(errorMessage(reason, copy.saveActivityFailed)),
         );
       }}
     >
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
         <div>
-          <h4 className="text-sm font-black">زمان و نوع فعالیت</h4>
-          <p className="text-xs text-slate-500">
-            ابتدا بازه و نوع را مشخص کنید؛ مدت زمان به‌صورت خودکار محاسبه می‌شود.
-          </p>
+          <h4 className="text-sm font-black">{copy.timeAndType}</h4>
+          <p className="text-xs text-slate-500">{copy.timeAndTypeHelp}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="شروع">
+          <Field label={copy.start}>
             <Input
               required
               type="time"
@@ -170,7 +187,7 @@ export function TaskForm({
               onChange={(e) => setData({ ...data, start: e.target.value })}
             />
           </Field>
-          <Field label="پایان">
+          <Field label={copy.end}>
             <Input
               required
               type="time"
@@ -181,7 +198,7 @@ export function TaskForm({
           <p className="self-end pb-1 text-xs font-bold text-brand" aria-live="polite">
             {duration}
           </p>
-          <Field label="نوع">
+          <Field label={copy.type}>
             <Select
               value={data.type}
               onChange={(e) =>
@@ -194,7 +211,7 @@ export function TaskForm({
             >
               {["study", "review", "test", "class", "prayer", "meal", "break", "exam"].map((x) => (
                 <option key={x} value={x}>
-                  {taskTypeLabel(x)}
+                  {plannerTaskTypeLabel(x, language)}
                 </option>
               ))}
             </Select>
@@ -203,22 +220,30 @@ export function TaskForm({
       </section>
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
         <div>
-          <h4 className="text-sm font-black">هدف آموزشی</h4>
-          <p className="text-xs text-slate-500">
-            عنوان کوتاه و درس، برنامه را برای دانش‌آموز قابل فهم می‌کند.
-          </p>
+          <h4 className="text-sm font-black">{copy.educationGoal}</h4>
+          <p className="text-xs text-slate-500">{copy.educationGoalHelp}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="درس">
+          <Field label={copy.subject}>
             <Input
               list="planner-education-books"
               value={data.subject}
               onChange={(e) => setData({ ...data, subject: e.target.value })}
             />
-            {books.length ? <datalist id="planner-education-books">{books.map((book) => <option key={book.id} value={book.titleFa}>{[book.category, book.textbookCode].filter(Boolean).join(" · ")}</option>)}</datalist> : null}
-            {books.length ? <p className="mt-1 text-[11px] text-slate-500">کتاب‌های متناسب با پایه و رشته دانش‌آموز پیشنهاد می‌شوند.</p> : null}
+            {books.length ? (
+              <datalist id="planner-education-books">
+                {books.map((book) => (
+                  <option key={book.id} value={book.titleFa}>
+                    {[book.category, book.textbookCode].filter(Boolean).join(" · ")}
+                  </option>
+                ))}
+              </datalist>
+            ) : null}
+            {books.length ? (
+              <p className="mt-1 text-[11px] text-slate-500">{copy.subjectHelp}</p>
+            ) : null}
           </Field>
-          <Field label="عنوان">
+          <Field label={copy.title}>
             <Input
               value={data.title}
               onChange={(e) => setData({ ...data, title: e.target.value })}
@@ -226,12 +251,12 @@ export function TaskForm({
           </Field>
           {data.type === "exam" ? (
             <div className="grid gap-1">
-              <Field label="آزمون مرتبط">
+              <Field label={copy.relatedExam}>
                 <Select
                   value={data.examId}
                   onChange={(e) => setData({ ...data, examId: e.target.value })}
                 >
-                  <option value="">بدون آزمون</option>
+                  <option value="">{copy.noExam}</option>
                   {exams.map((exam) => (
                     <option key={exam.id} value={exam.id}>
                       {exam.persianDate || exam.isoDate} — {exam.title}
@@ -244,7 +269,7 @@ export function TaskForm({
                   className="text-xs font-bold text-brand hover:underline"
                   to={`/admin/questions?examId=${encodeURIComponent(data.examId)}&studentId=${encodeURIComponent(studentId)}`}
                 >
-                  بازکردن بانک سؤال این آزمون
+                  {copy.openExamQuestionBank}
                 </Link>
               ) : null}
             </div>
@@ -252,16 +277,16 @@ export function TaskForm({
         </div>
       </section>
       <details className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-        <summary className="cursor-pointer text-sm font-bold">جزئیات تکمیلی (اختیاری)</summary>
+        <summary className="cursor-pointer text-sm font-bold">{copy.optionalDetails}</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="صفحات">
+          <Field label={copy.pages}>
             <Input
               value={data.pages}
               onChange={(e) => setData({ ...data, pages: e.target.value })}
-              placeholder="مثلاً ۱۲ تا ۲۵"
+              placeholder={copy.pagesPlaceholder}
             />
           </Field>
-          <Field label="تعداد تست">
+          <Field label={copy.testCount}>
             <Input
               min={0}
               type="number"
@@ -270,12 +295,12 @@ export function TaskForm({
             />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="یادداشت">
+            <Field label={copy.note}>
               <Textarea
                 rows={3}
                 value={data.note}
                 onChange={(e) => setData({ ...data, note: e.target.value })}
-                placeholder="راهنمای لازم برای انجام فعالیت…"
+                placeholder={copy.notePlaceholder}
               />
             </Field>
           </div>
@@ -291,12 +316,21 @@ export function TaskForm({
   );
 }
 
-function durationLabel(start: string, end: string) {
-  if (!start || !end || end <= start) return "بازه زمانی را کامل کنید";
+function durationLabel(
+  start: string,
+  end: string,
+  copy: ReturnType<typeof plannerCopy>,
+  language: "fa" | "en",
+) {
+  if (!start || !end || end <= start) return copy.completeTimeRange;
   const [startHour, startMinute] = start.split(":").map(Number);
   const [endHour, endMinute] = end.split(":").map(Number);
   const minutes = endHour * 60 + endMinute - (startHour * 60 + startMinute);
-  return `مدت: ${minutes >= 60 ? `${Math.floor(minutes / 60)} ساعت${minutes % 60 ? ` و ${minutes % 60} دقیقه` : ""}` : `${minutes} دقیقه`}`;
+  const duration =
+    minutes >= 60
+      ? `${Math.floor(minutes / 60)} ${language === "fa" ? "ساعت" : "hours"}${minutes % 60 ? (language === "fa" ? ` و ${minutes % 60} دقیقه` : ` and ${minutes % 60} minutes`) : ""}`
+      : `${minutes} ${language === "fa" ? "دقیقه" : "minutes"}`;
+  return copy.duration.replace("{duration}", duration);
 }
 export function DateAction({
   initial,
@@ -307,6 +341,8 @@ export function DateAction({
   onSubmit: (date: string) => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   const [date, setDate] = useState(initial);
   const [error, setError] = useState("");
   return (
@@ -316,11 +352,11 @@ export function DateAction({
         e.preventDefault();
         setError("");
         void Promise.resolve(onSubmit(date)).catch((reason) =>
-          setError(errorMessage(reason, "کپی برنامه انجام نشد.")),
+          setError(errorMessage(reason, copy.copyPlanFailed)),
         );
       }}
     >
-      <Field label="تاریخ مقصد">
+      <Field label={copy.targetDate}>
         <DatePicker required value={date} onChange={setDate} />
       </Field>
       {error ? (
@@ -343,6 +379,8 @@ export function TaskDrawer({
   onDelete?: () => void;
   children: ReactNode;
 }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <div
       className="fixed inset-0 z-50 bg-slate-950/45"
@@ -359,7 +397,7 @@ export function TaskDrawer({
       >
         <header className="mb-4 flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-brand">جزئیات فعالیت</span>
+            <span className="text-xs font-bold text-brand">{copy.activityDetails}</span>
             <h3 className="text-lg font-black">{title}</h3>
           </div>
           <div className="flex gap-1">
@@ -379,12 +417,14 @@ export function TaskDrawer({
   );
 }
 function Actions({ busy, onCancel }: { busy: boolean; onCancel: () => void }) {
+  const { language } = useLocale();
+  const copy = plannerCopy(language);
   return (
     <div className="flex justify-end gap-2">
       <Button type="button" variant="soft" onClick={onCancel}>
-        انصراف
+        {copy.cancel}
       </Button>
-      <Button loading={busy}>ذخیره</Button>
+      <Button loading={busy}>{copy.save}</Button>
     </div>
   );
 }

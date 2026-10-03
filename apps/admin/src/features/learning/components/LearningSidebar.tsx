@@ -1,11 +1,16 @@
 import { Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { LearningSummary } from "../model/learning-model";
+import { learningCopy } from "../learning-locale";
 
 export function LearningSidebar({ summary }: { summary?: LearningSummary }) {
+  const { language } = useLocale();
+  const copy = learningCopy(language);
+  const numberLocale = language === "fa" ? "fa-IR" : "en-US";
   return (
     <aside className="grid content-start gap-4 xl:sticky xl:top-20">
       <Card>
-        <h3 className="mb-3 font-bold">وضعیت درس‌ها</h3>
+        <h3 className="mb-3 font-bold">{copy.subjectStatus}</h3>
 
         {summary?.subjects?.length ? (
           <div className="grid gap-3">
@@ -14,7 +19,9 @@ export function LearningSidebar({ summary }: { summary?: LearningSummary }) {
                 <div className="mb-1 flex justify-between text-xs">
                   <strong>{row.subject}</strong>
 
-                  <span>{row.due.toLocaleString("fa-IR")} سررسید</span>
+                  <span>
+                    {row.due.toLocaleString(numberLocale)} {copy.dueCount}
+                  </span>
                 </div>
 
                 <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -29,12 +36,12 @@ export function LearningSidebar({ summary }: { summary?: LearningSummary }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">هنوز داده‌ای ثبت نشده است.</p>
+          <p className="text-sm text-slate-500">{copy.noData}</p>
         )}
       </Card>
 
       <Card>
-        <h3 className="mb-3 font-bold">الگوهای خطا</h3>
+        <h3 className="mb-3 font-bold">{copy.mistakePatterns}</h3>
 
         {summary?.mistakePatterns?.length ? (
           <div className="grid gap-2">
@@ -43,16 +50,16 @@ export function LearningSidebar({ summary }: { summary?: LearningSummary }) {
                 key={`${row.subject}-${row.reason}-${index}`}
                 className="rounded-md bg-rose-50 p-2 text-xs text-rose-800"
               >
-                <strong>{row.subject || "بدون درس"}</strong>
+                <strong>{row.subject || copy.noSubject}</strong>
 
                 <p className="mt-1">
-                  {row.reason} · {row.count.toLocaleString("fa-IR")} بار
+                  {row.reason} · {row.count.toLocaleString(numberLocale)} {copy.times}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">الگوی خطایی برای نمایش وجود ندارد.</p>
+          <p className="text-sm text-slate-500">{copy.noMistakes}</p>
         )}
       </Card>
     </aside>
