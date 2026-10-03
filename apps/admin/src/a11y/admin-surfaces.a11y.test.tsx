@@ -62,7 +62,9 @@ describe("Admin v2 accessibility smoke", () => {
   it("has no automated violations on login", async () => {
     const view = render(
       <MemoryRouter>
-        <LoginPage />
+        <LocaleProvider>
+          <LoginPage />
+        </LocaleProvider>
       </MemoryRouter>,
     );
     await expectAccessible(view.container);
@@ -108,10 +110,14 @@ describe("Admin v2 accessibility smoke", () => {
         search=""
         setSearch={vi.fn()}
         status="all"
+        counts={{ all: 1, active: 1, inactive: 0, archived: 0 }}
+        incomplete={0}
         profileFilter="all"
         sort="name"
         sortDirection="asc"
         onSort={vi.fn()}
+        onStatusChange={vi.fn()}
+        onIncompleteToggle={vi.fn()}
         onClearFilters={vi.fn()}
         onSelect={vi.fn()}
       />,

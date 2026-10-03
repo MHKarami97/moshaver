@@ -4,15 +4,19 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Search,
+  LayoutGrid,
+  TableProperties,
   UserRound,
   UsersRound,
   X,
 } from "lucide-react";
 import type { Student } from "../../../shared/types/domain";
-import { Button, Card, EmptyState, Input, LoadingState } from "../../../shared/ui/ui";
+import { Button, Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { AdminDataTable } from "../../../shared/ui/admin-data-table";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { useState } from "react";
+import { createCollectionView, createViewPreferenceStore } from "@moshaver/admin-workspace-ui";
 import {
   formatStudentLastSeen,
   getStudentProfileCompleteness,
@@ -24,6 +28,7 @@ import {
   type StudentSortDirection,
   type StudentStatusFilter,
 } from "./student-ui";
+import { StudentOverviewStats } from "./StudentOverviewStats";
 
 export { getStudentStatus } from "./student-ui";
 export type {
@@ -32,6 +37,21 @@ export type {
   StudentSortDirection,
   StudentStatusFilter,
 } from "./student-ui";
+
+const STUDENT_DIRECTORY_VIEW_ID = "student-directory";
+
+function studentDirectoryPreferenceStore() {
+  if (typeof window === "undefined") return undefined;
+  return createViewPreferenceStore({
+    namespace: "moshaver-admin",
+    storage: window.localStorage,
+  });
+}
+
+function readStudentDisplayMode(): "table" | "cards" {
+  const layout = studentDirectoryPreferenceStore()?.load(STUDENT_DIRECTORY_VIEW_ID)?.layout;
+  return layout === "cards" ? "cards" : "table";
+}
 
 function StudentStatus({ student }: { student: Student }) {
   const status = studentStatusCopy[getStudentStatus(student)];
@@ -84,10 +104,14 @@ export function StudentList({
   search,
   setSearch,
   status,
+  counts,
+  incomplete,
   profileFilter,
   sort,
   sortDirection,
   onSort,
+  onStatusChange,
+  onIncompleteToggle,
   onClearFilters,
   onSelect,
   loading = false,
@@ -107,10 +131,14 @@ export function StudentList({
   search: string;
   setSearch: (value: string) => void;
   status: StudentStatusFilter;
+  counts: Record<StudentStatusFilter, number>;
+  incomplete: number;
   profileFilter: StudentProfileFilter;
   sort: StudentSort;
   sortDirection: StudentSortDirection;
   onSort: (value: StudentSort) => void;
+  onStatusChange: (value: StudentStatusFilter) => void;
+  onIncompleteToggle: () => void;
   onClearFilters: () => void;
   onSelect: (student: Student) => void;
   loading?: boolean;
@@ -118,7 +146,20 @@ export function StudentList({
   onRetry?: () => void;
   creating?: boolean;
 }) {
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [displayMode, setDisplayMode] = useState<"table" | "cards">(readStudentDisplayMode);
+
+  function changeDisplayMode(next: "table" | "cards") {
+    setDisplayMode(next);
+    studentDirectoryPreferenceStore()?.save(
+      createCollectionView({
+        id: STUDENT_DIRECTORY_VIEW_ID,
+        title: "فهرست دانش‌آموزان",
+        layout: next,
+        columns: ["name", "grade", "target", "lastSeen", "completeness"],
+        visibleColumns: ["name", "grade", "target", "lastSeen", "completeness"],
+      }),
+    );
+  }
   const hasFilters = !!search.trim() || status !== "all" || profileFilter !== "all";
   const startItem = filteredTotal ? (page - 1) * pageSize + 1 : 0;
   const endItem = Math.min(page * pageSize, filteredTotal);
@@ -132,58 +173,69 @@ export function StudentList({
           : "";
 
   return (
-    <Card className="min-w-0 overflow-hidden p-0">
-      <div className="grid gap-3 border-b border-slate-200 p-3 sm:p-4 dark:border-slate-800">
-        <div className="relative min-w-0">
-          <Search
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-            size={16}
-          />
-          <Input
-            className="pl-9 pr-9"
-            aria-label="جستجوی دانش‌آموز"
-            placeholder="نام، شناسه، نام کاربری، پایه، رشته یا هدف..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          {search ? (
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              aria-label="پاک کردن جستجو"
-              className="absolute left-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:hover:bg-slate-800"
-            >
-              <X size={14} />
-            </button>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-            <UsersRound size={14} />
-            {filteredTotal.toLocaleString("fa-IR")} نتیجه
-          </span>
-          {status !== "all" ? (
-            <span className="rounded-full bg-slate-100 px-2 py-1 font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              وضعیت: {statusLabel}
+    <Card className="min-w-0 p-0 xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col">
+      <div className="z-10 grid shrink-0 gap-3 border-b border-slate-200 bg-[rgb(var(--surface-card))] p-3 sm:p-4 dark:border-slate-800">
+        <StudentOverviewStats
+          counts={counts}
+          status={status}
+          onStatusChange={onStatusChange}
+          incomplete={incomplete}
+          incompleteOnly={profileFilter === "incomplete"}
+          onIncompleteToggle={onIncompleteToggle}
+        />
+        <CollectionToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="نام، شناسه، نام کاربری، پایه، رشته یا هدف…"
+          resultLabel={
+            <span className="inline-flex items-center gap-1.5">
+              <UsersRound size={14} />
+              {filteredTotal.toLocaleString("fa-IR")} نتیجه
             </span>
-          ) : null}
-          {profileFilter === "incomplete" ? (
-            <span className="rounded-full bg-amber-50 px-2 py-1 font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-              پرونده ناقص
-            </span>
-          ) : null}
-          {hasFilters ? (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              className="mr-auto inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-slate-500 hover:bg-slate-100 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:text-slate-400 dark:hover:bg-slate-800"
-            >
-              <X size={13} />
-              حذف فیلترها
-            </button>
-          ) : null}
-        </div>
+          }
+          onClear={hasFilters ? onClearFilters : undefined}
+          filters={
+            status !== "all" || profileFilter === "incomplete" ? (
+              <>
+                {status !== "all" ? (
+                  <span className="px-1.5 text-[11px] font-semibold text-slate-600">
+                    وضعیت: {statusLabel}
+                  </span>
+                ) : null}
+                {profileFilter === "incomplete" ? (
+                  <span className="px-1.5 text-[11px] font-semibold text-amber-700">
+                    پرونده ناقص
+                  </span>
+                ) : null}
+              </>
+            ) : undefined
+          }
+          actions={
+            <SegmentedControl
+              ariaLabel="نمایش فهرست دانش‌آموزان"
+              value={displayMode}
+              onValueChange={(value) => changeDisplayMode(value as "table" | "cards")}
+              options={[
+                {
+                  value: "table",
+                  label: (
+                    <>
+                      <TableProperties size={14} /> جدول
+                    </>
+                  ),
+                },
+                {
+                  value: "cards",
+                  label: (
+                    <>
+                      <LayoutGrid size={14} /> کارت‌ها
+                    </>
+                  ),
+                },
+              ]}
+            />
+          }
+        />
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 md:hidden">
           <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -211,7 +263,7 @@ export function StudentList({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-[11px] text-slate-500 sm:px-4 dark:text-slate-400">
+      <div className="z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-[rgb(var(--surface-card))] px-3 py-2.5 text-[11px] text-slate-500 sm:px-4 dark:border-slate-800 dark:text-slate-400">
         <span>
           نمایش {startItem.toLocaleString("fa-IR")} تا {endItem.toLocaleString("fa-IR")} از{" "}
           {filteredTotal.toLocaleString("fa-IR")}
@@ -248,18 +300,18 @@ export function StudentList({
         </div>
       ) : students.length ? (
         <>
-          <div>
+          <div className="min-h-0 xl:flex-1">
             <AdminDataTable
               rows={students}
               rowId={(student) => student.id}
               label="فهرست دانش‌آموزان"
               activeId={creating ? undefined : selectedId}
-              selectedIds={selectedRows}
-              onSelectionChange={setSelectedRows}
               sortId={sort}
               sortDirection={sortDirection}
               onSort={(value) => onSort(value as StudentSort)}
               onRowClick={onSelect}
+              displayMode={displayMode}
+              scrollClassName="xl:max-h-full xl:overflow-y-auto xl:overscroll-contain"
               mobileCard={(student) => {
                 const education =
                   [student.grade, student.major].filter(Boolean).join(" / ") ||
@@ -356,7 +408,7 @@ export function StudentList({
           </div>
 
           {filteredTotal > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
+            <div className="z-[1] flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-[rgb(var(--surface-card))] p-3 sm:p-4 dark:border-slate-800">
               <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <span>تعداد در صفحه</span>
                 <select

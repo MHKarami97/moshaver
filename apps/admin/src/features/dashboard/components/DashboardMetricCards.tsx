@@ -108,8 +108,8 @@ justify-center
           loading={refreshing}
           onClick={onRefresh}
           className="
-h-12
-px-5
+          h-9
+          px-3
 "
         >
           <RefreshCw size={17} />
@@ -123,15 +123,7 @@ px-5
         return (
           <Card
             key={item.label}
-            className="
-group
-p-5
-
-hover:-translate-y-1
-
-hover:shadow-md
-
-"
+          className="group p-3 hover:border-brand/30 hover:shadow-sm"
           >
             <div
               className="
@@ -157,9 +149,9 @@ dark:text-slate-400
 mt-3
 block
 
-text-4xl
+                  text-3xl
 
-font-black
+                  font-bold
 
 tracking-tight
 
@@ -174,9 +166,9 @@ text-[rgb(var(--color-ink))]
               <div
                 className={`
 grid
-size-11
-place-items-center
-rounded-2xl
+              size-9
+              place-items-center
+              rounded-md
 
 transition
 
@@ -186,13 +178,13 @@ ${icons[item.tone]}
 
 `}
               >
-                <Icon size={22} />
+                <Icon size={18} />
               </div>
             </div>
 
             <div
               className="
-mt-5
+              mt-3
 flex
 items-center
 justify-between

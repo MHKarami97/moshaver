@@ -18,7 +18,7 @@ export function ExamsHeader({
   onMore?: () => void;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-4">
+    <header className="flex flex-wrap items-end justify-between gap-3 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)] sm:p-4">
       <div className="min-w-0 flex-1 sm:max-w-sm">
         <label className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">
           زمینه دانش‌آموز

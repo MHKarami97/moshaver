@@ -49,7 +49,7 @@ export function ExamCard({
   const readiness = examReadiness(exam);
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-brand/40 hover:shadow-md dark:border-slate-800 dark:bg-slate-950">
+    <article className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)] transition hover:border-brand/40 hover:shadow-sm">
       <div className="flex items-start gap-3">
         {onCheck ? (
           <input
@@ -82,7 +82,7 @@ export function ExamCard({
         <Metric label="تلاش" value={exam.maxAttempts || 1} />
       </div>
 
-      <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500 dark:bg-slate-900">
+      <p className="mt-3 rounded-md bg-[rgb(var(--surface-muted))] px-3 py-2 text-xs leading-5 text-slate-500">
         {`${(exam.delivery?.assignmentCount || 0).toLocaleString("fa-IR")} تخصیص • ${(exam.delivery?.attemptCount || 0).toLocaleString("fa-IR")} تلاش • ${(exam.delivery?.notStartedCount || 0).toLocaleString("fa-IR")} شروع نشده`}
       </p>
 
@@ -104,11 +104,11 @@ export function ExamCard({
 
         {onEdit || onManageAssignments || onAnalytics || onToggle || onDelete ? (
           <details className="relative">
-            <summary className="flex h-8 cursor-pointer list-none items-center gap-1 rounded-lg border px-2 text-xs text-slate-600">
+            <summary className="flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border border-[rgb(var(--border-subtle))] px-2 text-xs text-slate-600">
               <MoreHorizontal size={15} />
               گزینه‌ها
             </summary>
-            <div className="absolute left-0 z-10 mt-1 grid min-w-36 gap-1 rounded-xl border bg-white p-1 shadow-lg dark:bg-slate-950">
+            <div className="absolute left-0 z-10 mt-1 grid min-w-36 gap-1 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-1 shadow-lg">
               {onEdit ? (
                 <Button className="justify-start" size="sm" variant="ghost" onClick={onEdit}>
                   <Pencil size={14} />
@@ -159,7 +159,7 @@ export function ExamCard({
         </p>
       ) : null}
 
-      <details className="mt-3 border-t pt-3">
+      <details className="mt-3 border-t border-[rgb(var(--border-subtle))] pt-3">
         <summary className="flex cursor-pointer list-none justify-between">
           <strong className="text-xs">بودجه‌بندی ({exam.syllabus?.length || 0})</strong>
 
@@ -181,7 +181,7 @@ export function ExamCard({
           {exam.syllabus?.map((item) => (
             <div
               key={item.id}
-              className="mb-1 flex justify-between rounded bg-slate-50 p-2 text-xs"
+              className="mb-1 flex justify-between rounded-md bg-[rgb(var(--surface-muted))] p-2 text-xs"
             >
               <span>
                 <strong>{item.subject}</strong>: {item.description}
@@ -197,7 +197,7 @@ export function ExamCard({
           ))}
 
           {!exam.syllabus?.length ? (
-            <p className="rounded bg-slate-50 p-2 text-xs text-slate-500">
+            <p className="rounded-md bg-[rgb(var(--surface-muted))] p-2 text-xs text-slate-500">
               بودجه‌بندی ثبت نشده است.
             </p>
           ) : null}

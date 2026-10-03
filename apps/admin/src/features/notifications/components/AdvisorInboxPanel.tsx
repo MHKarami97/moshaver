@@ -60,6 +60,7 @@ export function AdvisorInboxPanel({
         "min-h-0 flex-col dark:border-slate-800 dark:bg-slate-900",
       ].join(" ")}
       contentClassName="min-h-0 flex-1 overflow-hidden"
+      stickyHeader
       emptyTitle="مورد فعالی برای این دانش‌آموز وجود ندارد."
       actions={
         <div className="flex items-center gap-1.5">
@@ -73,7 +74,7 @@ export function AdvisorInboxPanel({
       }
       toolbar={<StudentPicker students={students} value={studentId} onChange={onStudentChange} />}
     >
-      <div className="grid h-full min-h-0 gap-2 overflow-y-auto overscroll-contain">
+      <div className="grid h-full min-h-0 gap-2 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
         {rows.map((row) => (
           <AdvisorInboxItem
             key={row.key}

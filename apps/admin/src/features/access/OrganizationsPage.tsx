@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Building2, CheckCircle2, Crown, Pencil, Plus, Power, RotateCcw, Search, ShieldCheck, X } from "lucide-react";
+import { Archive, Building2, CheckCircle2, Crown, Pencil, Plus, Power, RotateCcw, ShieldCheck } from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
 import { roleLabels } from "../../shared/lib/role-ui";
@@ -9,6 +9,7 @@ import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
 import { Button, Card, EmptyState, Field, Input, Select } from "../../shared/ui/ui";
 import { AdminDataTable } from "../../shared/ui/admin-data-table";
+import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
 import {
   ManagementPageHeader,
   ManagementStat,
@@ -33,6 +34,8 @@ import {
   type PortalUser,
 } from "./api/access.api";
 import { OrganizationWorkspace } from "./OrganizationWorkspace";
+import { AccessFlowGuidance } from "./components/AccessFlowGuidance";
+import { emptyAccessResult } from "./model/access-flow";
 
 const allRoles = Object.keys(roleLabels) as RoleCode[];
 const organizationTypes = [
@@ -155,6 +158,7 @@ export function OrganizationsPage() {
     });
   return (
     <div className="grid gap-5">
+      <AccessFlowGuidance scope="organizations" canManage={canManage} />
       <section className="w-full" aria-label="ابزارهای فهرست سازمان‌ها">
         <ManagementSummaryBar
           action={
@@ -178,35 +182,14 @@ export function OrganizationsPage() {
               value={organizations.data?.filter((x) => x.status === "ARCHIVED").length ?? 0}
             />
 
-            <div className="flex min-w-[260px] flex-1 items-end gap-2">
-              <Field label="جستجوی سازمان">
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={16}
-                  />
-                  <Input
-                    className="pr-9"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="نام سازمان…"
-                  />
-                  {search ? (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      aria-label="پاک کردن جستجو"
-                      className="absolute left-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-                    >
-                      <X size={14} />
-                    </button>
-                  ) : null}
-                </div>
-              </Field>
-
-              <span className="shrink-0 whitespace-nowrap rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {filtered.length.toLocaleString("fa-IR")} نتیجه
-              </span>
+            <div className="min-w-[260px] flex-1 self-end">
+              <CollectionToolbar
+                search={search}
+                onSearchChange={setSearch}
+                placeholder="نام سازمان…"
+                resultLabel={`${filtered.length.toLocaleString("fa-IR")} نتیجه`}
+                onClear={search ? () => setSearch("") : undefined}
+              />
             </div>
           </div>
         </ManagementSummaryBar>
@@ -261,7 +244,18 @@ export function OrganizationsPage() {
             <Retry message="دریافت سازمان‌ها ناموفق بود." retry={() => organizations.refetch()} />
           ) : !filtered.length ? (
             <div className="p-6">
-              <EmptyState title="سازمانی یافت نشد." />
+              <EmptyState
+                title={emptyAccessResult("organizations", Boolean(search))}
+                action={
+                  search
+                    ? (
+                      <Button variant="soft" onClick={() => setSearch("")}>
+                        پاک‌کردن جستجو
+                      </Button>
+                    )
+                    : undefined
+                }
+              />
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">

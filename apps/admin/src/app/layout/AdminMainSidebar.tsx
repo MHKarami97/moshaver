@@ -1,8 +1,9 @@
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { adminDestination, mainNavigationForCapabilities } from "./admin-navigation";
+import { adminDestination, localizedMainNavigationForCapabilities } from "./admin-navigation";
 import { useAuth } from "../../features/auth";
 import { rolePortalTitle } from "../../shared/lib/role-ui";
+import { useAdminShellCopy, useLocale } from "../../shared/ui/locale";
 
 export function AdminMainSidebar({
   collapsed,
@@ -11,6 +12,7 @@ export function AdminMainSidebar({
   selectedStudentId,
   onToggle,
   onOpenSearch,
+  direction,
 }: {
   collapsed: boolean;
   currentSection: string;
@@ -18,27 +20,34 @@ export function AdminMainSidebar({
   selectedStudentId: string;
   onToggle: () => void;
   onOpenSearch: () => void;
+  direction: "rtl" | "ltr";
 }) {
   const auth = useAuth();
-  const visibleMainNavigation = mainNavigationForCapabilities(auth.capabilities, auth.activeRole);
+  const { language } = useLocale();
+  const copy = useAdminShellCopy();
+  const visibleMainNavigation = localizedMainNavigationForCapabilities(
+    auth.capabilities,
+    auth.activeRole,
+    language,
+  );
   return (
     <aside
-      className={`fixed inset-y-0 right-0 z-50 hidden flex-col border-l border-slate-200 bg-white shadow-sm transition-[width,padding] duration-200 motion-reduce:transition-none dark:border-slate-800 dark:bg-slate-950 lg:flex ${collapsed ? "w-[4.5rem] p-2" : "w-64 p-3"}`}
-      aria-label="ناوبری اصلی مدیریت"
+      className={`fixed inset-y-0 ${direction === "rtl" ? "right-0 border-l shadow-[-1px_0_0_rgb(24_24_27_/_2%)]" : "left-0 border-r shadow-[1px_0_0_rgb(24_24_27_/_2%)]"} z-50 hidden flex-col border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] transition-[width,padding] duration-200 motion-reduce:transition-none lg:flex ${collapsed ? "w-[4.25rem] p-2" : "w-60 p-3"}`}
+      aria-label={copy.primaryNavigation}
     >
       <div
         className={`shrink-0 ${collapsed ? "mb-2 grid justify-items-center gap-1" : "mb-3 flex h-12 items-center justify-between gap-2 px-1"}`}
       >
         {!collapsed ? (
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-black tracking-tight">Moshaver | مشاور</h1>
+            <h1 className="truncate text-lg font-black tracking-tight">{copy.appTitle}</h1>
             <p className="truncate text-[11px] font-semibold text-slate-400">
               {rolePortalTitle(auth.activeRole)}
             </p>
           </div>
         ) : (
           <div
-            className="grid size-9 place-items-center rounded-xl bg-brand text-sm font-black text-white"
+            className="grid size-8 place-items-center rounded-lg bg-brand text-sm font-black text-white"
             aria-hidden="true"
           >
             M
@@ -47,27 +56,31 @@ export function AdminMainSidebar({
         <button
           type="button"
           className="grid size-9 shrink-0 place-items-center rounded-lg text-slate-500 outline-none transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand"
-          title={collapsed ? "بازکردن نوار اصلی" : "بستن نوار اصلی"}
-          aria-label={collapsed ? "بازکردن نوار اصلی" : "بستن نوار اصلی"}
+          title={collapsed ? copy.openMainRail : copy.closeMainRail}
+          aria-label={collapsed ? copy.openMainRail : copy.closeMainRail}
           aria-expanded={!collapsed}
           onClick={onToggle}
         >
-          {collapsed ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          {collapsed === (direction === "rtl") ? (
+            <ChevronLeft size={18} />
+          ) : (
+            <ChevronRight size={18} />
+          )}
         </button>
       </div>
 
       <button
         type="button"
-        className={`mb-3 flex h-10 w-full shrink-0 items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 outline-none transition hover:border-slate-300 hover:bg-white focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 ${collapsed ? "justify-center px-2" : "gap-2 px-3"}`}
+        className={`mb-3 flex h-9 w-full shrink-0 items-center rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] text-slate-500 outline-none transition hover:bg-[rgb(var(--surface-card))] focus-visible:ring-2 focus-visible:ring-brand ${collapsed ? "justify-center px-2" : "gap-2 px-3"}`}
         onClick={onOpenSearch}
-        title={collapsed ? "جستجو و رفتن سریع" : undefined}
-        aria-label="جستجو و رفتن سریع"
+        title={collapsed ? copy.searchAndGo : undefined}
+        aria-label={copy.searchAndGo}
       >
         <Search size={17} className="shrink-0" />
         {!collapsed ? (
           <>
-            <span className="min-w-0 flex-1 truncate text-right text-xs font-semibold">
-              جستجو و رفتن سریع
+            <span className="min-w-0 flex-1 truncate text-start text-xs font-semibold">
+              {copy.searchAndGo}
             </span>
             <kbd
               className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-400"
@@ -90,11 +103,11 @@ export function AdminMainSidebar({
               title={collapsed ? title : undefined}
               aria-label={title}
               aria-current={active ? "location" : undefined}
-              className={`relative flex h-12 items-center rounded-xl text-sm font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-brand ${collapsed ? "justify-center px-2" : "gap-3 px-3.5"} ${active ? "bg-brand/10 text-brand" : "text-slate-600 hover:bg-slate-50 hover:text-ink"}`}
+              className={`relative flex h-10 items-center rounded-md text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-brand ${collapsed ? "justify-center px-2" : "gap-3 px-3"} ${active ? "bg-brand/10 text-brand" : "text-slate-600 hover:bg-[rgb(var(--surface-muted))] hover:text-ink"}`}
             >
               {active ? (
                 <span
-                  className="absolute inset-y-2 right-0 w-1 rounded-l-full bg-brand"
+                  className={`absolute inset-y-2 ${direction === "rtl" ? "right-0 rounded-l-full" : "left-0 rounded-r-full"} w-0.5 bg-brand`}
                   aria-hidden="true"
                 />
               ) : null}

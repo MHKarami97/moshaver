@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminDataTable } from "./admin-data-table";
+import { LocaleProvider } from "./locale";
 
 const rows = [
   { id: "1", name: "کاربر اول" },
@@ -87,5 +88,72 @@ describe("AdminDataTable", () => {
     );
     expect(screen.getByLabelText("کاربران، نمای کارت")).toHaveTextContent("کارت کاربر اول");
     expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("can make the supplied card renderer the explicit desktop presentation", () => {
+    render(
+      <AdminDataTable
+        rows={rows}
+        rowId={(row) => row.id}
+        label="کاربران"
+        displayMode="cards"
+        columns={[{ id: "name", header: "نام", cell: (row) => row.name }]}
+        mobileCard={(row) => <span>کارت {row.name}</span>}
+      />,
+    );
+
+    expect(screen.getByLabelText("کاربران، نمای کارت")).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("keeps wide tables discoverable and keyboard-reachable without hiding their columns", () => {
+    render(
+      <AdminDataTable
+        rows={rows}
+        rowId={(row) => row.id}
+        label="کاربران"
+        columns={[{ id: "name", header: "نام", cell: (row) => row.name }]}
+      />,
+    );
+
+    expect(
+      screen.getByText("برای دیدن همه ستون‌ها، جدول را به چپ و راست بکشید."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "کاربران، جدول قابل پیمایش افقی" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+  });
+
+  it("offers a contextual recovery action for filtered empty results", () => {
+    render(
+      <AdminDataTable
+        rows={[]}
+        rowId={(row: { id: string }) => row.id}
+        label="کاربران"
+        emptyTitle="نتیجه‌ای پیدا نشد."
+        emptyAction={<button type="button">پاک کردن فیلترها</button>}
+        columns={[]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "پاک کردن فیلترها" })).toBeInTheDocument();
+  });
+
+  it("uses the active English locale for shared table state and accessibility copy", () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <AdminDataTable
+          rows={[]}
+          rowId={(row: { id: string }) => row.id}
+          label="students"
+          loading
+          columns={[]}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("Loading students…")).toBeInTheDocument();
+    localStorage.removeItem("moshaver-admin-location");
   });
 });

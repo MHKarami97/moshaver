@@ -11,17 +11,21 @@
 }
 
 :root {
-  --color-ink: 31 49 46;
-  --color-paper: 246 248 244;
+  /* Twenty-inspired operational density: quiet canvas, clear layers, small radii. */
+  --color-ink: 34 35 38;
+  --color-paper: 247 247 248;
   --color-brand: 15 118 110;
   --color-brand-strong: 17 94 89;
   --color-brand-soft: 220 245 238;
   --color-saffron: 180 111 18;
   --color-rosewood: 190 50 72;
-  --surface-card: 255 255 252;
-  --surface-muted: 240 244 239;
+  --surface-card: 255 255 255;
+  --surface-muted: 244 244 245;
   --surface-raised: 255 255 255;
-  --border-subtle: 214 223 216;
+  --border-subtle: 228 228 231;
+  --radius-control: 8px;
+  --radius-surface: 8px;
+  --shadow-surface: 0 1px 2px rgb(24 24 27 / 4%);
   --chat-canvas: 238 242 234;
   --chat-incoming: 255 255 252;
   --chat-outgoing: 217 241 232;
@@ -32,17 +36,18 @@
 }
 
 :root.dark {
-  --color-ink: 225 235 230;
-  --color-paper: 14 22 20;
+  --color-ink: 244 244 245;
+  --color-paper: 24 24 27;
   --color-brand: 45 212 191;
   --color-brand-strong: 20 184 166;
   --color-brand-soft: 19 78 70;
   --color-saffron: 245 188 86;
   --color-rosewood: 251 113 133;
-  --surface-card: 23 34 31;
-  --surface-muted: 29 43 39;
-  --surface-raised: 34 49 45;
-  --border-subtle: 55 75 69;
+  --surface-card: 39 39 42;
+  --surface-muted: 47 47 52;
+  --surface-raised: 39 39 42;
+  --border-subtle: 63 63 70;
+  --shadow-surface: 0 1px 2px rgb(0 0 0 / 18%);
   --chat-canvas: 12 27 24;
   --chat-incoming: 30 43 40;
   --chat-outgoing: 20 75 66;
@@ -155,6 +160,21 @@
   outline-offset: 2px;
 }
 
+/* Legacy feature views still carry Tailwind's large radius utilities. Keep
+   every product surface on the compact CRM geometry without changing their
+   behavior or introducing feature-specific overrides. */
+.admin-role-shell .rounded-xl,
+.admin-role-shell .rounded-2xl,
+.admin-role-shell .rounded-3xl {
+  border-radius: var(--radius-surface);
+}
+
+.admin-role-shell .shadow-md,
+.admin-role-shell .shadow-lg,
+.admin-role-shell .shadow-xl {
+  box-shadow: var(--shadow-surface);
+}
+
 button,
 [role="button"],
 a,
@@ -167,21 +187,80 @@ textarea {
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100dvh;
   color: rgb(var(--color-ink));
-  background:
-    radial-gradient(circle at 88% -12%, rgb(204 235 220 / 62%), transparent 30rem),
-    radial-gradient(circle at 8% 108%, rgb(250 230 190 / 36%), transparent 27rem),
-    rgb(var(--color-paper));
+  background: rgb(var(--color-paper));
   font-family: Vazirmatn, Tahoma, Arial, sans-serif;
   font-variation-settings: "wght" 400;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-reveal {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.collection-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-toolbar > * {
+  min-width: 0;
 }
 
 .dark body {
   color: rgb(var(--color-ink));
-  background:
-    radial-gradient(circle at 88% -12%, rgb(20 184 166 / 14%), transparent 34rem),
-    radial-gradient(circle at 6% 108%, rgb(180 111 18 / 8%), transparent 30rem),
-    rgb(var(--color-paper));
+  background: rgb(var(--color-paper));
+}
+
+/* Pages stay naturally scrollable. The viewport bar is deliberately quiet until
+   the user scrolls, hovers the page, or moves focus through it. */
+html.is-scrolling :is(body, .scroll-reveal),
+:is(body, .scroll-reveal):hover,
+:is(body, .scroll-reveal):focus-within {
+  scrollbar-color: rgb(var(--color-ink) / 42%) transparent;
+}
+
+:is(body, .scroll-reveal)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:is(body, .scroll-reveal)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:is(body, .scroll-reveal)::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background-color 160ms ease-out;
+}
+
+html.is-scrolling :is(body, .scroll-reveal)::-webkit-scrollbar-thumb,
+:is(body, .scroll-reveal):hover::-webkit-scrollbar-thumb,
+:is(body, .scroll-reveal):focus-within::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-ink) / 42%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(body, .scroll-reveal)::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+}
+
+/* Shared data-surface vocabulary: lists should read as one continuous workspace. */
+.admin-page-shell :where(table) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-page-shell :where(input, select, textarea) {
+  border-radius: var(--radius-control);
 }
 
 .dark ::selection {

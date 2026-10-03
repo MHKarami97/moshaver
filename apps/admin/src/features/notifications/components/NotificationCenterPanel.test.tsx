@@ -25,7 +25,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../hooks/useAdminNotifications", () => ({
   useAdminNotifications: () => mocks.notifications,
 }));
-vi.mock("../../../shared/ui/locale", () => ({
+vi.mock("../../../shared/ui/locale", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../shared/ui/locale")>()),
   useLocale: () => ({ formatDateTime: (value: string) => value }),
 }));
 
@@ -46,6 +47,7 @@ describe("NotificationCenterPanel", () => {
   });
 
   it("uses the shared list shell while retaining notification controls", () => {
+    mocks.notifications.hasMore = true;
     render(
       <MemoryRouter>
         <NotificationCenterPanel
@@ -65,6 +67,8 @@ describe("NotificationCenterPanel", () => {
     expect(screen.getByRole("button", { name: /خواندن همه/ })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "جستجوی اعلان‌ها" })).toBeInTheDocument();
     expect(screen.getByText("پیام جدید")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "نمایش اعلان‌های بیشتر" })).toBeInTheDocument();
+    mocks.notifications.hasMore = false;
   });
 
   it("uses the shared retry state when the inbox request fails", () => {

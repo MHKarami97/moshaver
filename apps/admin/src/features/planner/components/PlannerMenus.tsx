@@ -4,6 +4,7 @@ import type { Plan, PlanTask } from "../../../shared/types/domain";
 import { todayIso } from "../../../shared/lib/utils";
 import type { PlannerMode, TaskFilter } from "../model/planner.types";
 import { filterLabel } from "../lib/planner-model";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 
 export function ViewSwitch({
   value,
@@ -13,17 +14,15 @@ export function ViewSwitch({
   onChange: (mode: PlannerMode) => void;
 }) {
   return (
-    <div className="flex rounded-lg bg-slate-100 p-1">
-      {(["day", "week", "month", "list"] as PlannerMode[]).map((mode) => (
-        <button
-          key={mode}
-          className={`h-7 rounded-md px-2 text-xs font-semibold ${value === mode ? "bg-white text-brand shadow-sm" : "text-slate-500"}`}
-          onClick={() => onChange(mode)}
-        >
-          {{ day: "روز", week: "هفته", month: "ماه", list: "فهرست" }[mode]}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      ariaLabel="نمایش برنامه"
+      value={value}
+      onValueChange={onChange}
+      options={(["day", "week", "month", "list"] as PlannerMode[]).map((mode) => ({
+        value: mode,
+        label: { day: "روز", week: "هفته", month: "ماه", list: "فهرست" }[mode],
+      }))}
+    />
   );
 }
 export function FilterMenu({

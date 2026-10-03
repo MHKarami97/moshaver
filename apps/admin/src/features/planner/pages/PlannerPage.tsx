@@ -504,7 +504,7 @@ export function PlannerPage() {
   });
   return (
     <div className="grid gap-3">
-      <header className="sticky top-0 z-20 rounded-xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur-sm">
+      <header className="sticky top-0 z-20 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))]/95 p-2 shadow-[var(--shadow-surface)] backdrop-blur-sm">
         <div className="flex flex-wrap items-center gap-2">
           <div className="w-44 shrink-0">
             <StudentPicker
@@ -513,7 +513,7 @@ export function PlannerPage() {
               onChange={students.selectStudent}
             />
           </div>
-          <div className="flex items-center rounded-lg bg-slate-100 p-1">
+          <div className="flex items-center rounded-md bg-[rgb(var(--surface-muted))] p-1">
             <Button
               className="h-8 px-2"
               variant="ghost"
@@ -540,7 +540,7 @@ export function PlannerPage() {
             امروز
           </Button>
           <ViewSwitch value={mode} onChange={setMode} />
-          <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3">
+          <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3">
             <Search size={15} />
             <input
               className="min-w-0 flex-1 bg-transparent text-sm outline-none"

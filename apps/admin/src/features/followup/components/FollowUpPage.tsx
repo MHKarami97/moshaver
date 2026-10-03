@@ -3,6 +3,7 @@ import { CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 import { useAuth } from "../../auth";
 import { notify } from "../../../shared/ui/notifications";
 import { Badge, Button, Card, EmptyState, ErrorState } from "../../../shared/ui/ui";
+import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
 import { listRecoveryRequests, moderateRecoveryRequest } from "../api/followup.api";
 
 export function FollowUpPage() {
@@ -21,13 +22,11 @@ export function FollowUpPage() {
 
   return (
     <section className="space-y-4">
-      <div>
-        <p className="text-xs font-bold text-brand">عملیات پشتیبانی</p>
-        <h1 className="text-xl font-black">مرکز پیگیری</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          درخواست‌های بازیابی برنامه در تمام محدوده مجاز شما
-        </p>
-      </div>
+      <ManagementPageHeader
+        eyebrow="عملیات پشتیبانی"
+        title="مرکز پیگیری"
+        description="درخواست‌های بازیابی برنامه در تمام محدوده مجاز شما"
+      />
       {requests.isLoading ? (
         <Card role="status" className="p-8 text-center">
           در حال دریافت درخواست‌ها…
@@ -51,11 +50,11 @@ export function FollowUpPage() {
       ) : null}
       <div className="grid gap-3 lg:grid-cols-2">
         {pending.map((item) => (
-          <Card key={item.id} className="p-4">
+          <Card key={item.id} className="p-3 hover:border-brand/30">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <Badge tone="blue">درخواست بازیابی</Badge>
-                <h2 className="mt-2 font-black">{item.student?.name ?? "دانش‌آموز"}</h2>
+                <h2 className="mt-2 font-bold">{item.student?.name ?? "دانش‌آموز"}</h2>
                 <p className="mt-1 text-xs text-slate-500">
                   برنامه {item.planDate ?? item.plan_date ?? "—"}
                 </p>
@@ -63,7 +62,7 @@ export function FollowUpPage() {
             </div>
             {item.reason ? <p className="mt-3 text-sm font-bold">{item.reason}</p> : null}
             {item.note ? (
-              <p className="mt-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800">
+              <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] p-3 text-sm">
                 {item.note}
               </p>
             ) : null}

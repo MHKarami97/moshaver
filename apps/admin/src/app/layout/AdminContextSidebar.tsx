@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { NavLink } from "react-router-dom";
 import { adminDestination } from "./admin-navigation";
 import type { AdminCurrentNavigation } from "./layout-types";
+import { useAdminShellCopy } from "../../shared/ui/locale";
 
 export function AdminContextSidebar({
   collapsed,
@@ -12,6 +13,7 @@ export function AdminContextSidebar({
   unreadNotifications,
   selectedStudentId,
   onToggle,
+  direction,
 }: {
   collapsed: boolean;
   mainCollapsed: boolean;
@@ -28,32 +30,38 @@ export function AdminContextSidebar({
   unreadNotifications: number;
   selectedStudentId: string;
   onToggle: () => void;
+  direction: "rtl" | "ltr";
 }) {
+  const copy = useAdminShellCopy();
   const widthClasses = collapsed ? "w-16 p-2" : "w-16 p-2 xl:w-52 xl:p-3";
 
   return (
     <aside
-      className={`fixed inset-y-0 z-40 hidden flex-col border-l border-slate-200 bg-slate-50/95 transition-[right,width,padding] duration-200 motion-reduce:transition-none lg:flex ${mainCollapsed ? "right-[4.5rem]" : "right-64"} ${widthClasses}`}
-      aria-label={`مسیرهای بخش ${current.section}`}
+      className={`fixed inset-y-0 z-40 hidden flex-col border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] transition-[right,left,width,padding] duration-200 motion-reduce:transition-none lg:flex ${direction === "rtl" ? "right-0 border-l" : "left-0 border-r"} ${mainCollapsed ? (direction === "rtl" ? "right-[4.25rem]" : "left-[4.25rem]") : direction === "rtl" ? "right-60" : "left-60"} ${widthClasses}`}
+      aria-label={copy.sectionNavigation(current.section)}
     >
       <div
-        className={`mb-3 flex h-11 shrink-0 items-center ${collapsed ? "justify-center" : "justify-center xl:justify-between xl:gap-2 xl:px-1"}`}
+        className={`mb-3 flex h-10 shrink-0 items-center ${collapsed ? "justify-center" : "justify-center xl:justify-between xl:gap-2 xl:px-1"}`}
       >
         {!collapsed ? (
           <div className="hidden min-w-0 xl:block">
-            <p className="truncate text-[10px] font-bold text-slate-400">بخش فعال</p>
+            <p className="truncate text-[10px] font-bold text-slate-400">{copy.activeSection}</p>
             <p className="truncate text-xs font-black text-slate-600">{current.section}</p>
           </div>
         ) : null}
         <button
           type="button"
           className="hidden size-9 shrink-0 place-items-center rounded-lg text-slate-500 outline-none transition hover:bg-white focus-visible:ring-2 focus-visible:ring-brand xl:grid"
-          title={collapsed ? "بازکردن مسیرهای بخش" : "بستن مسیرهای بخش"}
-          aria-label={collapsed ? "بازکردن مسیرهای بخش" : "بستن مسیرهای بخش"}
+          title={collapsed ? copy.openSectionRail : copy.closeSectionRail}
+          aria-label={collapsed ? copy.openSectionRail : copy.closeSectionRail}
           aria-expanded={!collapsed}
           onClick={onToggle}
         >
-          {collapsed ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          {collapsed === (direction === "rtl") ? (
+            <ChevronLeft size={18} />
+          ) : (
+            <ChevronRight size={18} />
+          )}
         </button>
       </div>
 
@@ -75,11 +83,11 @@ export function AdminContextSidebar({
               title={title}
               aria-label={title}
               aria-current={active ? "page" : undefined}
-              className={`relative flex h-11 items-center rounded-xl text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-brand ${compactClasses} ${active ? "bg-brand/10 font-bold text-brand shadow-sm ring-1 ring-brand/20" : "text-slate-600 hover:bg-white hover:text-ink"}`}
+              className={`relative flex h-10 items-center rounded-md text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-brand ${compactClasses} ${active ? "bg-brand/10 font-semibold text-brand ring-1 ring-brand/15" : "text-slate-600 hover:bg-[rgb(var(--surface-card))] hover:text-ink"}`}
             >
               {active ? (
                 <span
-                  className="absolute inset-y-2 right-0 w-1 rounded-l-full bg-brand"
+                  className={`absolute inset-y-2 ${direction === "rtl" ? "right-0 rounded-l-full" : "left-0 rounded-r-full"} w-0.5 bg-brand`}
                   aria-hidden="true"
                 />
               ) : null}
@@ -88,7 +96,7 @@ export function AdminContextSidebar({
               {unread ? (
                 <span
                   className={`${badgeClasses} min-w-5 rounded-full bg-rose-600 px-1 text-center text-[10px] font-black leading-5 text-white`}
-                  aria-label={`${unread.toLocaleString("fa-IR")} اعلان خوانده‌نشده`}
+                  aria-label={copy.unreadNotifications(unread)}
                 >
                   {Math.min(unread, 99).toLocaleString("fa-IR")}
                   {unread > 99 ? "+" : ""}

@@ -15,6 +15,7 @@ import {
 
 import type { Exam } from "../../../shared/types/domain";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { ExamCard } from "./ExamCard";
 
 type ViewMode = "grid" | "list";
@@ -64,8 +65,8 @@ export function ExamList({
     Boolean(filtered.length) && filtered.every((exam) => selected.includes(exam.id));
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 bg-white p-0 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-3 sm:px-4 dark:border-slate-800">
+    <Card className="overflow-hidden p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgb(var(--border-subtle))] px-3 py-3 sm:px-4">
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           {onSelectAll ? (
             <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -90,48 +91,21 @@ export function ExamList({
           </div>
 
           {selected.length ? (
-            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
+            <span className="rounded-md bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
               {selected.length} انتخاب شده
             </span>
           ) : null}
         </div>
 
-        <div
-          className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900"
-          aria-label="نوع نمایش آزمون‌ها"
-        >
-          <button
-            type="button"
-            title="نمایش لیستی"
-            aria-label="نمایش لیستی"
-            aria-pressed={viewMode === "list"}
-            onClick={() => setViewMode("list")}
-            className={[
-              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-              viewMode === "list"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
-            ].join(" ")}
-          >
-            <List size={17} />
-          </button>
-
-          <button
-            type="button"
-            title="نمایش شبکه‌ای"
-            aria-label="نمایش شبکه‌ای"
-            aria-pressed={viewMode === "grid"}
-            onClick={() => setViewMode("grid")}
-            className={[
-              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
-              viewMode === "grid"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
-            ].join(" ")}
-          >
-            <Grid2X2 size={17} />
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="نوع نمایش آزمون‌ها"
+          value={viewMode}
+          onValueChange={setViewMode}
+          options={[
+            { value: "list", ariaLabel: "نمایش لیستی", title: "نمایش لیستی", label: <List size={17} /> },
+            { value: "grid", ariaLabel: "نمایش شبکه‌ای", title: "نمایش شبکه‌ای", label: <Grid2X2 size={17} /> },
+          ]}
+        />
       </div>
 
       <div className="p-3 sm:p-4">
@@ -144,7 +118,7 @@ export function ExamList({
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
                   key={item}
-                  className="h-48 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
+                  className="h-48 animate-pulse rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))]"
                 />
               ))}
             </div>
@@ -153,7 +127,7 @@ export function ExamList({
               {[1, 2, 3, 4, 5].map((item) => (
                 <div
                   key={item}
-                  className="h-16 animate-pulse rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-900"
+                  className="h-16 animate-pulse rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))]"
                 />
               ))}
             </div>
@@ -221,10 +195,10 @@ export function ExamList({
                 />
               ))}
             </div>
-            <div className="hidden overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 md:block">
+            <div className="hidden overflow-hidden rounded-lg border border-[rgb(var(--border-subtle))] md:block">
               <div className="overflow-x-auto">
               <div className="min-w-[1060px]">
-                <div className="grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 text-xs font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300">
+                <div className="grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 border-b border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">
                   <span aria-hidden="true" />
                   <span>آزمون</span>
                   <span>وضعیت</span>
@@ -234,7 +208,7 @@ export function ExamList({
                   <span>عملیات</span>
                 </div>
 
-                <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                <div className="divide-y divide-[rgb(var(--border-subtle))]">
                   {filtered.map((exam) => {
                     const isSelected = selected.includes(exam.id);
                     const questionCount =
@@ -247,7 +221,7 @@ export function ExamList({
                           "grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 px-3 py-3 text-sm transition-colors",
                           isSelected
                             ? "bg-teal-50/70 dark:bg-teal-950/20"
-                            : "bg-white hover:bg-slate-50/80 dark:bg-slate-950 dark:hover:bg-slate-900/70",
+                            : "bg-[rgb(var(--surface-card))] hover:bg-[rgb(var(--surface-muted))]",
                         ].join(" ")}
                       >
                         <div className="flex items-center justify-center">

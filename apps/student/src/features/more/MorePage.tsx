@@ -448,6 +448,13 @@ export function MorePage() {
             icon: RotateCcw,
             tone: "saffron",
           },
+          {
+            to: "/permission-requests",
+            title: "درخواست مجوز",
+            description: "خروج از خوابگاه، مدرسه یا سایر موارد",
+            icon: KeyRound,
+            tone: "primary",
+          },
         ]
       : []),
     {

@@ -38,7 +38,7 @@ export function LivePage() {
   const selected = students.find((student) => student.id === selectedId) || students[0];
 
   return (
-    <div className="grid h-[calc(100dvh-132px)] min-h-0 gap-3 overflow-hidden lg:h-[calc(100dvh-96px)]">
+    <div className="flex h-[calc(100dvh-132px)] min-h-0 flex-col gap-3 overflow-hidden lg:h-[calc(100dvh-96px)]">
       <LiveHeader
         generatedAt={live.data?.generatedAt}
         fetching={live.isFetching}
@@ -89,7 +89,12 @@ export function LivePage() {
           onSelect={setSelectedId}
         />
 
-        <StudentDetailPanel student={selected} now={clock} formatDateTime={formatDateTime} />
+        <StudentDetailPanel
+          panel={panel}
+          student={selected}
+          now={clock}
+          formatDateTime={formatDateTime}
+        />
 
         <TimelinePanel
           panel={panel}

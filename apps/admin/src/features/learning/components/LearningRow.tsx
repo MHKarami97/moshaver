@@ -22,7 +22,7 @@ export function LearningRow({
 
   return (
     <article
-      className={["rounded-lg border p-3", due ? "border-rose-200 bg-rose-50/40" : "bg-white"].join(
+      className={["rounded-lg border p-3 shadow-[var(--shadow-surface)]", due ? "border-rose-200 bg-rose-50/40" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))]"].join(
         " ",
       )}
     >
@@ -89,25 +89,25 @@ export function LearningRow({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="rounded bg-slate-100 px-2 py-1">
+        <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
           مرور بعدی: {formatDate(item.dueDate)}
         </span>
 
-        <span className="rounded bg-slate-100 px-2 py-1">
+        <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
           تسلط {item.mastery.toLocaleString("fa-IR")}
           /۵
         </span>
 
-        <span className="rounded bg-slate-100 px-2 py-1">
+        <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
           {item.reviewCount.toLocaleString("fa-IR")} مرور
         </span>
 
-        <span className="rounded bg-slate-100 px-2 py-1">
+        <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1">
           فاصله {item.intervalDays.toLocaleString("fa-IR")} روز
         </span>
 
         {item.sourceAnswerId ? (
-          <span className="rounded bg-indigo-50 px-2 py-1 text-indigo-700">متصل به پاسخ آزمون</span>
+          <span className="rounded-md bg-indigo-50 px-2 py-1 text-indigo-700">متصل به پاسخ آزمون</span>
         ) : null}
       </div>
 

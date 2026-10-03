@@ -17,7 +17,7 @@ export function LearningHeader({
   onCreate?: () => void;
 }) {
   return (
-    <Card className="flex flex-wrap items-center gap-3 p-3">
+    <Card className="sticky top-14 z-10 flex flex-wrap items-center gap-3 p-3 shadow-[var(--shadow-surface)]">
       <div className="min-w-56 flex-1 md:max-w-sm">
         <StudentPicker students={students} value={studentId} onChange={onStudentChange} />
       </div>

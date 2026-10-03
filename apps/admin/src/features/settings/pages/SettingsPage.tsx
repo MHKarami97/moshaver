@@ -10,6 +10,7 @@ import { SessionsSettings } from "../components/SessionsSettings";
 import { ApiConnectionCard } from "../components/ApiConnectionCard";
 import { AccountSecurityPanel } from "../../system/components/AccountSecurityPanel";
 import { ChatProfileSettings } from "../components/ChatProfileSettings";
+import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
 export function SettingsPage() {
   const qc = useQueryClient(),
     modal = useModal(),
@@ -36,7 +37,12 @@ export function SettingsPage() {
       notify(error instanceof Error ? error.message : "تغییر رمز انجام نشد.", "error"),
   });
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
+      <ManagementPageHeader
+        eyebrow="حساب و تنظیمات"
+        title="تنظیمات مدیر"
+        description="امنیت حساب، نشست‌ها، موقعیت محلی و ترجیحات گفتگو را یک‌جا مدیریت کنید."
+      />
       <section className="grid gap-4 lg:grid-cols-2">
         <LocationSettings
           locale={locale}
@@ -45,7 +51,7 @@ export function SettingsPage() {
         <ApiConnectionCard />
       </section>
       <section aria-labelledby="account-security-title">
-        <h2 id="account-security-title" className="mb-3 flex items-center gap-2 text-sm font-black">
+        <h2 id="account-security-title" className="mb-3 flex items-center gap-2 text-sm font-bold">
           <ShieldCheck size={17} />
           امنیت حساب
         </h2>

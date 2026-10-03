@@ -14,6 +14,7 @@ import {
   Textarea,
 } from "../../../shared/ui/ui";
 import { guardianApi } from "../api/guardian.api";
+import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
 
 const fa = (value: number) => value.toLocaleString("fa-IR");
 
@@ -102,12 +103,13 @@ export function GuardianPage() {
     );
 
   return (
-    <section className="grid gap-5">
-      <header>
-        <p className="text-xs font-bold text-brand">خانه خانواده</p>
-        <h1 className="mt-1 text-2xl font-black">پیگیری برنامه و پیشرفت فرزند</h1>
-      </header>
-      <Card className="p-4">
+    <section className="grid gap-4">
+      <ManagementPageHeader
+        eyebrow="خانه خانواده"
+        title="پیگیری برنامه و پیشرفت فرزند"
+        description="برنامه، پیشرفت، آزمون‌ها و منابع آموزشی فرزند را در یک نمای عملیاتی دنبال کنید."
+      />
+      <Card className="p-3">
         <Field label="انتخاب فرزند">
           <Select value={studentId} onChange={(event) => setStudentId(event.target.value)}>
             {children.data.map((student) => (
@@ -156,13 +158,13 @@ export function GuardianPage() {
             </Card>
           ))}
           <div className="grid gap-4 xl:grid-cols-2">
-            <Card className="p-5">
-              <h2 className="flex items-center gap-2 font-black">
+            <Card className="p-3">
+              <h2 className="flex items-center gap-2 font-bold">
                 <CalendarDays size={18} /> برنامه آینده
               </h2>
               <div className="mt-4 grid gap-3">
                 {(schedule.data ?? []).map((plan) => (
-                  <div key={plan.id} className="rounded-xl border p-3">
+                  <div key={plan.id} className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
                     <strong>{plan.date}</strong>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {plan.tasks.map((task) => (
@@ -178,13 +180,13 @@ export function GuardianPage() {
                 ) : null}
               </div>
             </Card>
-            <Card className="p-5">
-              <h2 className="flex items-center gap-2 font-black">
+            <Card className="p-3">
+              <h2 className="flex items-center gap-2 font-bold">
                 <GraduationCap size={18} /> آزمون‌ها و گزارش‌ها
               </h2>
               <div className="mt-4 grid gap-2 text-sm">
                 {(exams.data ?? []).slice(0, 5).map((exam) => (
-                  <div key={exam.id} className="rounded-xl border p-3">
+                  <div key={exam.id} className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
                     {exam.title ?? "آزمون"}
                   </div>
                 ))}
@@ -194,8 +196,8 @@ export function GuardianPage() {
               </div>
             </Card>
           </div>
-          <Card className="p-5">
-            <h2 className="font-black">منابع آموزشی مرتبط</h2>
+          <Card className="p-3">
+            <h2 className="font-bold">منابع آموزشی مرتبط</h2>
             <p className="mt-1 text-xs text-slate-500">
               {relatedStudents.data?.find((item) => item.student.id === studentId)?.relationship
                 .type === "GUARDIAN_OF"
@@ -209,7 +211,7 @@ export function GuardianPage() {
                   href={resource.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-xl border p-3 text-sm font-bold hover:border-brand"
+                  className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 text-sm font-bold shadow-[var(--shadow-surface)] hover:border-brand"
                 >
                   {resource.title}
                 </a>
@@ -220,8 +222,8 @@ export function GuardianPage() {
             </div>
           </Card>
           {auth.can("guardian.encouragement.create") ? (
-            <Card className="p-5">
-              <h2 className="flex items-center gap-2 font-black">
+            <Card className="p-3">
+              <h2 className="flex items-center gap-2 font-bold">
                 <Heart size={18} /> پیام دلگرم‌کننده
               </h2>
               <form
@@ -257,9 +259,9 @@ export function GuardianPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="p-4">
+    <Card className="p-3">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-2 text-xl font-black">{value}</p>
+      <p className="mt-2 text-xl font-bold">{value}</p>
     </Card>
   );
 }

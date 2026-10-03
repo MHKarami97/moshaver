@@ -79,6 +79,7 @@ const ResourcesPage = lazy(() =>
 const GuardianPage = lazy(() =>
   import("../features/guardian").then((module) => ({ default: module.GuardianPage })),
 );
+const PermissionRequestsPage = lazy(() => import("../features/permission-requests").then((module) => ({ default: module.PermissionRequestsPage })));
 
 function RouteScreen({ children }: { children: ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
@@ -87,13 +88,13 @@ function RouteScreen({ children }: { children: ReactNode }) {
 function RouteLoading() {
   return (
     <div role="status" className="grid gap-3" aria-label="در حال آماده‌سازی صفحه">
-      <div className="h-14 animate-pulse rounded-lg bg-white dark:bg-slate-900" />
+      <div className="h-14 animate-pulse rounded-lg bg-[rgb(var(--surface-card))]" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[1, 2, 3, 4].map((item) => (
-          <div key={item} className="h-24 animate-pulse rounded-lg bg-white dark:bg-slate-900" />
+          <div key={item} className="h-24 animate-pulse rounded-lg bg-[rgb(var(--surface-card))]" />
         ))}
       </div>
-      <div className="h-[50vh] animate-pulse rounded-lg bg-white dark:bg-slate-900" />
+      <div className="h-[50vh] animate-pulse rounded-lg bg-[rgb(var(--surface-card))]" />
     </div>
   );
 }
@@ -103,7 +104,7 @@ function ProtectedRoute() {
   if (auth.status === "checking")
     return (
       <div className="grid min-h-screen place-items-center bg-paper p-4">
-        <div className="grid max-w-md gap-4 rounded-xl border bg-white p-6 text-center shadow-sm">
+        <div className="grid max-w-md gap-4 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-4 text-center shadow-[var(--shadow-surface)]">
           <div
             className="mx-auto size-9 animate-spin rounded-full border-4 border-slate-200 border-t-brand"
             aria-hidden="true"
@@ -148,7 +149,7 @@ export function CapabilityRoute({
     return (
       <div
         role="alert"
-        className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+        className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
       >
         <h2 className="font-bold">این ابزار در نقش فعال شما نیست</h2>
         <p className="mt-2 text-sm">
@@ -156,7 +157,7 @@ export function CapabilityRoute({
         </p>
         <a
           href="/admin"
-          className="mt-4 inline-flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
+          className="mt-4 inline-flex h-10 items-center rounded-lg bg-brand px-4 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
         >
           بازگشت به میز کار
         </a>
@@ -213,6 +214,10 @@ export const router = createBrowserRouter([
                 </RouteScreen>
               </CapabilityRoute>
             ),
+          },
+          {
+            path: "permission-requests",
+            element: <CapabilityRoute capability="permission_requests.read"><RouteScreen><PermissionRequestsPage /></RouteScreen></CapabilityRoute>,
           },
           {
             path: "classes",

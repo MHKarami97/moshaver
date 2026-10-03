@@ -1,10 +1,11 @@
 import { Search } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "../lib/utils";
+import { useSharedUiCopy } from "./locale";
 import { Card, Input } from "./ui";
 
 export function ManagementPageHeader({
-  eyebrow = "مدیریت",
+  eyebrow,
   title,
   description,
   action,
@@ -14,11 +15,12 @@ export function ManagementPageHeader({
   description: string;
   action?: ReactNode;
 }) {
+  const copy = useSharedUiCopy();
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-xs font-bold text-brand">{eyebrow}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight text-ink">{title}</h1>
+        <p className="text-xs font-bold text-brand">{eyebrow || copy.management}</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink">{title}</h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
           {description}
         </p>
@@ -31,14 +33,18 @@ export function ManagementPageHeader({
 export function ManagementSummaryBar({
   children,
   action,
-  label = "خلاصه و فیلترها",
+  label,
 }: {
   children: ReactNode;
   action?: ReactNode;
   label?: string;
 }) {
+  const copy = useSharedUiCopy();
   return (
-    <section className="flex flex-wrap items-center justify-between gap-3" aria-label={label}>
+    <section
+      className="flex flex-wrap items-center justify-between gap-3"
+      aria-label={label || copy.summaryAndFilters}
+    >
       <div className="flex flex-wrap items-center gap-2">{children}</div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </section>
@@ -67,10 +73,11 @@ export function ManagementStat({
   tone?: Tone;
   onClick?: () => void;
 }) {
+  const { locale } = useSharedUiCopy();
   const t = toneStyles[tone];
 
   const className = cn(
-    "group relative flex min-w-0 flex-1 flex-col justify-between gap-1.5 overflow-hidden rounded-xl border bg-[rgb(var(--surface-card))] px-3 py-2.5 text-start transition",
+    "group relative flex min-w-0 flex-1 flex-col justify-between gap-1.5 overflow-hidden rounded-lg border bg-[rgb(var(--surface-card))] px-3 py-2.5 text-start shadow-[var(--shadow-surface)] transition",
     "border-[rgb(var(--border-subtle))]",
     onClick &&
       "cursor-pointer hover:border-brand/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20",
@@ -92,7 +99,7 @@ export function ManagementStat({
       <span
         className={cn("ps-2 text-xl font-black leading-none tabular-nums tracking-tight", t.value)}
       >
-        {value.toLocaleString("fa-IR")}
+        {value.toLocaleString(locale)}
       </span>
     </>
   );
@@ -120,11 +127,11 @@ export function ManagementSearch({
     <Card className="p-3 sm:p-4">
       <div className="relative">
         <Search
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-slate-400"
           size={17}
         />
         <Input
-          className="pr-10"
+          className="ps-10"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -145,24 +152,30 @@ export function ManagementMasterDetail({
   directoryVisible = true,
   detailVisible = true,
   detailWidth = "minmax(420px,.75fr)",
+  detailScroll = true,
 }: {
   directory: ReactNode;
   detail: ReactNode;
   directoryVisible?: boolean;
   detailVisible?: boolean;
   detailWidth?: string;
+  /**
+   * Disable this when the detail surface owns its own bounded scroll area.
+   * It prevents nested desktop scrollbars while preserving the sticky column.
+   */
+  detailScroll?: boolean;
 }) {
+  const detailLayout = detailScroll
+    ? "xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto xl:overscroll-contain xl:pe-1"
+    : "xl:sticky xl:top-20 xl:pe-1";
+
   return (
     <section
       className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_var(--management-detail)] 2xl:grid-cols-[minmax(0,1.4fr)_var(--management-detail)]"
       style={{ "--management-detail": detailWidth } as CSSProperties}
     >
       <div className={directoryVisible ? "block" : "hidden xl:block"}>{directory}</div>
-      <div
-        className={
-          detailVisible ? "block xl:sticky xl:top-20" : "hidden xl:block xl:sticky xl:top-20"
-        }
-      >
+      <div className={detailVisible ? `block ${detailLayout}` : `hidden xl:block ${detailLayout}`}>
         {detail}
       </div>
     </section>

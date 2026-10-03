@@ -46,7 +46,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
           gap-2
 
-          rounded-xl
+          rounded-lg
 
           px-[1.125rem]
 
@@ -74,10 +74,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             bg-brand
             text-white
 
-            shadow-sm
+          shadow-none
 
             hover:brightness-95
-            hover:shadow-md
+            hover:shadow-sm
             `,
 
         variant === "soft" &&
@@ -114,7 +114,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
             dark:hover:bg-slate-800
             `,
 
-        size === "sm" && "h-9 rounded-lg px-3 text-xs",
+        size === "sm" && "h-9 rounded-md px-2.5 text-xs",
         size === "icon" && "size-10 h-10 rounded-lg p-0",
 
         className,
@@ -135,11 +135,11 @@ export function Card({ className, ...props }: ComponentProps<"section">) {
     <section
       className={cn(
         `
-        rounded-2xl
+        rounded-lg
         
-        px-2
+        px-3
 
-        py-2
+        py-3
 
         border
 
@@ -147,7 +147,7 @@ export function Card({ className, ...props }: ComponentProps<"section">) {
 
         bg-[rgb(var(--surface-card))]
 
-        shadow-sm
+        shadow-[var(--shadow-surface)]
 
         transition-all
         duration-200
@@ -170,11 +170,11 @@ export const Input = forwardRef<HTMLInputElement, ComponentProps<"input">>(
         className={cn(
           `
 
-h-11
+h-10
 
 w-full
 
-rounded-xl
+rounded-lg
 
 
 border
@@ -240,12 +240,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, ComponentProps<"textarea
         className={cn(
           `
 
-min-h-28
+min-h-24
 
 w-full
 
 
-rounded-xl
+rounded-lg
 
 
 border
@@ -389,9 +389,9 @@ export function Badge({
         `
 inline-flex
 items-center
-rounded-full
-px-3
-py-1
+rounded-md
+px-2
+py-0.5
 text-xs
 font-semibold
 transition

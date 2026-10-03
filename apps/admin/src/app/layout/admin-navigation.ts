@@ -14,11 +14,13 @@ import {
   Building2,
   PackageOpen,
   ShieldCheck,
+  ClipboardCheck,
   UserRoundCheck,
   LibraryBig,
   School,
   HeartHandshake,
 } from "lucide-react";
+import type { AdminLanguage } from "../../shared/ui/locale";
 
 export const educationNavigation = [
   {
@@ -148,6 +150,13 @@ export const adminNavigation = [
         description: "مدیریت حساب، وضعیت و دسترسی دانش‌آموزان",
         icon: UsersRound,
         capability: "students.read",
+      },
+      {
+        path: "permission-requests",
+        title: "درخواست‌های مجوز",
+        description: "بررسی خروج و مجوزهای دانش‌آموزان سازمان",
+        icon: ClipboardCheck,
+        capability: "permission_requests.read",
       },
       {
         path: "attention",
@@ -452,4 +461,188 @@ export function adminBreadcrumbs(path: string) {
     { title: current.section, path: sectionPath },
     { title: current.title, path: current.path },
   ];
+}
+
+const englishNavigationCopy: Record<string, string> = {
+  خانه: "Home",
+  آموزش: "Education",
+  ارتباط: "Communication",
+  مدیریت: "Management",
+  سامانه: "System",
+  "مرکز آموزش": "Education hub",
+  برنامه‌ریز: "Planner",
+  "الگوهای برنامه": "Plan templates",
+  "سیستم یادگیری": "Learning system",
+  آزمون‌ها: "Assessments",
+  "بانک سؤال": "Question bank",
+  آزمونک‌ها: "Quizzes",
+  درس‌ها: "Subjects",
+  کلاس‌ها: "Classes",
+  "منابع آموزشی": "Learning resources",
+  داشبورد: "Dashboard",
+  "فعالیت زنده": "Live activity",
+  گفتگو: "Conversations",
+  "مرکز اعلان‌ها": "Notifications",
+  دانش‌آموزان: "Students",
+  "درخواست‌های مجوز": "Permission requests",
+  "نیازمند توجه": "Needs attention",
+  "خانه خانواده": "Family hub",
+  "ورودی دانش‌آموزان": "Student intake",
+  "کاربران و کارکنان": "Users and staff",
+  سازمان‌ها: "Organizations",
+  گزارش‌ها: "Reports",
+  "مرکز پیگیری": "Follow-up center",
+  "مرکز عملیات": "Operations center",
+  "نسخه‌ها و انتشارها": "Releases",
+  "داده و پشتیبان": "Data and backup",
+  "ممیزی امنیتی": "Security audit",
+  "تنظیمات حساب": "Account settings",
+  "نمای کلی": "Overview",
+  "آموزش و برنامه‌ریزی": "Education and planning",
+  "ارتباط و پیگیری": "Communication and follow-up",
+  "افراد و دسترسی": "People and access",
+  "سامانه و امنیت": "System and security",
+  "نمای پلتفرم": "Platform overview",
+  "عملیات آموزشی": "Education operations",
+  ارتباطات: "Communications",
+  "کاربران و سازمان‌ها": "Users and organizations",
+  "میز کار مشاور": "Advisor workspace",
+  "برنامه و یادگیری": "Plans and learning",
+  "دانش‌آموزان و گزارش": "Students and reports",
+  "میز کار دبیر": "Teacher workspace",
+  "آزمون و محتوا": "Assessments and content",
+  "کلاس و گفتگو": "Classes and conversations",
+  "میز کار منتور": "Mentor workspace",
+  "هدف و برنامه": "Goals and plans",
+  "پیگیری و گفتگو": "Follow-up and conversations",
+  "استودیوی محتوا": "Content studio",
+  "محتوای آموزشی": "Education content",
+  "هماهنگی محتوا": "Content coordination",
+  "نمای سازمان": "Organization overview",
+  "اعضا و دسترسی": "Members and access",
+  "داشبورد سازمان": "Organization dashboard",
+  "تعیین تکلیف ورودی‌ها": "Assign incoming students",
+  "همه کاربران": "All users",
+  "میز کار": "Workspace",
+  "فرزندان من": "My children",
+  فرزندان: "Children",
+  پیشرفت: "Progress",
+  برنامه: "Plan",
+  پیام‌ها: "Messages",
+  اعلان‌ها: "Notifications",
+  پروفایل: "Profile",
+  "دانش‌آموزان من": "My students",
+  برنامه‌ریزی: "Planning",
+  "یادگیری و مرور": "Learning and review",
+  "آزمون و درخواست‌ها": "Assessments and requests",
+  گفت‌وگوها: "Conversations",
+  "گزارش پیشرفت": "Progress report",
+  "منابع پیشنهادی": "Recommended resources",
+  "نمای آموزش": "Education overview",
+  "دانش‌آموزان / کلاس‌ها": "Students / classes",
+  "درس‌های من": "My subjects",
+  "منابع کلاس": "Class resources",
+  "برنامه و هدف‌ها": "Plans and goals",
+  "روند پیشرفت": "Progress trends",
+  "نمای محتوا": "Content overview",
+  "کتابخانه منابع": "Resource library",
+  کارکنان: "Staff",
+  "گزارش سازمان": "Organization report",
+};
+
+const englishNavigationDescriptions: Record<string, string> = {
+  "نمای کلی امروز، سلامت سیستم و موارد نیازمند توجه":
+    "Today's overview, system health, and items that need attention",
+  "نمای عملیاتی آزمون‌ها، سؤال‌ها، تلاش‌ها و درخواست‌های بازیابی":
+    "Operational view of assessments, questions, attempts, and recovery requests",
+  "مدیریت برنامه روزانه، هفتگی و وظایف دانش‌آموز":
+    "Manage daily and weekly plans and student tasks",
+  "کتابخانه، انتشار و اعمال الگوهای برنامه سازمان":
+    "Library, publishing, and applying organization plan templates",
+  "مدیریت مرورهای فاصله‌دار، تسلط و الگوهای خطای دانش‌آموز":
+    "Manage spaced review, mastery, and student error patterns",
+  "زمان‌بندی، انتشار، تلاش مجدد، بودجه و سؤال‌ها":
+    "Scheduling, publishing, retries, budgets, and questions",
+  "ساخت، بازبینی و مرتب‌سازی سؤال‌های هر آزمون":
+    "Create, review, and organize questions for each assessment",
+  "مدیریت آزمونک‌ها، سؤال‌ها و وضعیت انتشار": "Manage quizzes, questions, and publishing status",
+  "مدیریت درس‌ها و شناسه‌های آموزشی": "Manage subjects and education identifiers",
+  "کلاس، کتاب‌های درسی، دبیر، مشاور و فهرست دانش‌آموزان":
+    "Classes, textbooks, teachers, advisors, and student rosters",
+  "انتشار پیوند و ویدئو برای یک یا چند دانش‌آموز":
+    "Publish links and videos for one or more students",
+  "پایش وضعیت و فعالیت جاری همه دانش‌آموزان": "Monitor every student's current status and activity",
+  "پیام‌های مستقیم و گروهی، حضور و پیگیری گفتگوها":
+    "Direct and group messages, presence, and conversation follow-up",
+  "ارسال و پیگیری اعلان‌های دانش‌آموزان": "Send and track student notifications",
+  "مدیریت حساب، وضعیت و دسترسی دانش‌آموزان": "Manage student accounts, status, and access",
+  "بررسی خروج و مجوزهای دانش‌آموزان سازمان":
+    "Review organization student leave and permission requests",
+  "صف یکپارچه کارهای عملیاتی، پیگیری‌ها و خطاهای فعال":
+    "Unified queue for operational work, follow-ups, and active errors",
+  "برنامه، پیشرفت، آزمون‌ها و پیام دلگرم‌کننده فرزند":
+    "A child's plan, progress, assessments, and encouraging messages",
+  "اتصال ثبت‌نام‌های جدید به سازمان و مشاور":
+    "Connect new registrations to an organization and advisor",
+  "مدیریت حساب‌ها، نقش‌ها و عضویت‌های سازمان":
+    "Manage accounts, roles, and organization memberships",
+  "مدیریت سازمان‌ها و زمینه فعال": "Manage organizations and the active context",
+  "گزارش عملکرد، مطالعه و روند پیشرفت دانش‌آموز":
+    "Performance, study, and student progress reports",
+  "رسیدگی به درخواست‌های بازیابی و موارد نیازمند اقدام":
+    "Handle recovery requests and items requiring action",
+  "سلامت سرویس و ابزارهای مجاز سامانه": "Service health and permitted system tools",
+  "نسخه فعال و تاریخچه انتشار برنامه‌ها": "Active version and release history",
+  "پشتیبان‌گیری و بازیابی کنترل‌شده": "Backup and controlled recovery",
+  "رویدادهای امنیتی و عملیاتی": "Security and operational events",
+  "رمز، نشست‌ها، موقعیت و اتصال API": "Password, sessions, location, and API connection",
+};
+
+function translatedAdminText(text: string, language: AdminLanguage) {
+  if (language === "fa") return text;
+  return englishNavigationCopy[text] ?? englishNavigationDescriptions[text] ?? text;
+}
+
+function localizeNavigationItem<T extends { title: string; description?: string }>(
+  item: T,
+  language: AdminLanguage,
+) {
+  return {
+    ...item,
+    title: translatedAdminText(item.title, language),
+    ...(item.description ? { description: translatedAdminText(item.description, language) } : {}),
+  };
+}
+
+export function localizedNavigationForCapabilities(
+  capabilities: readonly string[],
+  role: string | null | undefined,
+  language: AdminLanguage,
+) {
+  return navigationForCapabilities(capabilities, role).map((group) => ({
+    ...group,
+    section: translatedAdminText(group.section, language),
+    items: group.items.map((item) => localizeNavigationItem(item, language)),
+  }));
+}
+
+export function localizedMainNavigationForCapabilities(
+  capabilities: readonly string[],
+  role: string | null | undefined,
+  language: AdminLanguage,
+) {
+  return mainNavigationForCapabilities(capabilities, role).map((item) =>
+    localizeNavigationItem(item, language),
+  );
+}
+
+export function localizedAdminCurrentNavigation(pathname: string, language: AdminLanguage) {
+  return localizeNavigationItem(resolveAdminNavigation(pathname), language);
+}
+
+export function localizedAdminBreadcrumbs(path: string, language: AdminLanguage) {
+  return adminBreadcrumbs(path).map((item) => ({
+    ...item,
+    title: translatedAdminText(item.title, language),
+  }));
 }

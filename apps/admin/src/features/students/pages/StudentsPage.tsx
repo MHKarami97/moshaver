@@ -8,7 +8,7 @@ import { normalizePersianText } from "../../../shared/lib/utils";
 import { useModal } from "../../../shared/ui/modal";
 import { useAuth } from "../../auth";
 import { getApiWorkContextKey } from "../../../shared/api/api";
-import { Button, Card } from "../../../shared/ui/ui";
+import { Button, Card, EmptyState, ErrorState, LoadingState } from "../../../shared/ui/ui";
 import { ManagementMasterDetail } from "../../../shared/ui/management-workspace";
 import {
   archiveStudent,
@@ -32,7 +32,6 @@ import {
 import { StudentInsights } from "../components/StudentInsights";
 import { StudentList } from "../components/StudentList";
 import { StudentOverview } from "../components/StudentOverview";
-import { StudentOverviewStats } from "../components/StudentOverviewStats";
 import { StudentSecurity } from "../components/StudentSecurity";
 import { StudentSupportWorkspace } from "../components/StudentSupportWorkspace";
 import { getStudentSyncHealth, reviewStudentSyncHealth } from "../api/student-activity.api";
@@ -643,6 +642,7 @@ export function StudentsPage() {
   }
 
   function setSort(value: StudentSort) {
+    setPage(1);
     if (value === sort) {
       setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
       return;
@@ -655,6 +655,29 @@ export function StudentsPage() {
     setSearch("");
     setStatus("all");
     setProfileFilter("all");
+    setPage(1);
+  }
+
+  function setDirectorySearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function setDirectoryStatus(next: StudentStatusFilter) {
+    setStatus(next);
+    setProfileFilter("all");
+    setPage(1);
+  }
+
+  function toggleDirectoryIncomplete() {
+    setProfileFilter((current) => (current === "incomplete" ? "all" : "incomplete"));
+    if (profileFilter !== "incomplete") setStatus("all");
+    setPage(1);
+  }
+
+  function setDirectoryPageSize(value: number) {
+    setPageSize(value);
+    setPage(1);
   }
 
   function confirmLifecycle(action: "activate" | "deactivate" | "restore" | "force-logout") {
@@ -755,7 +778,7 @@ export function StudentsPage() {
             loading={overview.isLoading}
             error={overview.isError}
             onRetry={() => void overview.refetch()}
-            onEdit={() => setDetailTab("profile")}
+            onEdit={auth.can("students.update") ? () => setDetailTab("profile") : undefined}
           />
         ) : null}
         {detailTab === "activity" ? (
@@ -836,33 +859,11 @@ export function StudentsPage() {
 
   return (
     <div className="grid gap-4 sm:gap-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <StudentOverviewStats
-          counts={counts}
-          status={status}
-          onStatusChange={(next) => {
-            setStatus(next);
-            setProfileFilter("all");
-          }}
-          incomplete={incompleteCount}
-          incompleteOnly={profileFilter === "incomplete"}
-          onIncompleteToggle={() => {
-            setProfileFilter(profileFilter === "incomplete" ? "all" : "incomplete");
-            if (profileFilter !== "incomplete") setStatus("all");
-          }}
-        />
-        {auth.can("students.create") ? (
-          <Button onClick={startCreate}>
-            <UserPlus size={16} />
-            دانش‌آموز جدید
-          </Button>
-        ) : null}
-      </header>
-
       <ManagementMasterDetail
         directoryVisible={mobileDirectory}
         detailVisible={!mobileDirectory}
         detailWidth="minmax(420px,.75fr)"
+        detailScroll={false}
         directory={
           <div>
             <StudentList
@@ -873,15 +874,19 @@ export function StudentsPage() {
               pageCount={pageCount}
               pageSize={pageSize}
               setPage={setPage}
-              setPageSize={setPageSize}
+              setPageSize={setDirectoryPageSize}
               selectedId={selectedId}
               search={search}
-              setSearch={setSearch}
+              setSearch={setDirectorySearch}
               status={status}
+              counts={counts}
+              incomplete={incompleteCount}
               profileFilter={profileFilter}
               sort={sort}
               sortDirection={sortDirection}
               onSort={setSort}
+              onStatusChange={setDirectoryStatus}
+              onIncompleteToggle={toggleDirectoryIncomplete}
               onClearFilters={clearFilters}
               onSelect={requestSelection}
               loading={studentStore.isLoading}
@@ -894,7 +899,7 @@ export function StudentsPage() {
         detail={
           <div>
             {mode === "create" ? (
-              <Card className="overflow-hidden p-0 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]">
+              <Card className="overflow-hidden p-0 xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col">
                 <div className="border-b border-slate-200 p-3 xl:hidden dark:border-slate-800">
                   <button
                     type="button"
@@ -905,7 +910,7 @@ export function StudentsPage() {
                     بازگشت به فهرست
                   </button>
                 </div>
-                <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-3 sm:p-4">
+                <div className="min-h-0 p-3 sm:p-4 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
                   <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback(null)} />
                   <div className={feedback ? "mt-4" : ""}>
                     <StudentEditor
@@ -934,21 +939,55 @@ export function StudentsPage() {
                 onBack={showDirectory}
                 dirty={dirty}
                 visibleTabs={visibleDetailTabs}
+                capabilities={auth.capabilities}
+                onCreate={auth.can("students.create") ? startCreate : undefined}
               >
                 {detailContent}
               </StudentDetail>
             ) : (
               <Card className="hidden xl:block">
                 <div className="grid min-h-64 place-items-center text-center">
-                  <div>
-                    <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                      <UserPlus size={20} />
-                    </span>
-                    <h2 className="mt-3 font-bold text-ink">یک دانش‌آموز را انتخاب کنید</h2>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      پرونده و فضای کاری در این بخش نمایش داده می‌شود.
-                    </p>
-                  </div>
+                  {studentStore.isLoading ? (
+                    <LoadingState label="در حال آماده‌سازی پرونده‌های دانش‌آموزان..." />
+                  ) : studentStore.isError ? (
+                    <ErrorState
+                      title="پرونده‌ها آماده نشدند."
+                      description="فهرست دانش‌آموزان را دوباره دریافت کنید و سپس یک پرونده را باز کنید."
+                      action={
+                        <Button variant="soft" onClick={() => void studentStore.refetch()}>
+                          تلاش دوباره
+                        </Button>
+                      }
+                    />
+                  ) : !students.length ? (
+                    <EmptyState
+                      title="هنوز دانش‌آموزی ثبت نشده است."
+                      description="پس از ساخت اولین دانش‌آموز، پرونده، فعالیت و تنظیمات حساب او در این بخش در دسترس خواهد بود."
+                      icon={<UserPlus size={20} />}
+                      action={
+                        auth.can("students.create") ? (
+                          <Button onClick={startCreate}>
+                            <UserPlus size={16} />
+                            ساخت دانش‌آموز
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  ) : (
+                    <EmptyState
+                      title="یک دانش‌آموز را انتخاب کنید"
+                      description="پرونده و فضای کاری دانش‌آموز انتخاب‌شده در این بخش نمایش داده می‌شود."
+                      icon={<UserPlus size={20} />}
+                      action={
+                        auth.can("students.create") ? (
+                          <Button onClick={startCreate}>
+                            <UserPlus size={16} />
+                            دانش‌آموز جدید
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  )}
                 </div>
               </Card>
             )}

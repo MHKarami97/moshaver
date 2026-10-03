@@ -6,12 +6,13 @@ import {
   LayoutGrid,
   Pencil,
   ShieldCheck,
+  UserPlus,
   UserRound,
   Workflow,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { Student } from "../../../shared/types/domain";
-import { Card } from "../../../shared/ui/ui";
+import { Button, Card } from "../../../shared/ui/ui";
 import {
   formatStudentLastSeen,
   getStudentStatus,
@@ -19,6 +20,7 @@ import {
   studentStatusCopy,
   type StudentDetailTab,
 } from "./student-ui";
+import { StudentWorkflowActions } from "./StudentWorkflowActions";
 
 const tabOptions = [
   ["overview", "نمای کلی", LayoutGrid],
@@ -36,6 +38,8 @@ export function StudentDetail({
   children,
   dirty = false,
   visibleTabs,
+  capabilities = [],
+  onCreate,
 }: {
   student: Student;
   tab: StudentDetailTab;
@@ -44,6 +48,8 @@ export function StudentDetail({
   children: ReactNode;
   dirty?: boolean;
   visibleTabs?: readonly StudentDetailTab[];
+  capabilities?: readonly string[];
+  onCreate?: () => void;
 }) {
   const [copied, setCopied] = useState<"id" | "username" | "">("");
   const status = studentStatusCopy[getStudentStatus(student)];
@@ -60,8 +66,8 @@ export function StudentDetail({
   }
 
   return (
-    <Card className="min-w-0 overflow-hidden p-0 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)]">
-      <div className="border-b border-slate-200 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
+    <Card className="min-w-0 overflow-hidden p-0 xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col">
+      <div className="z-[1] shrink-0 border-b border-slate-200 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
         <button
           type="button"
           onClick={onBack}
@@ -90,6 +96,12 @@ export function StudentDetail({
               آخرین فعالیت: {formatStudentLastSeen(student.last_seen_at)}
             </p>
           </div>
+          {onCreate ? (
+            <Button size="sm" className="mr-auto shrink-0" onClick={onCreate}>
+              <UserPlus size={15} />
+              دانش‌آموز جدید
+            </Button>
+          ) : null}
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <button
@@ -131,10 +143,11 @@ export function StudentDetail({
         <span className="sr-only" aria-live="polite">
           {copied === "id" ? "شناسه کپی شد" : copied === "username" ? "نام کاربری کپی شد" : ""}
         </span>
+        <StudentWorkflowActions studentId={student.id} capabilities={capabilities} />
       </div>
 
       <nav
-        className="overflow-x-auto border-b border-slate-200 px-2 dark:border-slate-800"
+        className="z-[1] shrink-0 overflow-x-auto border-b border-slate-200 bg-[rgb(var(--surface-card))] px-2 dark:border-slate-800"
         aria-label="بخش‌های پرونده دانش‌آموز"
       >
         <div className="flex min-w-max items-center gap-1">
@@ -155,7 +168,7 @@ export function StudentDetail({
         </div>
       </nav>
 
-      <div className="max-h-[calc(100vh-21rem)] overflow-y-auto p-3 sm:p-4 xl:max-h-[calc(100vh-20rem)]">
+      <div className="min-h-0 p-3 sm:p-4 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
         {children}
       </div>
     </Card>

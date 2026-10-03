@@ -36,7 +36,7 @@ export function ReportCompactList({
               <Metric label="تمرکز" value={`${fa(reportNumber(row.focus))}/۱۰`} />
             </div>
             {row.problem || row.tomorrow ? (
-              <div className="grid gap-1 border-t border-slate-100 pt-2 text-xs dark:border-slate-800">
+            <div className="grid gap-1 border-t border-[rgb(var(--border-subtle))] pt-2 text-xs">
                 {row.problem ? (
                   <span className="text-rose-700">مسئله: {String(row.problem)}</span>
                 ) : null}
@@ -117,7 +117,7 @@ export function ReportCompactList({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <span className="rounded-lg bg-slate-50 px-2 py-2 dark:bg-slate-900">
+    <span className="rounded-md bg-[rgb(var(--surface-muted))] px-2 py-2">
       <b className="block text-slate-800 dark:text-slate-100">{value}</b>
       <span className="mt-1 block text-slate-500">{label}</span>
     </span>

@@ -65,3 +65,4 @@ export { EducationBook } from "./education-book.entity";
 export { EducationClass } from "./education-class.entity";
 export { EducationClassBook } from "./education-class-book.entity";
 export { EducationClassEnrollment } from "./education-class-enrollment.entity";
+export { PermissionRequest } from "./permission-request.entity";

@@ -170,9 +170,9 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
       },
     ].filter((item) => item.show);
     return (
-      <div className="grid gap-5">
+      <div className="grid gap-4">
         <section className="grid gap-3 sm:grid-cols-2">
-          <Card className="p-5">
+          <Card className="p-3">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-bold">
                 <Activity size={18} />
@@ -190,7 +190,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
               </p>
             )}
           </Card>
-          <Card className="p-5">
+          <Card className="p-3">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-bold">
                 <Database size={18} />
@@ -210,7 +210,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
         <section aria-labelledby="system-tools">
           <h2
             id="system-tools"
-            className="mb-3 text-sm font-black text-slate-700 dark:text-slate-200"
+            className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-200"
           >
             ابزارهای در دسترس شما
           </h2>
@@ -219,10 +219,10 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
               <Link
                 key={to}
                 to={to}
-                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900"
+                className="group rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)] transition hover:border-brand/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 <Icon className="text-brand" size={22} />
-                <strong className="mt-5 block">{title}</strong>
+                <strong className="mt-3 block">{title}</strong>
                 <span className="mt-1 block text-xs leading-5 text-slate-500">{detail}</span>
               </Link>
             ))}
@@ -241,7 +241,7 @@ export function SystemPage({ view = "overview" }: { view?: SystemView }) {
     return (
       <div className="grid gap-5">
         {!canManageReleases ? (
-          <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
+          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
             این بخش برای نقش شما فقط خواندنی است.
           </div>
         ) : null}

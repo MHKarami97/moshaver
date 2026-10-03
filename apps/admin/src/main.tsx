@@ -15,6 +15,19 @@ document.documentElement.lang = "fa";
 initializeTheme();
 window.addEventListener(API_WORK_CONTEXT_EVENT, () => queryClient.clear());
 
+let scrollRevealTimer: number | undefined;
+window.addEventListener(
+  "scroll",
+  () => {
+    document.documentElement.classList.add("is-scrolling");
+    window.clearTimeout(scrollRevealTimer);
+    scrollRevealTimer = window.setTimeout(() => {
+      document.documentElement.classList.remove("is-scrolling");
+    }, 700);
+  },
+  { capture: true, passive: true },
+);
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <AppProviders>

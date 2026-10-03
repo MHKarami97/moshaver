@@ -51,4 +51,5 @@ export type LiveSnapshot = {
 
 export type LiveFilter = "all" | LiveState | "attention";
 
-export type LivePanel = "students" | "timeline";
+/** The active compact viewport on narrow screens. Desktop keeps all three panes visible. */
+export type LivePanel = "students" | "details" | "timeline";

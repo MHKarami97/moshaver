@@ -1,4 +1,4 @@
-import { LoaderCircle, Paperclip, Send, Smile } from "lucide-react";
+import { LoaderCircle, Send, Smile } from "lucide-react";
 
 import type { KeyboardEvent } from "react";
 
@@ -174,6 +174,8 @@ resize-none
 rounded-xl
 "
             placeholder={disabled ? "ارسال پیام امکان‌پذیر نیست" : "پیام..."}
+            aria-label={disabled ? "ارسال پیام امکان‌پذیر نیست" : "متن پیام"}
+            aria-describedby="chat-composer-help"
             disabled={disabled}
             onChange={(e) => {
               const node = e.currentTarget;
@@ -188,6 +190,7 @@ rounded-xl
           />
 
           <div
+            id="chat-composer-help"
             className="
 mt-1
 flex
@@ -213,27 +216,17 @@ hover:bg-slate-100
 dark:hover:bg-slate-800
 "
           onClick={insertEmoji}
+          aria-label="افزودن شکلک"
+          title="افزودن شکلک"
         >
           <Smile size={18} />
         </button>
 
         <button
-          type="button"
-          className="
-grid
-size-10
-rounded-xl
-place-items-center
-hover:bg-slate-100
-dark:hover:bg-slate-800
-"
-        >
-          <Paperclip size={18} />
-        </button>
-
-        <button
           type="submit"
           disabled={!value.trim() || busy || disabled}
+          aria-label={busy ? "در حال ارسال پیام" : "ارسال پیام"}
+          title="ارسال پیام"
           className="
 grid
 size-11

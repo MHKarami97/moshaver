@@ -5,9 +5,7 @@ import {
   BookOpen,
   BookPlus,
   Edit3,
-  RotateCcw,
   Save,
-  Search,
   Download,
   FileJson,
   FileSpreadsheet,
@@ -22,6 +20,8 @@ import { fa, normalizePersianText } from "../../../shared/lib/utils";
 import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { Badge, Button, Card, EmptyState, Field, Input, Select } from "../../../shared/ui/ui";
 import {
   createSubject,
@@ -258,39 +258,23 @@ export function SubjectsPage() {
   }
   return (
     <div className="grid gap-4">
-      <Card className="sticky top-16 z-10 p-3 shadow-sm">
+      <Card className="sticky top-14 z-10 p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-md bg-slate-100 p-1">
-            {canReadStudentSubjects ? (
-              <button
-                className={`rounded px-3 py-2 text-xs font-bold ${mode === "student" ? "bg-white text-brand shadow-sm" : "text-slate-500"}`}
-                onClick={() => {
-                  setMode("student");
-                  updateUrl({ mode: "student" });
-                }}
-              >
-                وضعیت دانش‌آموز
-              </button>
-            ) : null}
-            <button
-              className={`rounded px-3 py-2 text-xs font-bold ${mode === "catalog" ? "bg-white text-brand shadow-sm" : "text-slate-500"}`}
-              onClick={() => {
-                setMode("catalog");
-                updateUrl({ mode: "catalog" });
-              }}
-            >
-              فهرست سراسری
-            </button>
-            <button
-              className={`rounded px-3 py-2 text-xs font-bold ${mode === "books" ? "bg-white text-brand shadow-sm" : "text-slate-500"}`}
-              onClick={() => {
-                setMode("books");
-                updateUrl({ mode: "books" });
-              }}
-            >
-              کتاب‌های ۱۴۰۵–۱۴۰۶
-            </button>
-          </div>
+          <SegmentedControl
+            ariaLabel="بخش درس‌ها"
+            value={mode}
+            onValueChange={(next) => {
+              setMode(next);
+              updateUrl({ mode: next });
+            }}
+            options={[
+              ...(canReadStudentSubjects
+                ? [{ value: "student" as const, label: "وضعیت دانش‌آموز" }]
+                : []),
+              { value: "catalog", label: "فهرست سراسری" },
+              { value: "books", label: "کتاب‌های ۱۴۰۵–۱۴۰۶" },
+            ]}
+          />
           {mode === "student" ? (
             <div className="min-w-56 flex-1 md:max-w-xs">
               <StudentPicker
@@ -311,33 +295,18 @@ export function SubjectsPage() {
             </Button>
           ) : null}
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="flex h-10 min-w-56 flex-1 items-center gap-2 rounded-md border bg-slate-50 px-3">
-            <Search size={16} className="text-slate-400" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                updateUrl({ q: event.target.value });
-              }}
-              placeholder="جستجوی نام، کلید یا یادداشت درس"
-            />
-          </label>
-          {search ? (
-            <Button
-              className="h-9 px-2"
-              variant="ghost"
-              onClick={() => {
-                setSearch("");
-                updateUrl({ q: "" });
-              }}
-            >
-              <RotateCcw size={15} /> پاک‌کردن
-            </Button>
-          ) : null}
-          <Badge tone="blue">{rows.length.toLocaleString("fa-IR")} نتیجه</Badge>
-          {mode === "catalog" ? <Select className="h-10 w-36" value={category} onChange={(event) => { setCategory(event.target.value); updateUrl({ category: event.target.value }); }}><option value="">همه دسته‌ها</option>{[...new Set((subjects.data || []).map((item) => item.category || "عمومی"))].sort((a, b) => a.localeCompare(b, "fa")).map((item) => <option key={item} value={item}>{item}</option>)}</Select> : null}
+        <div className="mt-3">
+          <CollectionToolbar
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              updateUrl({ q: value });
+            }}
+            placeholder="جستجوی نام، کلید یا یادداشت درس"
+            onClear={search ? () => { setSearch(""); updateUrl({ q: "" }); } : undefined}
+            resultLabel={<Badge tone="blue">{rows.length.toLocaleString("fa-IR")} نتیجه</Badge>}
+            filters={mode === "catalog" ? <Select className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none" value={category} onChange={(event) => { setCategory(event.target.value); updateUrl({ category: event.target.value }); }}><option value="">همه دسته‌ها</option>{[...new Set((subjects.data || []).map((item) => item.category || "عمومی"))].sort((a, b) => a.localeCompare(b, "fa")).map((item) => <option key={item} value={item}>{item}</option>)}</Select> : undefined}
+          />
         </div>
       </Card>
       {mode === "student" ? (
@@ -406,8 +375,8 @@ export function SubjectsPage() {
 
 function EducationBookRow({ book }: { book: EducationBook }) {
   return (
-    <article className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
-      <span className="grid size-10 place-items-center rounded-full bg-amber-50 text-amber-700">
+    <article className="flex flex-wrap items-center gap-3 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)]">
+      <span className="grid size-9 place-items-center rounded-md bg-amber-50 text-amber-700">
         <BookOpen size={18} />
       </span>
       <div className="min-w-0 flex-1">

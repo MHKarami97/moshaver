@@ -23,35 +23,13 @@ import { useMessages } from "../hooks/useMessages";
 import { isNearBottom, mergeMessagePages, persistDraft, readDraft } from "../lib/chat-helpers";
 import { persistConversationScroll, readConversationScroll } from "../lib/chat-ui-storage";
 import { toFa } from "../lib/chat-formatters";
-import type {
-  CombinedConversationPage,
-  ConversationFilter,
-  ConversationSort,
-  MessagePage,
-} from "../model/chat.types";
-
-const conversationFilters: ConversationFilter[] = [
-  "all",
-  "unread",
-  "direct",
-  "group",
-  "favorites",
-  "drafts",
-  "online",
-];
-const conversationSorts: ConversationSort[] = ["recent", "unread", "online", "name"];
-
-export function parseConversationFilter(value: string | null): ConversationFilter {
-  return conversationFilters.includes(value as ConversationFilter)
-    ? (value as ConversationFilter)
-    : "all";
-}
-
-export function parseConversationSort(value: string | null): ConversationSort {
-  return conversationSorts.includes(value as ConversationSort)
-    ? (value as ConversationSort)
-    : "recent";
-}
+import type { CombinedConversationPage, MessagePage } from "../model/chat.types";
+import {
+  filterAndSortConversations,
+  parseConversationFilter,
+  parseConversationSort,
+  resolveActiveConversation,
+} from "../model/chat-view-state";
 
 export function ChatPage() {
   const auth = useAuth();
@@ -95,37 +73,29 @@ export function ChatPage() {
     });
   }, [allConversations]);
 
-  const filtered = useMemo(() => {
-    const items = allConversations.filter((item) => {
-      if (conversationFilter === "all") return true;
-      if (conversationFilter === "unread") return !!item.unread;
-      if (conversationFilter === "favorites") return favorites.has(item.id);
-      if (conversationFilter === "drafts") return !!drafts[item.id]?.trim();
-      if (conversationFilter === "online") return !!item.presence?.online;
-      return item.type === conversationFilter;
-    });
-    return [...items].sort((a, b) => {
-      if (conversationSort === "unread")
-        return Number(!!b.unread) - Number(!!a.unread) || activity(b) - activity(a);
-      if (conversationSort === "online")
-        return (
-          Number(!!b.presence?.online) - Number(!!a.presence?.online) || activity(b) - activity(a)
-        );
-      if (conversationSort === "name")
-        return conversationName(a).localeCompare(conversationName(b), "fa");
-      return activity(b) - activity(a);
-    });
-  }, [allConversations, conversationFilter, conversationSort, favorites, drafts]);
+  const filtered = useMemo(
+    () =>
+      filterAndSortConversations({
+        items: allConversations,
+        filter: conversationFilter,
+        sort: conversationSort,
+        favorites,
+        drafts,
+      }),
+    [allConversations, conversationFilter, conversationSort, favorites, drafts],
+  );
 
   const totalConversations = conversations.total;
   const totalUnread = conversations.unread;
   const active = useMemo(
     () =>
-      allConversations.find((item) => item.id === conversationId) ??
-      allConversations.find((item) => item.id === requestedConversationId) ??
-      allConversations.find((item) => String(item.student?.id || "") === requestedStudentId) ??
-      (selectedConversation?.id === conversationId ? selectedConversation : undefined) ??
-      allConversations[0],
+      resolveActiveConversation({
+        items: allConversations,
+        conversationId,
+        requestedConversationId,
+        requestedStudentId,
+        selectedConversation,
+      }),
     [
       allConversations,
       conversationId,
@@ -673,7 +643,10 @@ export function ChatPage() {
                     }}
                   />
                 ) : (
-                  <EmptyState title="هنوز پیامی ثبت نشده است." />
+                  <EmptyState
+                    title="هنوز پیامی ثبت نشده است."
+                    description="برای شروع گفتگو، پیام خود را در کادر پایین بنویسید."
+                  />
                 )}
 
                 {newMessageCount > 0 || !shouldStickRef.current ? (
@@ -811,7 +784,10 @@ export function ChatPage() {
               />
             </>
           ) : (
-            <EmptyState title="یک گفتگو را انتخاب کنید." />
+            <EmptyState
+              title="یک گفتگو را انتخاب کنید."
+              description="از فهرست گفتگوها یک دانش‌آموز یا گروه را باز کنید؛ یا گفتگوی جدید بسازید."
+            />
           )}
         </Card>
       </section>
@@ -819,12 +795,6 @@ export function ChatPage() {
   );
 }
 
-function activity(item: Conversation) {
-  return item.lastMessage?.createdAt ? new Date(item.lastMessage.createdAt).getTime() : 0;
-}
-function conversationName(item: Conversation) {
-  return item.type === "group" ? item.title || "" : item.student?.name || "";
-}
 function appendRealtimeMessage(
   qc: ReturnType<typeof useQueryClient>,
   conversationId: string,

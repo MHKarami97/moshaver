@@ -1,9 +1,11 @@
-import { CheckCheck, RefreshCw, Search } from "lucide-react";
+import { CheckCheck, RefreshCw } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocale } from "../../../shared/ui/locale";
 import { AdminList } from "../../../shared/ui/admin-list";
 import { Badge, Button } from "../../../shared/ui/ui";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import type { AdminNotification } from "../model/notification-model";
 import {
@@ -49,6 +51,7 @@ export function NotificationCenterPanel({
         "min-h-0 flex-col dark:border-slate-800 dark:bg-slate-900",
       ].join(" ")}
       contentClassName="min-h-0 flex-1 overflow-hidden"
+      stickyHeader
       emptyTitle={
         filter === "unread"
           ? "همه اعلان‌ها خوانده شده‌اند."
@@ -81,69 +84,41 @@ export function NotificationCenterPanel({
         </>
       }
       toolbar={
-        <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_180px] sm:items-center">
-          <div className="flex w-fit rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-            <button
-              type="button"
-              aria-pressed={filter === "all"}
-              className={[
-                "rounded-md px-3 py-1 text-xs transition",
-                filter === "all"
-                  ? "bg-white font-bold text-brand shadow-sm dark:bg-slate-700"
-                  : "text-slate-500 dark:text-slate-400",
-              ].join(" ")}
-              onClick={() => setFilter("all")}
-            >
-              همه
-            </button>
-
-            <button
-              type="button"
-              aria-pressed={filter === "unread"}
-              className={[
-                "rounded-md px-3 py-1 text-xs transition",
-                filter === "unread"
-                  ? "bg-white font-bold text-brand shadow-sm dark:bg-slate-700"
-                  : "text-slate-500 dark:text-slate-400",
-              ].join(" ")}
-              onClick={() => setFilter("unread")}
-            >
-              خوانده‌نشده
-              {notifications.unread > 0 ? (
-                <span className="mr-1 rounded-full bg-rose-600 px-1.5 text-white">
-                  {notifications.unread.toLocaleString("fa-IR")}
-                </span>
-              ) : null}
-            </button>
-          </div>
-
-          <label className="flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 dark:border-slate-700 dark:bg-slate-800">
-            <Search size={15} className="text-slate-400" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="جستجو در اعلان‌های بارگذاری‌شده"
-              aria-label="جستجوی اعلان‌ها"
+        <CollectionToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="جستجو در اعلان‌های بارگذاری‌شده"
+          searchLabel="جستجوی اعلان‌ها"
+          searchInputType="text"
+          onClear={search ? () => setSearch("") : undefined}
+          filters={<select className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs outline-none" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="نوع اعلان"><option value="all">همه نوع‌ها</option><option value="message">پیام</option><option value="exam">آزمون</option><option value="lesson">برنامه</option><option value="announcement">اطلاعیه</option></select>}
+          actions={
+            <SegmentedControl
+              ariaLabel="وضعیت خواندن اعلان‌ها"
+              value={filter}
+              onValueChange={setFilter}
+              options={[
+                { value: "all", label: "همه" },
+                { value: "unread", label: <>خوانده‌نشده {notifications.unread > 0 ? <span className="rounded-full bg-rose-600 px-1.5 text-white">{notifications.unread.toLocaleString("fa-IR")}</span> : null}</> },
+              ]}
             />
-          </label>
-
-          <select
-            className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
-            aria-label="نوع اعلان"
+          }
+        />
+      }
+      footer={
+        notifications.hasMore ? (
+          <Button
+            className="w-full sm:w-auto"
+            variant="soft"
+            loading={notifications.loadingMore}
+            onClick={notifications.loadMore}
           >
-            <option value="all">همه نوع‌ها</option>
-            <option value="message">پیام</option>
-            <option value="exam">آزمون</option>
-            <option value="lesson">برنامه</option>
-            <option value="announcement">اطلاعیه</option>
-          </select>
-        </div>
+            نمایش اعلان‌های بیشتر
+          </Button>
+        ) : null
       }
     >
-      <div className="grid h-full min-h-0 gap-1 overflow-y-auto overscroll-contain pl-1">
+      <div className="grid h-full min-h-0 gap-1 overflow-y-auto overscroll-contain pl-1 [scrollbar-gutter:stable]">
         {items.map((item) => (
           <button
             key={item.id}
@@ -153,9 +128,9 @@ export function NotificationCenterPanel({
               containIntrinsicSize: "76px",
             }}
             className={[
-              "rounded-xl border px-3 py-2 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+              "rounded-lg border px-3 py-2 text-right shadow-[var(--shadow-surface)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
               item.isRead
-                ? "border-slate-200 bg-white hover:border-brand dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand"
+                ? "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand dark:hover:border-brand"
                 : "border-indigo-200 bg-indigo-50/70 hover:border-brand dark:border-indigo-900 dark:bg-indigo-950/20",
             ].join(" ")}
             onClick={() => {
@@ -186,16 +161,6 @@ export function NotificationCenterPanel({
             ) : null}
           </button>
         ))}
-
-        {notifications.hasMore ? (
-          <Button
-            variant="soft"
-            loading={notifications.loadingMore}
-            onClick={notifications.loadMore}
-          >
-            نمایش اعلان‌های بیشتر
-          </Button>
-        ) : null}
       </div>
     </AdminList>
   );

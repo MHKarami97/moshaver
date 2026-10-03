@@ -10,6 +10,8 @@ import {
 import { Link } from "react-router-dom";
 import { AdminList } from "../../../shared/ui/admin-list";
 import { Badge, Button } from "../../../shared/ui/ui";
+import { ManagementPageHeader } from "../../../shared/ui/management-workspace";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { getAttentionQueue, type AttentionItem } from "../api/attention.api";
 import { useMemo, useState } from "react";
 
@@ -48,13 +50,11 @@ export function AttentionPage() {
 
   return (
     <section className="space-y-4">
-      <div>
-        <p className="text-xs font-bold text-brand">عملیات یکپارچه</p>
-        <h1 className="text-xl font-black">نیازمند توجه</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          فقط کارهایی را می‌بینید که در نقش و محدوده کاری فعلی شما مجاز هستند.
-        </p>
-      </div>
+      <ManagementPageHeader
+        eyebrow="عملیات یکپارچه"
+        title="نیازمند توجه"
+        description="فقط کارهایی را می‌بینید که در نقش و محدوده کاری فعلی شما مجاز هستند."
+      />
       <AdminList
         label="صف رسیدگی"
         description="درخواست‌ها، خطاها و پیام‌های باز با اولویت بالاتر در ابتدای صف قرار می‌گیرند."
@@ -63,20 +63,7 @@ export function AttentionPage() {
         error={queue.isError}
         errorTitle="صف نیازمند توجه دریافت نشد."
         onRetry={() => void queue.refetch()}
-        toolbar={
-          <div className="flex flex-wrap gap-2" aria-label="فیلتر اولویت">
-            {(["all", "urgent", "high", "normal"] as const).map((value) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={priority === value ? "primary" : "ghost"}
-                onClick={() => setPriority(value)}
-              >
-                {value === "all" ? "همه" : priorityLabels[value]}
-              </Button>
-            ))}
-          </div>
-        }
+        toolbar={<CollectionToolbar filters={( ["all", "urgent", "high", "normal"] as const).map((value) => <button key={value} type="button" className={`rounded px-2 py-1 text-[11px] ${priority === value ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setPriority(value)}>{value === "all" ? "همه" : priorityLabels[value]}</button>)} resultLabel={`${items.length.toLocaleString("fa-IR")} مورد`} />}
         actions={
           <Button
             size="sm"
@@ -104,7 +91,7 @@ export function AttentionPage() {
 
 export function AttentionCard({ item }: { item: AttentionItem }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <article className="rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Badge tone={priorityTones[item.priority]}>
@@ -118,7 +105,7 @@ export function AttentionCard({ item }: { item: AttentionItem }) {
       <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
         {item.description}
       </p>
-      <dl className="mt-4 grid gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
+      <dl className="mt-4 grid gap-2 border-t border-[rgb(var(--border-subtle))] pt-3 text-xs text-slate-500">
         <div className="flex items-center gap-2">
           <UserRound size={14} />
           <dt className="sr-only">مالک</dt>

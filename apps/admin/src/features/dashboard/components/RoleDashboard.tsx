@@ -321,7 +321,8 @@ export function RoleDashboard({
               size="sm"
               loading={refreshing}
               onClick={onRefresh}
-              aria-label="Refresh"
+              aria-label="به‌روزرسانی داده‌های داشبورد"
+              title="به‌روزرسانی داده‌های داشبورد"
             >
               <RefreshCw size={16} />
             </Button>

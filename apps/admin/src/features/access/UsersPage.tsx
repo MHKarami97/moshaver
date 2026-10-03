@@ -10,9 +10,7 @@ import {
   Plus,
   Power,
   RotateCcw,
-  Search,
   ShieldCheck,
-  X,
 } from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
@@ -21,6 +19,7 @@ import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
 import { Button, Card, EmptyState, Field, Input, Select } from "../../shared/ui/ui";
 import { AdminDataTable } from "../../shared/ui/admin-data-table";
+import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
 import {
   ManagementPageHeader,
   ManagementStat,
@@ -45,6 +44,8 @@ import {
   type PortalUser,
 } from "./api/access.api";
 import { OrganizationWorkspace } from "./OrganizationWorkspace";
+import { AccessFlowGuidance } from "./components/AccessFlowGuidance";
+import { emptyAccessResult } from "./model/access-flow";
 
 const allRoles = Object.keys(roleLabels) as RoleCode[];
 const organizationTypes = [
@@ -215,6 +216,7 @@ export function UsersPage() {
 
   return (
     <div className="grid gap-5">
+      <AccessFlowGuidance scope="users" canManage={canManage} />
       {isPlatformOwner ? (
         <Card className="border-brand/25 bg-brand/5 p-4">
           <div className="flex gap-3">
@@ -271,66 +273,15 @@ export function UsersPage() {
             value={new Set(users.data?.flatMap((x) => x.assignments.map((a) => a.role))).size}
           />
         </ManagementSummaryBar>
-        <Card className="p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_220px_180px]">
-            <Field label="جستجو">
-              <div className="relative">
-                <Search className="absolute right-3 top-3 text-slate-400" size={18} />
-                <Input
-                  className="pr-10"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="نام یا نام کاربری…"
-                />
-              </div>
-            </Field>
-            {isPlatform ? (
-              <Field label="محدوده سازمان">
-                <Select
-                  value={organizationId}
-                  onChange={(e) => {
-                    setOrganizationId(e.target.value);
-                    setSelectedUserId("");
-                    setSelectedIds([]);
-                  }}
-                >
-                  <option value="">همه پلتفرم</option>
-                  {organizations.data?.map((org) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : null}
-            <Field label="وضعیت">
-              <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="ALL">همه وضعیت‌ها</option>
-                <option value="ACTIVE">فعال</option>
-                <option value="DISABLED">غیرفعال</option>
-                <option value="ARCHIVED">بایگانی‌شده</option>
-              </Select>
-            </Field>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-500 dark:border-slate-800">
-            <span>
-              {visible.length.toLocaleString("fa-IR")} نتیجه از{" "}
-              {(users.data?.length || 0).toLocaleString("fa-IR")}
-            </span>
-            {search || status !== "ALL" ? (
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 font-bold text-brand"
-                onClick={() => {
-                  setSearch("");
-                  setStatus("ALL");
-                }}
-              >
-                <X size={14} />
-                پاک‌کردن فیلترها
-              </button>
-            ) : null}
-          </div>
+        <Card className="p-3 sm:p-4">
+          <CollectionToolbar
+            search={search}
+            onSearchChange={setSearch}
+            placeholder="نام یا نام کاربری…"
+            resultLabel={`${visible.length.toLocaleString("fa-IR")} نتیجه از ${(users.data?.length || 0).toLocaleString("fa-IR")}`}
+            onClear={search || status !== "ALL" ? () => { setSearch(""); setStatus("ALL"); } : undefined}
+            filters={<>{isPlatform ? <Select aria-label="محدوده سازمان" className="h-8 min-w-32 border-0 bg-transparent text-[11px]" value={organizationId} onChange={(e) => { setOrganizationId(e.target.value); setSelectedUserId(""); setSelectedIds([]); }}><option value="">همه پلتفرم</option>{organizations.data?.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}</Select> : null}<Select aria-label="وضعیت حساب" className="h-8 min-w-28 border-0 bg-transparent text-[11px]" value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">همه وضعیت‌ها</option><option value="ACTIVE">فعال</option><option value="DISABLED">غیرفعال</option><option value="ARCHIVED">بایگانی‌شده</option></Select></>}
+          />
         </Card>
       </section>
       {editing ? (
@@ -414,7 +365,25 @@ export function UsersPage() {
             <Retry message="دریافت کاربران ناموفق بود." retry={() => users.refetch()} />
           ) : !visible.length ? (
             <div className="p-6">
-              <EmptyState title="کاربری با این فیلتر یافت نشد." />
+              <EmptyState
+                title={emptyAccessResult("users", Boolean(search || status !== "ALL" || organizationId))}
+                action={
+                  search || status !== "ALL" || organizationId
+                    ? (
+                      <Button
+                        variant="soft"
+                        onClick={() => {
+                          setSearch("");
+                          setStatus("ALL");
+                          setOrganizationId("");
+                        }}
+                      >
+                        پاک‌کردن فیلترها
+                      </Button>
+                    )
+                    : undefined
+                }
+              />
             </div>
           ) : (
             <AdminDataTable
@@ -434,10 +403,21 @@ export function UsersPage() {
                       loading={bulkStatus.isPending}
                       disabled={protectedSelection}
                       onClick={() =>
-                        bulkStatus.mutate({
-                          ids: selectedRows.map((user) => user.id),
-                          active: true,
-                        })
+                        void modal
+                          .confirm({
+                            title: "فعال‌سازی حساب‌های انتخاب‌شده؟",
+                            description: `دسترسی ${selectedRows.length.toLocaleString("fa-IR")} حساب دوباره فعال می‌شود.`,
+                            confirmLabel: "فعال‌سازی",
+                            showCancel: true,
+                          })
+                          .then(
+                            (confirmed) =>
+                              confirmed &&
+                              bulkStatus.mutate({
+                                ids: selectedRows.map((user) => user.id),
+                                active: true,
+                              }),
+                          )
                       }
                     >
                       فعال‌سازی

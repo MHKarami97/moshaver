@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button, Field, Input } from "../../../shared/ui/ui";
 import { bootstrapPlatformAdmin } from "../api/auth.api";
 import { useAuth } from "../hooks/useAuth";
+import { useAuthLocale } from "../model/auth-locale";
 
 export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
   const auth = useAuth();
@@ -11,6 +12,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const { copy, direction } = useAuthLocale();
   const [values, setValues] = useState({
     username: "",
     email: "",
@@ -30,7 +32,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
         event.preventDefault();
         setError("");
         if (values.password !== values.passwordConfirmation) {
-          setError("تکرار رمز عبور با رمز انتخاب‌شده یکسان نیست.");
+          setError(copy.passwordsDoNotMatch);
           return;
         }
         setBusy(true);
@@ -45,7 +47,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
           await auth.login(values.username, values.password);
           navigate("/admin");
         } catch (reason) {
-          setError(reason instanceof Error ? reason.message : "ساخت حساب مدیر ناموفق بود.");
+          setError(reason instanceof Error ? reason.message : copy.accountCreationFailed);
         } finally {
           setBusy(false);
         }
@@ -53,13 +55,12 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
     >
       <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4 text-sm leading-6 text-slate-700 dark:text-slate-200">
         <span className="mb-2 flex items-center gap-2 font-bold text-brand">
-          <ShieldCheck size={18} /> راه‌اندازی نخستین مدیر
+          <ShieldCheck size={18} /> {copy.bootstrapNoticeTitle}
         </span>
-        این تنها ثبت‌نام عمومی مدیر است و فقط تا پیش از ایجاد نخستین مالک پلتفرم فعال می‌ماند. پس از
-        ثبت، با همین حساب وارد می‌شوید و مدیران بعدی را از بخش کاربران با سطح دسترسی محدود می‌سازید.
+        {copy.bootstrapNotice}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="نام">
+        <Field label={copy.firstName}>
           <Input
             autoComplete="given-name"
             required
@@ -68,7 +69,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
             disabled={busy}
           />
         </Field>
-        <Field label="نام خانوادگی">
+        <Field label={copy.lastName}>
           <Input
             autoComplete="family-name"
             required
@@ -78,7 +79,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
           />
         </Field>
       </div>
-      <Field label="ایمیل">
+      <Field label={copy.email}>
         <Input
           dir="ltr"
           type="email"
@@ -89,7 +90,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
           disabled={busy}
         />
       </Field>
-      <Field label="نام کاربری">
+      <Field label={copy.username}>
         <Input
           dir="ltr"
           autoComplete="username"
@@ -101,10 +102,10 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
         />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="رمز عبور">
+        <Field label={copy.password}>
           <div className="relative">
             <Input
-              className="pl-11"
+              className={direction === "rtl" ? "pl-11" : "pr-11"}
               dir="ltr"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
@@ -116,15 +117,18 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
             />
             <button
               type="button"
-              className="absolute inset-y-0 left-0 grid w-11 place-items-center text-slate-500"
-              aria-label={showPassword ? "پنهان کردن رمز" : "نمایش رمز"}
+              className={[
+                "absolute inset-y-0 grid w-11 place-items-center text-slate-500",
+                direction === "rtl" ? "left-0" : "right-0",
+              ].join(" ")}
+              aria-label={showPassword ? copy.hidePassword : copy.showPassword}
               onClick={() => setShowPassword((value) => !value)}
             >
               {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
         </Field>
-        <Field label="تکرار رمز عبور">
+        <Field label={copy.passwordConfirmation}>
           <Input
             dir="ltr"
             type={showPassword ? "text" : "password"}
@@ -137,10 +141,7 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
           />
         </Field>
       </div>
-      <p className="text-xs leading-5 text-slate-500">
-        رمز عبور باید دست‌کم ۱۲ نویسه باشد. آن را در محل امن نگه دارید؛ این اطلاعات فقط برای ساخت
-        نخستین مالک استفاده می‌شود.
-      </p>
+      <p className="text-xs leading-5 text-slate-500">{copy.passwordHelp}</p>
       {error ? (
         <p
           role="alert"
@@ -151,10 +152,10 @@ export function PlatformBootstrapForm({ onBack }: { onBack: () => void }) {
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
         <Button className="h-12" disabled={busy}>
-          {busy ? "در حال ساخت حساب…" : "ساخت مدیر و ورود"}
+          {busy ? copy.creatingAccount : copy.createAdminAndSignIn}
         </Button>
         <Button type="button" variant="soft" className="h-12" disabled={busy} onClick={onBack}>
-          بازگشت به ورود
+          {copy.backToLogin}
         </Button>
       </div>
     </form>

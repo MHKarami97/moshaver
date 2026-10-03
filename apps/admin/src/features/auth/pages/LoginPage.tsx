@@ -1,16 +1,33 @@
-import { BookOpenCheck, LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
+import { BookOpenCheck, Languages, LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { DevBackendSwitcher } from "../../../app/dev/DevBackendSwitcher";
+import { useLocale } from "../../../shared/ui/locale";
 import { BackendHealthStatus } from "../components/BackendHealthStatus";
 import { LoginForm } from "../components/LoginForm";
 import { PlatformBootstrapForm } from "../components/PlatformBootstrapForm";
 import { useAuth } from "../hooks/useAuth";
 import { getPlatformBootstrapStatus } from "../api/auth.api";
+import { AuthLocaleProvider, resolveAuthLanguage, useAuthLocale } from "../model/auth-locale";
 
 export function LoginPage() {
+  const locale = useLocale();
+  const language = resolveAuthLanguage(locale.profile.locale);
+
+  return (
+    <AuthLocaleProvider
+      language={language}
+      onToggleLanguage={() => locale.setLanguage(language === "fa" ? "en" : "fa")}
+    >
+      <LoginPageContent />
+    </AuthLocaleProvider>
+  );
+}
+
+function LoginPageContent() {
   const auth = useAuth();
+  const { copy, direction, toggleLanguage } = useAuthLocale();
   const [setupRequired, setSetupRequired] = useState(false);
   const [showBootstrap, setShowBootstrap] = useState(false);
 
@@ -28,10 +45,23 @@ export function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-paper px-4 py-6 sm:px-6 lg:grid lg:place-items-center lg:px-8">
-      <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-brand/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-saffron/10 blur-3xl" />
-      <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 lg:grid-cols-[1.05fr_0.95fr]">
+    <main
+      dir={direction}
+      className="scroll-reveal relative h-dvh overflow-x-hidden overflow-y-auto bg-paper px-4 py-6 sm:px-6 lg:grid lg:place-items-center lg:px-8"
+    >
+      <div
+        className={[
+          "pointer-events-none absolute -top-24 size-80 rounded-full bg-brand/10 blur-3xl",
+          direction === "rtl" ? "-right-24" : "-left-24",
+        ].join(" ")}
+      />
+      <div
+        className={[
+          "pointer-events-none absolute -bottom-32 size-96 rounded-full bg-saffron/10 blur-3xl",
+          direction === "rtl" ? "-left-20" : "-right-20",
+        ].join(" ")}
+      />
+      <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 lg:grid-cols-2">
         <section className="relative hidden min-h-[680px] overflow-hidden bg-gradient-to-br from-teal-950 via-teal-900 to-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -left-20 top-24 size-64 rounded-full bg-teal-400/10 blur-3xl" />
           <div className="relative">
@@ -40,25 +70,28 @@ export function LoginPage() {
                 <BookOpenCheck size={24} />
               </span>
               <div>
-                <p className="text-xs font-bold tracking-[0.2em] text-teal-200">MOSHAVER</p>
-                <strong className="text-lg">سامانه یکپارچه آموزش</strong>
+                <p className="text-xs font-bold tracking-[0.2em] text-teal-200">{copy.brandName}</p>
+                <strong className="text-lg">{copy.productName}</strong>
               </div>
             </div>
-            <h2 className="max-w-lg text-3xl font-black leading-[1.65]">
-              هر نقش، میز کار خودش؛ همه تیم، در یک مسیر روشن.
-            </h2>
-            <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">
-              از برنامه‌ریزی و یادگیری تا ارتباط، گزارش و مدیریت سازمان؛ ابزارهای مرتبط با نقش شما
-              بعد از ورود در دسترس قرار می‌گیرند.
-            </p>
+            <h2 className="max-w-lg text-3xl font-black leading-[1.65]">{copy.heroTitle}</h2>
+            <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">{copy.heroDescription}</p>
           </div>
           <div className="relative grid gap-3 sm:grid-cols-3">
-            <LoginBenefit icon={<UsersRound size={19} />} title="نقش‌محور" text="دسترسی متناسب" />
-            <LoginBenefit icon={<ShieldCheck size={19} />} title="امن" text="نشست محافظت‌شده" />
+            <LoginBenefit
+              icon={<UsersRound size={19} />}
+              title={copy.benefitRoleTitle}
+              text={copy.benefitRoleText}
+            />
+            <LoginBenefit
+              icon={<ShieldCheck size={19} />}
+              title={copy.benefitSecureTitle}
+              text={copy.benefitSecureText}
+            />
             <LoginBenefit
               icon={<BookOpenCheck size={19} />}
-              title="یکپارچه"
-              text="آموزش و عملیات"
+              title={copy.benefitUnifiedTitle}
+              text={copy.benefitUnifiedText}
             />
           </div>
         </section>
@@ -73,22 +106,29 @@ export function LoginPage() {
                 <strong>مشاور</strong>
               </div>
             </div>
-            <div className="mr-auto flex items-center gap-2">
+            <div className="ms-auto flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 transition hover:border-brand/30 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 dark:border-slate-700 dark:text-slate-200"
+                aria-label={copy.languageSwitch}
+                onClick={toggleLanguage}
+              >
+                <Languages size={16} aria-hidden="true" />
+                {copy.languageSwitch}
+              </button>
               <DevBackendSwitcher />
             </div>
           </div>
           <div className="my-auto py-8">
             <div className="mb-7">
               <p className="mb-2 text-xs font-bold text-brand">
-                {showBootstrap ? "راه‌اندازی سامانه" : "ورود به میز کار"}
+                {showBootstrap ? copy.setupPlatform : copy.workspaceLogin}
               </p>
               <h1 className="text-2xl font-black sm:text-3xl">
-                {showBootstrap ? "نخستین مدیر را بسازید" : "خوش آمدید"}
+                {showBootstrap ? copy.createFirstAdmin : copy.welcome}
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                {showBootstrap
-                  ? "یک حساب مالک بسازید. پس از این مرحله، ساخت مدیر فقط از داخل سامانه و با دسترسی کنترل‌شده انجام می‌شود."
-                  : "با حساب سازمانی خود وارد شوید. منوها و امکانات بر اساس نقش فعال شما تنظیم می‌شوند."}
+                {showBootstrap ? copy.setupDescription : copy.loginDescription}
               </p>
             </div>
             <BackendHealthStatus />
@@ -103,15 +143,13 @@ export function LoginPage() {
                     className="mt-4 w-full text-center text-sm font-bold text-brand underline-offset-4 hover:underline"
                     onClick={() => setShowBootstrap(true)}
                   >
-                    ساخت نخستین مالک سامانه
+                    {copy.createPlatformOwner}
                   </button>
                 ) : null}
               </>
             )}
           </div>
-          <p className="text-center text-[11px] text-slate-400">
-            ورود شما به معنی پذیرش سیاست‌های امنیت و حریم خصوصی سامانه است.
-          </p>
+          <p className="text-center text-[11px] text-slate-400">{copy.securityNotice}</p>
         </section>
       </div>
     </main>

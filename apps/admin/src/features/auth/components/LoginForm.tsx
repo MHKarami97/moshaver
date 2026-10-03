@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { Button, Field, Input } from "../../../shared/ui/ui";
 import { useAuth } from "../hooks/useAuth";
-import { loginSchema, type LoginFormValues } from "../model/login.schema";
+import { createLoginSchema, type LoginFormValues } from "../model/login.schema";
+import { useAuthLocale } from "../model/auth-locale";
 import { DemoAccountPicker } from "./DemoAccountPicker";
 
 export function LoginForm() {
@@ -13,9 +14,10 @@ export function LoginForm() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const { copy, direction } = useAuthLocale();
 
   const { register, handleSubmit, formState, setValue } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(createLoginSchema(copy)),
     defaultValues: {
       username: "",
       password: "",
@@ -34,23 +36,25 @@ export function LoginForm() {
           await auth.login(data.username, data.password);
           navigate("/admin");
         } catch (e) {
-          setError(e instanceof Error ? e.message : "ورود ناموفق بود");
+          setError(e instanceof Error ? e.message : copy.loginFailed);
         }
       })}
     >
-      <Field label="نام کاربری" error={formState.errors.username?.message}>
+      <Field label={copy.username} error={formState.errors.username?.message}>
         <Input
           className="h-12"
+          dir="ltr"
           autoComplete="username"
           disabled={checking}
           {...register("username")}
         />
       </Field>
 
-      <Field label="رمز عبور" error={formState.errors.password?.message}>
+      <Field label={copy.password} error={formState.errors.password?.message}>
         <div className="relative">
           <Input
-            className="h-12 pl-11"
+            className={direction === "rtl" ? "h-12 pl-11" : "h-12 pr-11"}
+            dir="ltr"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             disabled={checking}
@@ -59,8 +63,11 @@ export function LoginForm() {
 
           <button
             type="button"
-            className="absolute inset-y-0 left-0 grid w-11 place-items-center text-slate-500"
-            aria-label={showPassword ? "پنهان کردن رمز" : "نمایش رمز"}
+            className={[
+              "absolute inset-y-0 grid w-11 place-items-center text-slate-500",
+              direction === "rtl" ? "left-0" : "right-0",
+            ].join(" ")}
+            aria-label={showPassword ? copy.hidePassword : copy.showPassword}
             onClick={() => setShowPassword((value) => !value)}
           >
             {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -91,7 +98,7 @@ export function LoginForm() {
       ) : null}
 
       <Button className="h-12 w-full text-[15px]" disabled={checking || formState.isSubmitting}>
-        {checking ? "در حال بازیابی نشست…" : formState.isSubmitting ? "در حال ورود…" : "ورود"}
+        {checking ? copy.restoringSession : formState.isSubmitting ? copy.signingIn : copy.signIn}
       </Button>
     </form>
   );

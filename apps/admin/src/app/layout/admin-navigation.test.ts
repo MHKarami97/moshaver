@@ -8,6 +8,10 @@ import {
   flatAdminNavigation,
   mainAdminNavigation,
   mainNavigationForCapabilities,
+  localizedAdminBreadcrumbs,
+  localizedAdminCurrentNavigation,
+  localizedMainNavigationForCapabilities,
+  localizedNavigationForCapabilities,
   navigationForCapabilities,
   normalizeAdminPath,
   resolveAdminNavigation,
@@ -31,6 +35,7 @@ describe("admin navigation metadata", () => {
       "communication/chat",
       "communication/notifications",
       "students",
+      "permission-requests",
       "attention",
       "family",
       "onboarding",
@@ -164,5 +169,35 @@ describe("admin navigation metadata", () => {
     expect(adminDestination("communication/chat", "ارتباط", "student-1")).toBe(
       "/admin/communication/chat",
     );
+  });
+
+  it("provides English navigation labels without changing route or capability rules", () => {
+    const english = localizedNavigationForCapabilities(
+      ["students.read", "plans.read", "chat.read"],
+      "ADVISOR",
+      "en",
+    );
+    expect(english.find((group) => group.section === "Management")?.items[0]?.title).toBe(
+      "My students",
+    );
+    expect(localizedAdminCurrentNavigation("/admin/students", "en").description).toBe(
+      "Manage student accounts, status, and access",
+    );
+    expect(localizedAdminBreadcrumbs("exams", "en").map((item) => item.title)).toEqual([
+      "Home",
+      "Education",
+      "Assessments",
+    ]);
+    expect(
+      localizedMainNavigationForCapabilities(["plans.read", "chat.read"], "ADVISOR", "en").map(
+        (item) => item.title,
+      ),
+    ).toEqual([
+      "Advisor workspace",
+      "Plans and learning",
+      "Communication and follow-up",
+      "Students and reports",
+      "System and security",
+    ]);
   });
 });

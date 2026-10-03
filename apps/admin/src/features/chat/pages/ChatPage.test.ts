@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConversationFilter, parseConversationSort } from "./ChatPage";
+import { parseConversationFilter, parseConversationSort } from "../model/chat-view-state";
 
 describe("ChatPage URL view state", () => {
   it("accepts only supported conversation filters and sorting", () => {

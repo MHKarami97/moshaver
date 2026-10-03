@@ -23,7 +23,7 @@ export function StudentQueue({
   return (
     <Card
       className={[
-        panel === "timeline" ? "hidden lg:flex" : "flex",
+        panel === "students" ? "flex" : "hidden lg:flex",
         "min-h-0 flex-col overflow-hidden p-0",
       ].join(" ")}
     >

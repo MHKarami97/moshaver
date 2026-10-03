@@ -1,6 +1,7 @@
-import { CalendarClock, CircleHelp, Plus, RotateCcw, Search } from "lucide-react";
+import { CalendarClock, CircleHelp, Plus, RotateCcw } from "lucide-react";
 import { AdminList } from "../../../shared/ui/admin-list";
-import { Badge, Button, Input, Select } from "../../../shared/ui/ui";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { Badge, Button, Select } from "../../../shared/ui/ui";
 import type { Quiz } from "../model/quiz.types";
 
 type Props = {
@@ -60,38 +61,7 @@ export function QuizSidebar({
           </Button>
         ) : undefined
       }
-      toolbar={
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_auto] lg:items-end">
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-            size={16}
-          />
-          <Input
-            className="pr-9"
-            type="search"
-            placeholder="جست‌وجو بر اساس نام یا درس…"
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-          />
-        </div>
-        <Select
-          aria-label="فیلتر وضعیت آزمونک"
-          value={status}
-          onChange={(event) => onStatus(event.target.value)}
-        >
-          <option value="all">همه وضعیت‌ها</option>
-          <option value="active">فعال</option>
-          <option value="inactive">غیرفعال</option>
-        </Select>
-        {canCreate ? (
-          <Button onClick={onNew}>
-            <Plus size={16} />
-            آزمونک جدید
-          </Button>
-        ) : null}
-      </div>
-      }
+      toolbar={<CollectionToolbar search={search} onSearchChange={onSearch} placeholder="جست‌وجو بر اساس نام یا درس…" onClear={search || status !== "all" ? onClear : undefined} filters={<Select aria-label="فیلتر وضعیت آزمونک" className="h-8 min-w-28 border-0 bg-transparent text-[11px]" value={status} onChange={(event) => onStatus(event.target.value)}><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="inactive">غیرفعال</option></Select>} actions={canCreate ? <Button size="sm" onClick={onNew}><Plus size={15} />آزمونک جدید</Button> : undefined} />}
       actions={
         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <Badge tone="blue">{quizzes.length.toLocaleString("fa-IR")} نتیجه</Badge>
@@ -104,7 +74,7 @@ export function QuizSidebar({
               key={item.id}
               type="button"
               onClick={() => onSelect(item.id)}
-              className={`grid min-h-36 content-between gap-3 rounded-xl border p-4 text-right transition focus:outline-none focus:ring-2 focus:ring-brand ${selectedId === item.id ? "border-brand bg-brand/5 shadow-sm" : "border-slate-200 bg-white hover:border-brand/50 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"}`}
+              className={`grid min-h-36 content-between gap-3 rounded-lg border p-3 text-right shadow-[var(--shadow-surface)] transition focus:outline-none focus:ring-2 focus:ring-brand ${selectedId === item.id ? "border-brand bg-brand/5" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand/50 hover:bg-[rgb(var(--surface-muted))]"}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">

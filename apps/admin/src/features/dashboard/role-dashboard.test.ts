@@ -56,4 +56,18 @@ describe("role dashboard workflows", () => {
     ]);
     expect(actions.some((item) => item.to === "/admin/questions")).toBe(false);
   });
+
+  it("gives every displayed handoff a plain-language outcome", () => {
+    const actions = quickActionsForRole("ADVISOR", [
+      "students.read",
+      "plans.read",
+      "learning.read",
+      "reports.read",
+      "chat.read",
+      "learning_resources.manage",
+    ]);
+
+    expect(actions).toHaveLength(6);
+    expect(actions.every((action) => action.description.length > 12)).toBe(true);
+  });
 });

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarRange, LayoutGrid, List, RefreshCw, Search } from "lucide-react";
+import { CalendarRange, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { useLocale } from "../../../shared/ui/locale";
-import { Button, Card, EmptyState, Input } from "../../../shared/ui/ui";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
+import { Button, Card, EmptyState, Select } from "../../../shared/ui/ui";
 import { useStudentSelection } from "../../../shared/hooks/useStudentSelection";
 import { addDays, todayIso, normalizePersianText } from "../../../shared/lib/utils";
 import { getReports } from "../api/reports.api";
@@ -88,7 +90,7 @@ export function ReportsPage() {
         title="گزارش‌های دانش‌آموزان"
         description="دانش‌آموز، بازه زمانی و گزارش را در یک جریان انتخاب و بررسی کنید."
       />
-      <Card>
+      <Card className="sticky top-14 z-10 shadow-[var(--shadow-surface)]">
         <div className="grid gap-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_minmax(160px,0.7fr)_minmax(160px,0.7fr)]">
             <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
@@ -116,7 +118,7 @@ export function ReportsPage() {
               />
             </label>
           </div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap items-center gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
               <CalendarRange size={15} />
               بازه سریع:
@@ -126,7 +128,7 @@ export function ReportsPage() {
                 key={preset.days}
                 type="button"
                 onClick={() => applyPreset(preset.days)}
-                className="min-h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                className="min-h-8 rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 {preset.label}
               </button>
@@ -146,7 +148,10 @@ export function ReportsPage() {
         <Card>
           <div className="grid gap-3" aria-label="در حال دریافت گزارش‌ها">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="h-36 animate-pulse rounded-xl bg-slate-100" />
+              <div
+                key={item}
+                className="h-36 animate-pulse rounded-lg bg-[rgb(var(--surface-muted))]"
+              />
             ))}
           </div>
         </Card>
@@ -170,55 +175,44 @@ export function ReportsPage() {
           <ReportSummary summary={summary} />
 
           <Card>
-            <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(220px,1fr)_auto_auto] lg:items-center">
-              <div className="relative min-w-0">
-                <Search
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  size={16}
-                />
-                <Input
-                  className="pr-9"
-                  placeholder="جستجو در مسئله یا برنامه فردا"
-                  value={search}
-                  onChange={(event) => setReportParams({ q: event.target.value })}
-                />
-              </div>
-              <label className="flex min-h-10 items-center gap-2 rounded-md border border-slate-200 dark:border-slate-700 px-2 text-xs font-semibold text-slate-600">
-                <span>ترتیب</span>
-                <select
-                  className="h-9 bg-transparent outline-none"
+            <CollectionToolbar
+              search={search}
+              onSearchChange={(value) => setReportParams({ q: value })}
+              placeholder="جستجو در مسئله یا برنامه فردا"
+              resultLabel={`${visibleReports.length.toLocaleString("fa-IR")} گزارش از ${reports.data.length.toLocaleString("fa-IR")} مورد`}
+              filters={
+                <Select
+                  className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs shadow-none"
+                  aria-label="ترتیب گزارش‌ها"
                   value={sort}
                   onChange={(event) => setReportParams({ sort: event.target.value as SortMode })}
                 >
                   <option value="newest">جدیدترین</option>
                   <option value="oldest">قدیمی‌ترین</option>
-                </select>
-              </label>
-              <div className="grid grid-cols-2 rounded-lg bg-slate-100 p-1" aria-label="نوع نمایش">
-                <button
-                  type="button"
-                  aria-pressed={view === "cards"}
-                  title="نمای کارت"
-                  onClick={() => setReportParams({ view: "cards" })}
-                  className={`grid size-9 place-items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${view === "cards" ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:text-ink"}`}
-                >
-                  <LayoutGrid size={16} />
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={view === "compact"}
-                  title="نمای فشرده"
-                  onClick={() => setReportParams({ view: "compact" })}
-                  className={`grid size-9 place-items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${view === "compact" ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:text-ink"}`}
-                >
-                  <List size={16} />
-                </button>
-              </div>
-            </div>
-            <div className="mb-3 text-xs text-slate-500">
-              {visibleReports.length.toLocaleString("fa-IR")} گزارش از{" "}
-              {reports.data.length.toLocaleString("fa-IR")} مورد نمایش داده می‌شود.
-            </div>
+                </Select>
+              }
+              actions={
+                <SegmentedControl
+                  ariaLabel="نوع نمایش"
+                  value={view}
+                  onValueChange={(next) => setReportParams({ view: next })}
+                  options={[
+                    {
+                      value: "cards",
+                      ariaLabel: "نمای کارت",
+                      title: "نمای کارت",
+                      label: <LayoutGrid size={15} />,
+                    },
+                    {
+                      value: "compact",
+                      ariaLabel: "نمای فشرده",
+                      title: "نمای فشرده",
+                      label: <List size={15} />,
+                    },
+                  ]}
+                />
+              }
+            />
             {visibleReports.length ? (
               view === "cards" ? (
                 <div className="grid gap-3">

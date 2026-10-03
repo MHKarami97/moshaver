@@ -11,6 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
+import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { cn, fa } from "../../../shared/lib/utils";
 import { useLocale } from "../../../shared/ui/locale";
 import type { AttentionSeverity, AttentionStudent } from "../model/dashboard.types";
@@ -50,8 +51,8 @@ export function AttentionInbox({
   const warning = students.filter((student) => student.severity === "yellow").length;
 
   return (
-    <Card id="attention-queue" className="scroll-mt-24 p-0 dark:border-slate-800 dark:bg-slate-900">
-      <header className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+    <Card id="attention-queue" className="scroll-mt-24 p-0">
+      <header className="flex flex-col gap-3 border-b border-[rgb(var(--border-subtle))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-slate-900 dark:text-white">دانش‌آموزان نیازمند توجه</h3>
@@ -64,34 +65,16 @@ export function AttentionInbox({
           </p>
         </div>
 
-        <div
-          className="flex gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800"
-          role="group"
-          aria-label="فیلتر شدت توجه"
-        >
-          {(
-            [
-              ["all", "همه", students.length],
-              ["red", "بحرانی", critical],
-              ["yellow", "هشدار", warning],
-            ] as Array<[Filter, string, number]>
-          ).map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-              className={cn(
-                "rounded-md px-2.5 py-1.5 text-[11px] font-bold transition",
-                filter === key
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white",
-              )}
-            >
-              {label} {fa(count)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="فیلتر شدت توجه"
+          value={filter}
+          onValueChange={setFilter}
+          options={[
+            { value: "all", label: <>همه {fa(students.length)}</> },
+            { value: "red", label: <>بحرانی {fa(critical)}</> },
+            { value: "yellow", label: <>هشدار {fa(warning)}</> },
+          ]}
+        />
       </header>
 
       {loading ? (
@@ -99,7 +82,7 @@ export function AttentionInbox({
           {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
-              className="h-24 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800"
+              className="h-24 animate-pulse rounded-lg bg-[rgb(var(--surface-muted))]"
             />
           ))}
         </div>
@@ -115,13 +98,13 @@ export function AttentionInbox({
           />
         </div>
       ) : filtered.length ? (
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="divide-y divide-[rgb(var(--border-subtle))]">
           {filtered.slice(0, 12).map((student) => {
             const online = Boolean(student.presence?.online);
             return (
               <article
                 key={student.id}
-                className="grid gap-3 px-4 py-3 transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40 lg:grid-cols-[minmax(180px,.7fr)_minmax(0,1.5fr)_auto] lg:items-center"
+                className="grid gap-3 px-4 py-3 transition hover:bg-[rgb(var(--surface-muted))] lg:grid-cols-[minmax(180px,.7fr)_minmax(0,1.5fr)_auto] lg:items-center"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -165,7 +148,7 @@ export function AttentionInbox({
                     return (
                       <span
                         key={`${reason.code}-${reason.value}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-[rgb(var(--surface-muted))] px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                       >
                         <Icon size={13} />
                         {reason.label}
@@ -194,7 +177,7 @@ export function AttentionInbox({
                   </Link>
                   <Link
                     to={`/admin/students?studentId=${encodeURIComponent(student.id)}`}
-                    className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="grid size-9 place-items-center rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] text-slate-500 transition hover:border-brand/30 hover:text-brand dark:text-slate-300"
                     aria-label={`بازکردن پروفایل ${student.name}`}
                     title="پروفایل دانش‌آموز"
                   >

@@ -36,6 +36,7 @@ export function LearningList({
       items={items}
       loading={loading}
       emptyTitle="موردی با این جست‌وجو و فیلتر پیدا نشد."
+      stickyHeader
       toolbar={
         <LearningFilters
           search={search}
@@ -46,7 +47,11 @@ export function LearningList({
         />
       }
     >
-      <div className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto pl-1">
+      <div
+        className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto overscroll-contain pl-1 pb-1"
+        aria-label="نتایج منابع یادگیری"
+        tabIndex={0}
+      >
         {items.map((item) => (
           <LearningRow
             key={item.id}

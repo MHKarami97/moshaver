@@ -13,6 +13,16 @@
       "verifyTasks": []
     },
     {
+      "id": "admin-workspace-ui",
+      "packageName": "@moshaver/admin-workspace-ui",
+      "path": "packages/admin-workspace-ui",
+      "kind": "product-package",
+      "dependsOn": [],
+      "install": false,
+      "bootstrapBuild": false,
+      "verifyTasks": ["test"]
+    },
+    {
       "id": "cmb-kernel",
       "packageName": "@moshaver/cmb-kernel",
       "path": "packages/cmb/kernel",
@@ -177,7 +187,7 @@
       "packageName": "moshaver-admin-v2",
       "path": "apps/admin",
       "kind": "application",
-      "dependsOn": ["api-contract"],
+      "dependsOn": ["admin-workspace-ui", "api-contract"],
       "install": true,
       "bootstrapBuild": false,
       "verifyTasks": ["typecheck", "format:check", "lint", "test", "test:a11y", "build"]

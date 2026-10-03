@@ -1,0 +1,156 @@
+import { useEffect, useMemo, useState } from "react";
+import { Check, RefreshCw, X } from "lucide-react";
+import { api } from "../../shared/api/api";
+import { AdminList } from "../../shared/ui/admin-list";
+import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
+import { ManagementPageHeader, ManagementStat, ManagementSummaryBar } from "../../shared/ui/management-workspace";
+import { useModal } from "../../shared/ui/modal";
+import { Badge, Button, Textarea } from "../../shared/ui/ui";
+
+type Request = {
+  id: string; studentName?: string; organizationName?: string; kind: string; title: string; details: string;
+  requestedFor: string | null; status: "PENDING" | "APPROVED" | "REJECTED"; supervisorNote: string; createdAt: string | null;
+};
+const statusLabel = { PENDING: "در انتظار بررسی", APPROVED: "تأیید شده", REJECTED: "رد شده" } as const;
+const statusTone = { PENDING: "amber", APPROVED: "green", REJECTED: "red" } as const;
+
+export function PermissionRequestsPage() {
+  const [rows, setRows] = useState<Request[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<"ALL" | Request["status"]>("PENDING");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const modal = useModal();
+  const load = () => {
+    setLoading(true); setError("");
+    void api.get<Request[]>("/permission-requests").then(setRows).catch((value) => setError(value.message || "دریافت درخواست‌ها ناموفق بود.")).finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+  const visible = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("fa-IR");
+    return rows.filter((row) => (status === "ALL" || row.status === status) && (!needle || [row.title, row.details, row.studentName, row.organizationName, row.kind].filter(Boolean).join(" ").toLocaleLowerCase("fa-IR").includes(needle)));
+  }, [query, rows, status]);
+  async function decide(row: Request, next: "APPROVED" | "REJECTED", supervisorNote: string) {
+    setBusy(row.id);
+    try {
+      const updated = await api.patch<Request>(`/permission-requests/${row.id}`, {
+        status: next,
+        supervisorNote,
+      });
+      setRows((current) => current.map((item) => (item.id === row.id ? updated : item)));
+      return true;
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "ثبت تصمیم ناموفق بود.");
+      return false;
+    } finally {
+      setBusy("");
+    }
+  }
+  function openDecisionModal(row: Request, next: "APPROVED" | "REJECTED") {
+    const approving = next === "APPROVED";
+    modal.open({
+      title: approving ? "تأیید درخواست مجوز" : "رد درخواست مجوز",
+      description: approving
+        ? "پس از ثبت، وضعیت درخواست برای دانش‌آموز تأیید می‌شود."
+        : "پس از ثبت، وضعیت درخواست برای دانش‌آموز رد می‌شود.",
+      size: "md",
+      content: (
+        <PermissionDecisionModal
+          request={row}
+          decision={next}
+          busy={busy === row.id}
+          onCancel={modal.close}
+          onSubmit={async (note) => {
+            if (await decide(row, next, note)) modal.close();
+          }}
+        />
+      ),
+    });
+  }
+  const pending = rows.filter((row) => row.status === "PENDING").length;
+  return (
+    <section className="grid gap-4">
+      <ManagementPageHeader eyebrow="سرپرستی سازمان" title="درخواست‌های مجوز" description="صف عملیاتی خروج از خوابگاه، مدرسه و سایر مجوزهای ثبت‌شده توسط دانش‌آموزان." action={<Button size="sm" variant="soft" loading={loading} onClick={load}><RefreshCw size={14} />به‌روزرسانی</Button>} />
+      <ManagementSummaryBar label="خلاصه درخواست‌ها">
+        <div className="grid min-w-[min(100%,32rem)] flex-1 grid-cols-3 gap-2">
+          <ManagementStat label="در انتظار" value={pending} active={status === "PENDING"} tone="warning" onClick={() => setStatus("PENDING")} />
+          <ManagementStat label="تأیید شده" value={rows.filter((row) => row.status === "APPROVED").length} active={status === "APPROVED"} tone="success" onClick={() => setStatus("APPROVED")} />
+          <ManagementStat label="همه موارد" value={rows.length} active={status === "ALL"} tone="muted" onClick={() => setStatus("ALL")} />
+        </div>
+      </ManagementSummaryBar>
+      <AdminList label="صف درخواست‌ها" description="تصمیم شما بلافاصله برای دانش‌آموز اعلان می‌شود." items={visible} loading={loading} error={Boolean(error)} errorTitle={error || undefined} onRetry={load} emptyTitle={status === "PENDING" ? "درخواستی برای بررسی ندارید." : "درخواستی با این فیلتر وجود ندارد."} toolbar={<CollectionToolbar search={query} onSearchChange={setQuery} placeholder="جست‌وجوی دانش‌آموز، عنوان یا سازمان…" resultLabel={`${visible.length.toLocaleString("fa-IR")} نتیجه`} onClear={query || status !== "PENDING" ? () => { setQuery(""); setStatus("PENDING"); } : undefined} filters={( ["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((item) => <button key={item} type="button" className={`rounded px-2 py-1 text-[11px] ${status === item ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setStatus(item)}>{item === "ALL" ? "همه" : statusLabel[item]}</button>)} />}>
+        <div className="divide-y divide-[rgb(var(--border-subtle))]">
+          {visible.map((row) => <article key={row.id} className="grid gap-3 px-1 py-3 sm:px-2 lg:grid-cols-[minmax(15rem,1fr)_auto] lg:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-ink">{row.title}</h2><Badge tone={statusTone[row.status]}>{statusLabel[row.status]}</Badge></div><p className="mt-1 text-xs text-slate-500">{row.studentName || "دانش‌آموز"} · {row.organizationName || "سازمان"} · {row.kind}</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{row.details}</p>{row.supervisorNote ? <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1.5 text-xs text-slate-600">یادداشت: {row.supervisorNote}</p> : null}</div>{row.status === "PENDING" ? <div className="flex shrink-0 gap-2"><Button size="sm" disabled={busy === row.id} onClick={() => openDecisionModal(row, "APPROVED")}><Check size={14} />تأیید</Button><Button size="sm" variant="danger" disabled={busy === row.id} onClick={() => openDecisionModal(row, "REJECTED")}><X size={14} />رد</Button></div> : null}</article>)}
+        </div>
+      </AdminList>
+    </section>
+  );
+}
+
+export function PermissionDecisionModal({
+  request,
+  decision,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  request: Request;
+  decision: "APPROVED" | "REJECTED";
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (note: string) => Promise<void>;
+}) {
+  const [note, setNote] = useState("");
+  const approving = decision === "APPROVED";
+  return (
+    <form
+      className="grid gap-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onSubmit(note.trim());
+      }}
+    >
+      <section className="grid gap-2 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <strong className="text-sm text-ink">{request.title}</strong>
+          <Badge tone={approving ? "green" : "red"}>{approving ? "در حال تأیید" : "در حال رد"}</Badge>
+        </div>
+        <p className="text-xs text-slate-600 dark:text-slate-300">
+          درخواستِ {request.studentName || "دانش‌آموز"} برای {request.organizationName || "سازمان"}
+        </p>
+        <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{request.details}</p>
+      </section>
+      <div className="grid gap-1.5">
+        <label htmlFor={`permission-note-${request.id}`} className="text-sm font-semibold text-ink">
+          پیام برای دانش‌آموز <span className="font-normal text-slate-500">(اختیاری)</span>
+        </label>
+        <p id={`permission-note-help-${request.id}`} className="text-xs leading-5 text-slate-500">
+          {approving
+            ? "در صورت نیاز، زمان بازگشت یا شرط تأیید را روشن بنویسید."
+            : "دلیل رد یا اقدام بعدی را بنویسید تا دانش‌آموز بداند چه کاری باید انجام دهد."}
+        </p>
+        <Textarea
+          id={`permission-note-${request.id}`}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          aria-describedby={`permission-note-help-${request.id}`}
+          placeholder={approving ? "مثلاً: تا ساعت ۲۰ بازگردید." : "مثلاً: لطفاً زمان خروج را با مسئول خوابگاه هماهنگ کنید."}
+          rows={3}
+          autoFocus
+        />
+      </div>
+      <p className="rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] px-3 py-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+        {approving
+          ? "ثبت تأیید، وضعیت درخواست را تغییر می‌دهد و تصمیم شما در فهرست قابل پیگیری می‌ماند."
+          : "ثبت رد، وضعیت درخواست را تغییر می‌دهد و پیام شما در فهرست قابل پیگیری می‌ماند."}
+      </p>
+      <div className="flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
+        <Button type="button" variant="soft" disabled={busy} onClick={onCancel}>انصراف</Button>
+        <Button type="submit" variant={approving ? "primary" : "danger"} loading={busy} loadingLabel="در حال ثبت…">
+          {approving ? "ثبت تأیید" : "ثبت رد"}
+        </Button>
+      </div>
+    </form>
+  );
+}

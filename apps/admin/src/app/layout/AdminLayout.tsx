@@ -8,13 +8,15 @@ import { AdminHeader } from "./AdminHeader";
 import { AdminMainSidebar } from "./AdminMainSidebar";
 import { AdminMobileBottomNav, AdminMobileDrawer } from "./AdminMobileNavigation";
 import {
-  adminBreadcrumbs,
-  navigationForCapabilities,
+  localizedAdminBreadcrumbs,
+  localizedAdminCurrentNavigation,
+  localizedNavigationForCapabilities,
   resolveAdminNavigation,
 } from "./admin-navigation";
 import { adminContentOffsetClass, shouldAutoCollapseMainRail } from "./layout-geometry";
 import { usePersistentCollapse } from "./layout-storage";
 import { roleLabel } from "../../shared/lib/role-ui";
+import { useLocale } from "../../shared/ui/locale";
 
 function readSelectedStudentId(search: string) {
   const urlValue = new URLSearchParams(search).get("studentId");
@@ -38,6 +40,7 @@ function isEditableTarget(target: EventTarget | null) {
 
 export function AdminLayout() {
   const auth = useAuth();
+  const { language, profile } = useLocale();
   const notificationState = useAdminNotifications();
   const location = useLocation();
   const [mainCollapsed, setMainCollapsed] = usePersistentCollapse("admin-main-sidebar-collapsed");
@@ -48,24 +51,21 @@ export function AdminLayout() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const wasContextRailVisible = useRef(false);
 
-  const current = resolveAdminNavigation(location.pathname);
-  const breadcrumbs = adminBreadcrumbs(location.pathname);
+  const sourceCurrent = resolveAdminNavigation(location.pathname);
+  const current = localizedAdminCurrentNavigation(location.pathname, language);
+  const breadcrumbs = localizedAdminBreadcrumbs(location.pathname, language);
   const contextual =
-    navigationForCapabilities(auth.capabilities, auth.activeRole).find(
+    localizedNavigationForCapabilities(auth.capabilities, auth.activeRole, language).find(
       (group) => group.section === current.section,
     )?.items || [];
   const showContextRail = contextual.length > 1;
   const selectedStudentId = readSelectedStudentId(location.search);
-  const contentOffset = adminContentOffsetClass({
-    showContextRail,
-    mainCollapsed,
-    contextCollapsed,
-  });
 
   // Entering a multi-page section reveals the adjacent contextual rail. Collapse
   // the primary (right) rail once to preserve workspace width; users may reopen it.
   useEffect(() => {
-    if (shouldAutoCollapseMainRail(wasContextRailVisible.current, showContextRail)) setMainCollapsed(true);
+    if (shouldAutoCollapseMainRail(wasContextRailVisible.current, showContextRail))
+      setMainCollapsed(true);
     wasContextRailVisible.current = showContextRail;
   }, [showContextRail, setMainCollapsed]);
 
@@ -93,8 +93,9 @@ export function AdminLayout() {
 
   return (
     <div
-      className="admin-role-shell min-h-screen bg-paper text-ink"
+      className="admin-role-shell h-dvh overflow-hidden bg-paper text-ink"
       data-role={auth.activeRole ?? "DEFAULT"}
+      dir={profile.direction}
     >
       <AdminMainSidebar
         collapsed={mainCollapsed}
@@ -103,6 +104,7 @@ export function AdminLayout() {
         selectedStudentId={selectedStudentId}
         onToggle={() => setMainCollapsed((value) => !value)}
         onOpenSearch={openCommandPalette}
+        direction={profile.direction}
       />
 
       {showContextRail ? (
@@ -114,11 +116,17 @@ export function AdminLayout() {
           unreadNotifications={notificationState.unread}
           selectedStudentId={selectedStudentId}
           onToggle={() => setContextCollapsed((value) => !value)}
+          direction={profile.direction}
         />
       ) : null}
 
       <div
-        className={`${contentOffset} min-h-screen min-w-0 transition-[margin] duration-200 motion-reduce:transition-none`}
+        className={`${adminContentOffsetClass({
+          showContextRail,
+          mainCollapsed,
+          contextCollapsed,
+          direction: profile.direction,
+        })} scroll-reveal h-dvh min-w-0 overflow-y-auto overscroll-contain transition-[margin] duration-200 motion-reduce:transition-none`}
       >
         <AdminHeader
           current={current}
@@ -129,6 +137,7 @@ export function AdminLayout() {
           role={roleLabel(auth.activeRole)}
           organization={auth.context?.activeOrganization?.name}
           multipleRoles={(auth.context?.roles.filter((role) => role !== "STUDENT").length || 0) > 1}
+          showStudent={sourceCurrent.section === "آموزش"}
         />
 
         <main className="w-full min-w-0 px-3 py-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-5 sm:py-5 lg:px-6 lg:pb-6 xl:px-8">
@@ -138,7 +147,11 @@ export function AdminLayout() {
         </main>
       </div>
 
-      <AdminMobileBottomNav current={current} selectedStudentId={selectedStudentId} />
+      <AdminMobileBottomNav
+        current={current}
+        selectedStudentId={selectedStudentId}
+        direction={profile.direction}
+      />
       <AdminMobileDrawer
         open={mobileNavigationOpen}
         current={current}
@@ -146,6 +159,7 @@ export function AdminLayout() {
         unreadNotifications={notificationState.unread}
         onClose={closeMobileNavigation}
         onOpenSearch={openCommandPalette}
+        direction={profile.direction}
       />
       <AdminCommandPalette
         open={commandPaletteOpen}

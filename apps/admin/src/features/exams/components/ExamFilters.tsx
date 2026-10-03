@@ -1,13 +1,12 @@
 import {
   CheckCircle2,
   FilePenLine,
-  RotateCcw,
-  Search,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import type { Exam } from "../../../shared/types/domain";
-import { Badge, Button, Card, Input, Select } from "../../../shared/ui/ui";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { Badge, Button, Card, Select } from "../../../shared/ui/ui";
 import type { ExamFilterStatus, ExamVisibilityFilter } from "../model/exam.types";
 
 export function ExamFilters({
@@ -44,11 +43,11 @@ export function ExamFilters({
   ).length;
 
   return (
-    <Card className="sticky top-16 z-20 overflow-hidden border-slate-200/80 bg-white/95 p-0 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:border-slate-800 dark:bg-slate-950/95 dark:supports-[backdrop-filter]:bg-slate-950/85">
-      <div className="border-b border-slate-200/80 p-3 sm:p-4 dark:border-slate-800">
+    <Card className="sticky top-14 z-20 overflow-hidden p-0 backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--surface-card))]/95">
+      <div className="border-b border-[rgb(var(--border-subtle))] p-3 sm:p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[rgb(var(--surface-muted))] text-slate-600 dark:text-slate-300">
               <SlidersHorizontal size={17} />
             </div>
 
@@ -60,52 +59,40 @@ export function ExamFilters({
             </div>
           </div>
 
-          {hasFilters ? (
-            <Button className="h-8 gap-1.5 px-2.5 text-xs" variant="ghost" onClick={onClear}>
-              <RotateCcw size={14} />
-              پاک‌کردن فیلترها
-            </Button>
-          ) : null}
         </div>
 
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_180px]">
-          <div className="relative">
-            <Search
-              size={16}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-            />
-            <Input
-              type="search"
-              aria-label="جست‌وجوی آزمون‌ها"
-              placeholder="جست‌وجوی نام، درس یا تاریخ…"
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              className="pr-9"
-            />
-          </div>
-
-          <Select
-            aria-label="فیلتر وضعیت آزمون"
-            value={status}
-            onChange={(event) => onStatusChange(event.target.value as ExamFilterStatus)}
-          >
-            <option value="all">همه وضعیت‌ها</option>
-            <option value="upcoming">آینده</option>
-            <option value="active">فعال</option>
-            <option value="completed">تمام‌شده</option>
-            <option value="cancelled">لغوشده</option>
-          </Select>
-
-          <Select
-            aria-label="فیلتر انتشار آزمون"
-            value={visibility}
-            onChange={(event) => onVisibilityChange(event.target.value as ExamVisibilityFilter)}
-          >
-            <option value="all">منتشر و پیش‌نویس</option>
-            <option value="published">منتشرشده</option>
-            <option value="draft">پیش‌نویس</option>
-          </Select>
-        </div>
+        <CollectionToolbar
+          search={search}
+          onSearchChange={onSearchChange}
+          placeholder="جست‌وجوی نام، درس یا تاریخ…"
+          onClear={hasFilters ? onClear : undefined}
+          filters={
+            <>
+              <Select
+                className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
+                aria-label="فیلتر وضعیت آزمون"
+                value={status}
+                onChange={(event) => onStatusChange(event.target.value as ExamFilterStatus)}
+              >
+                <option value="all">همه وضعیت‌ها</option>
+                <option value="upcoming">آینده</option>
+                <option value="active">فعال</option>
+                <option value="completed">تمام‌شده</option>
+                <option value="cancelled">لغوشده</option>
+              </Select>
+              <Select
+                className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
+                aria-label="فیلتر انتشار آزمون"
+                value={visibility}
+                onChange={(event) => onVisibilityChange(event.target.value as ExamVisibilityFilter)}
+              >
+                <option value="all">منتشر و پیش‌نویس</option>
+                <option value="published">منتشرشده</option>
+                <option value="draft">پیش‌نویس</option>
+              </Select>
+            </>
+          }
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-xs sm:px-4">
@@ -119,7 +106,7 @@ export function ExamFilters({
       </div>
 
       {selectedCount ? (
-        <div className="border-t border-slate-200/80 bg-slate-50/90 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/70 sm:px-4">
+        <div className="border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
               <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 px-2 text-xs text-white dark:bg-slate-100 dark:text-slate-900">

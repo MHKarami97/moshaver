@@ -165,7 +165,7 @@ export function ClassesPage() {
       <Card className="min-w-0 p-3">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-black">کلاس‌های سازمان</h2>
+            <h2 className="text-sm font-bold">کلاس‌های سازمان</h2>
             <p className="mt-1 text-xs text-slate-500">
               کتاب، دبیر، مشاور و ثبت‌نام را در یک جریان کنترل کنید.
             </p>
@@ -186,11 +186,11 @@ export function ClassesPage() {
               key={row.id}
               type="button"
               onClick={() => setSelectedId(row.id)}
-              className={`grid gap-2 rounded-xl border p-3 text-right transition ${selectedId === row.id ? "border-brand bg-brand/5 ring-1 ring-brand/15" : "border-slate-200 hover:border-brand/40 dark:border-slate-800"}`}
+              className={`grid gap-2 rounded-lg border p-3 text-right shadow-[var(--shadow-surface)] transition ${selectedId === row.id ? "border-brand bg-brand/5 ring-1 ring-brand/15" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand/40"}`}
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <span className="grid size-9 place-items-center rounded-lg bg-brand/10 text-brand">
+                  <span className="grid size-8 place-items-center rounded-md bg-brand/10 text-brand">
                     <GraduationCap size={18} />
                   </span>
                   <span>
@@ -352,7 +352,7 @@ function ClassDetail({
   return (
     <Card className="grid gap-3 p-3 xl:sticky xl:top-16">
       <div>
-        <h2 className="text-sm font-black">{classroom.name}</h2>
+        <h2 className="text-sm font-bold">{classroom.name}</h2>
         <p className="mt-1 text-xs text-slate-500">
           {classroom.code} · {classroom.enrollmentCount}/{classroom.capacity} دانش‌آموز
         </p>
@@ -382,8 +382,8 @@ function ClassDetail({
         <LoadingState label="در حال دریافت گزینه‌های کلاس…" />
       ) : options ? (
         <>
-          <section className="grid gap-2 border-t pt-3 dark:border-slate-800">
-            <h3 className="flex items-center gap-1 text-xs font-black">
+          <section className="grid gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
+            <h3 className="flex items-center gap-1 text-xs font-bold">
               <BookOpen size={14} />
               کتاب‌ها و دبیران
             </h3>

@@ -1,5 +1,6 @@
 import { ListFilter, RefreshCcw } from "lucide-react";
 import type { ReactNode } from "react";
+import { useSharedUiCopy } from "./locale";
 import { Button, Card, EmptyState, ErrorState, LoadingState } from "./ui";
 
 /**
@@ -23,6 +24,7 @@ export function AdminList<T>({
   footer,
   className = "",
   contentClassName = "",
+  stickyHeader = false,
 }: {
   label: string;
   description?: string;
@@ -40,17 +42,22 @@ export function AdminList<T>({
   className?: string;
   /** Enables fixed-height/scrolling consumers to keep the shared states in their viewport. */
   contentClassName?: string;
+  /** Keeps the collection context and controls available inside a bounded scroll region. */
+  stickyHeader?: boolean;
 }) {
+  const copy = useSharedUiCopy();
   const content = typeof children === "function" ? children(items) : children;
   return (
-    <Card className={`min-w-0 overflow-hidden p-0 ${className}`}>
-      <header className="grid gap-3 border-b border-slate-200 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4 dark:border-slate-800">
+    <Card className={`min-w-0 overflow-visible p-0 ${className}`}>
+      <header
+        className={`grid gap-3 border-b border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted)_/_95%)] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4 ${stickyHeader ? "sticky top-0 z-20" : ""}`}
+      >
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-brand/10 text-brand">
             <ListFilter size={18} />
           </span>
           <div className="min-w-0">
-            <h2 className="text-sm font-black text-ink">{label}</h2>
+            <h2 className="text-sm font-bold text-ink">{label}</h2>
             {description ? (
               <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
             ) : null}
@@ -61,30 +68,27 @@ export function AdminList<T>({
       </header>
       <div className={`p-3 sm:p-4 ${contentClassName}`}>
         {loading ? (
-          <LoadingState label={`در حال دریافت ${label}…`} />
+          <LoadingState label={copy.loading(label)} />
         ) : error ? (
           <ErrorState
-            title={errorTitle || `دریافت ${label} ناموفق بود.`}
+            title={errorTitle || copy.loadFailed(label)}
             action={
               onRetry ? (
                 <Button variant="soft" onClick={onRetry}>
                   <RefreshCcw size={15} />
-                  تلاش دوباره
+                  {copy.retry}
                 </Button>
               ) : undefined
             }
           />
         ) : !items.length ? (
-          <EmptyState
-            title={emptyTitle || `${label} برای نمایش وجود ندارد.`}
-            action={emptyAction}
-          />
+          <EmptyState title={emptyTitle || copy.emptyList(label)} action={emptyAction} />
         ) : (
           content
         )}
       </div>
       {footer ? (
-        <footer className="border-t border-slate-200 p-3 dark:border-slate-800">{footer}</footer>
+        <footer className="border-t border-[rgb(var(--border-subtle))] p-3">{footer}</footer>
       ) : null}
     </Card>
   );

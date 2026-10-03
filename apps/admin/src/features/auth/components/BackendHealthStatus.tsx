@@ -1,8 +1,10 @@
 import { CheckCircle2, RefreshCw, WifiOff } from "lucide-react";
 import { useBackendHealth } from "../hooks/useBackendHealth";
+import { useAuthLocale } from "../model/auth-locale";
 
 export function BackendHealthStatus() {
   const { health, checkHealth } = useBackendHealth();
+  const { copy } = useAuthLocale();
 
   return (
     <div
@@ -23,14 +25,16 @@ export function BackendHealthStatus() {
 
       <span className="min-w-0 flex-1 truncate">
         {health.loading
-          ? "در حال بررسی اتصال…"
-          : health.error || `اتصال برقرار است • نسخه ${health.data?.version || "—"}`}
+          ? copy.connectionChecking
+          : health.error
+            ? copy.connectionUnavailable
+            : copy.connectionReady(health.data?.version || "—")}
       </span>
 
       <button
         type="button"
         className="grid size-8 place-items-center rounded-lg transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-current"
-        aria-label="بررسی دوباره اتصال"
+        aria-label={copy.retryConnection}
         onClick={() => void checkHealth()}
       >
         <RefreshCw size={15} />

@@ -43,4 +43,14 @@ describe("AdminList", () => {
 
     expect(container.querySelector(".test-scroll-region")).toHaveTextContent("الف");
   });
+
+  it("can retain collection context while a bounded list is scrolled", () => {
+    const { container } = render(
+      <AdminList items={["الف"]} label="نمونه" stickyHeader>
+        {() => <p>الف</p>}
+      </AdminList>,
+    );
+
+    expect(container.querySelector("header")).toHaveClass("sticky", "z-20");
+  });
 });

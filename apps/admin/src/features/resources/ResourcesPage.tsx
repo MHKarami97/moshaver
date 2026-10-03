@@ -24,6 +24,8 @@ import { StudentAllocationControl } from "../../shared/ui/student-allocation-con
 import { listClasses } from "../education/api/classes.api";
 import { Badge, Button, Card, EmptyState, Input, Textarea } from "../../shared/ui/ui";
 import { AdminList } from "../../shared/ui/admin-list";
+import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
+import { SegmentedControl } from "../../shared/ui/segmented-control";
 import {
   createResource,
   deleteResource,
@@ -321,7 +323,9 @@ export function ResourcesPage() {
         items={visibleResources}
         loading={resources.isLoading}
         error={resources.isError}
-        onRetry={() => void Promise.all([resources.refetch(), students.refetch(), classes.refetch()])}
+        onRetry={() =>
+          void Promise.all([resources.refetch(), students.refetch(), classes.refetch()])
+        }
         emptyTitle={
           query || status !== "ALL" || category
             ? "منبعی با این فیلتر نیست."
@@ -336,87 +340,107 @@ export function ResourcesPage() {
             ساخت منبع
           </Button>
         }
-        toolbar={<div className="flex flex-wrap items-center gap-2">
-          <label className="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 dark:border-slate-700 dark:bg-slate-900">
-            <Search size={16} className="text-slate-400" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+        toolbar={
+          <>
+            <CollectionToolbar
+              search={query}
+              onSearchChange={setQuery}
               placeholder="جستجوی عنوان یا توضیح"
+              onClear={query ? () => setQuery("") : undefined}
+              resultLabel={
+                <Badge tone={visibleResources.length ? "blue" : "neutral"}>
+                  {visibleResources.length.toLocaleString("fa-IR")} نتیجه
+                </Badge>
+              }
+              filters={
+                <>
+                  <select
+                    className="h-8 min-w-28 border-0 bg-transparent px-2 text-xs outline-none"
+                    aria-label="فیلتر وضعیت منبع"
+                    value={status}
+                    onChange={(event) => setStatus(event.target.value as typeof status)}
+                  >
+                    <option value="ALL">همه وضعیت‌ها</option>
+                    <option value="PUBLISHED">منتشر</option>
+                    <option value="DRAFT">پیش‌نویس</option>
+                    <option value="ARCHIVED">بایگانی</option>
+                  </select>
+                  <select
+                    className="h-8 max-w-32 border-0 bg-transparent px-2 text-xs outline-none"
+                    aria-label="فیلتر دسته منبع"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    <option value="">همه دسته‌ها</option>
+                    {[...new Set((resources.data || []).map((item) => item.category || "عمومی"))]
+                      .sort((a, b) => a.localeCompare(b, "fa"))
+                      .map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                  </select>
+                </>
+              }
+              actions={
+                <>
+                  <SegmentedControl
+                    ariaLabel="نوع نمایش منابع"
+                    value={view}
+                    onValueChange={setView}
+                    options={[
+                      {
+                        value: "details",
+                        ariaLabel: "نمای ردیفی با جزئیات",
+                        title: "نمای ردیفی با جزئیات",
+                        label: <List size={15} />,
+                      },
+                      {
+                        value: "grid",
+                        ariaLabel: "نمای سه‌ستونه",
+                        title: "نمای سه‌ستونه",
+                        label: <LayoutGrid size={15} />,
+                      },
+                    ]}
+                  />
+                  <Button
+                    size="sm"
+                    variant="soft"
+                    disabled={editorPrerequisitesLoading || editorPrerequisitesError}
+                    onClick={() => openEditor()}
+                  >
+                    <Plus size={15} /> جدید
+                  </Button>
+                </>
+              }
             />
-          </label>
-          <select
-            className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-            value={status}
-            onChange={(event) => setStatus(event.target.value as typeof status)}
-          >
-            <option value="ALL">همه وضعیت‌ها</option>
-            <option value="PUBLISHED">منتشر</option>
-            <option value="DRAFT">پیش‌نویس</option>
-            <option value="ARCHIVED">بایگانی</option>
-          </select>
-          <select
-            className="h-10 max-w-32 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-          >
-            <option value="">همه دسته‌ها</option>
-            {[...new Set((resources.data || []).map((item) => item.category || "عمومی"))]
-              .sort((a, b) => a.localeCompare(b, "fa"))
-              .map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-          </select>
-          <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-900">
-            <button
-              type="button"
-              className={`rounded p-1.5 ${view === "details" ? "bg-white text-brand shadow-sm dark:bg-slate-800" : "text-slate-500"}`}
-              title="نمای ردیفی با جزئیات"
-              aria-label="نمای ردیفی با جزئیات"
-              onClick={() => setView("details")}
-            >
-              <List size={16} />
-            </button>
-            <button
-              type="button"
-              className={`rounded p-1.5 ${view === "grid" ? "bg-white text-brand shadow-sm dark:bg-slate-800" : "text-slate-500"}`}
-              title="نمای سه‌ستونه"
-              aria-label="نمای سه‌ستونه"
-              onClick={() => setView("grid")}
-            >
-              <LayoutGrid size={16} />
-            </button>
-          </div>
-          <Button
-            size="sm"
-            variant="soft"
-            disabled={editorPrerequisitesLoading || editorPrerequisitesError}
-            onClick={() => openEditor()}
-          >
-            <Plus size={15} />
-            جدید
-          </Button>
-          {editorPrerequisitesError ? (
-            <div className="flex flex-wrap items-center gap-1 text-xs text-rose-700" role="alert">
-              <span>دریافت فهرست دانش‌آموزان یا کلاس‌ها برای فرم منبع ناموفق بود.</span>
-              <Button size="sm" variant="ghost" onClick={retryEditorPrerequisites}>
-                تلاش دوباره
-              </Button>
-            </div>
-          ) : null}
-        </div>}
+            {editorPrerequisitesError ? (
+              <div
+                className="mt-2 flex flex-wrap items-center gap-1 text-xs text-rose-700"
+                role="alert"
+              >
+                <span>دریافت فهرست دانش‌آموزان یا کلاس‌ها برای فرم منبع ناموفق بود.</span>
+                <Button size="sm" variant="ghost" onClick={retryEditorPrerequisites}>
+                  تلاش دوباره
+                </Button>
+              </div>
+            ) : null}
+          </>
+        }
       >
-        <div className={`grid gap-2 ${view === "grid" ? "md:grid-cols-2 2xl:grid-cols-3" : "grid-cols-1"}`}>
+        <div
+          className={`grid gap-2 ${view === "grid" ? "md:grid-cols-2 2xl:grid-cols-3" : "grid-cols-1"}`}
+        >
           {visibleResources.map((item) => (
             <ResourceListItem
               key={item.id}
               item={item}
               view={view}
               selected={selectedId === item.id}
-              onSelect={() => setSelectedId(item.id)}
+              onSelect={() => {
+                setSelectedId(item.id);
+                openEditor(item);
+              }}
             />
           ))}
         </div>
@@ -903,7 +927,7 @@ function ResourceEditorModal({
         onChange={(studentIds) => setDraft({ ...draft, studentIds })}
         classes={classes}
       />
-      <div className="flex justify-end gap-2 border-t pt-3 dark:border-slate-800">
+      <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card)_/_96%)] px-1 pt-3 pb-1 shadow-[0_-8px_16px_rgb(15_23_42_/_0.04)]">
         <Button type="button" variant="ghost" onClick={onClose}>
           انصراف
         </Button>
@@ -971,7 +995,9 @@ function ResourceListItem({
       <button
         type="button"
         onClick={onSelect}
-        className={`grid min-h-36 content-start gap-2 rounded-xl border p-3 text-right transition ${frame}`}
+        className={`grid min-h-36 content-start gap-2 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${frame}`}
+        aria-label={`ویرایش منبع ${item.title}`}
+        title={`ویرایش ${item.title}`}
       >
         <span className="flex items-start justify-between gap-2">
           <span className={`grid size-9 place-items-center rounded-lg ${iconClass}`}>{icon}</span>
@@ -1002,7 +1028,9 @@ function ResourceListItem({
     <button
       type="button"
       onClick={onSelect}
-      className={`grid w-full gap-3 rounded-xl border p-3 text-right transition md:grid-cols-[2.75rem_minmax(10rem,1fr)_minmax(12rem,1.5fr)_auto] md:items-center ${frame}`}
+      className={`grid w-full gap-3 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand md:grid-cols-[2.75rem_minmax(10rem,1fr)_minmax(12rem,1.5fr)_auto] md:items-center ${frame}`}
+      aria-label={`ویرایش منبع ${item.title}`}
+      title={`ویرایش ${item.title}`}
     >
       <span className={`grid size-11 place-items-center rounded-xl ${iconClass}`}>{icon}</span>
       <span className="min-w-0">

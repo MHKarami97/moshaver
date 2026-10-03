@@ -154,6 +154,7 @@ export function OrganizationWorkspace({
     onSuccess: async () => {
       setUserId("");
       setShowAddForm(false);
+      notify("عضو با نقش انتخاب‌شده به سازمان افزوده شد.");
       await refresh();
     },
   });
@@ -167,16 +168,31 @@ export function OrganizationWorkspace({
       status?: "ACTIVE" | "INACTIVE";
       roleCodes?: RoleCode[];
     }) => updateOrganizationMember(organizationId, id, { status, roleCodes }),
-    onSuccess: refresh,
+    onSuccess: async (_, variables) => {
+      notify(
+        variables.status
+          ? variables.status === "ACTIVE"
+            ? "عضویت فعال شد."
+            : "عضویت غیرفعال شد."
+          : "نقش سازمانی عضو به‌روزرسانی شد.",
+      );
+      await refresh();
+    },
   });
   const remove = useMutation({
     mutationFn: (id: string) => removeOrganizationMember(organizationId, id),
-    onSuccess: refresh,
+    onSuccess: async () => {
+      notify("عضویت از سازمان حذف شد؛ حساب کاربری حفظ شده است.");
+      await refresh();
+    },
   });
   const decide = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "accept" | "reject" }) =>
       action === "accept" ? acceptRelationship(id) : rejectRelationship(id),
-    onSuccess: refresh,
+    onSuccess: async (_, variables) => {
+      notify(variables.action === "accept" ? "درخواست ارتباط تأیید شد." : "درخواست ارتباط رد شد.");
+      await refresh();
+    },
   });
   const createLink = useMutation({
     mutationFn: (body: Parameters<typeof createRelationship>[0]) => createRelationship(body),
@@ -186,8 +202,17 @@ export function OrganizationWorkspace({
       await refresh();
     },
   });
-  const revokeLink = useMutation({ mutationFn: removeRelationship, onSuccess: refresh });
-  const guardianOverride = useMutation({ mutationFn: allowGuardianChange });
+  const revokeLink = useMutation({
+    mutationFn: removeRelationship,
+    onSuccess: async () => {
+      notify("ارتباط لغو شد.");
+      await refresh();
+    },
+  });
+  const guardianOverride = useMutation({
+    mutationFn: allowGuardianChange,
+    onSuccess: () => notify("محدودیت تغییر سرپرست لغو شد."),
+  });
 
   const available = (users.data || []).filter(
     (user) => !members.data?.some((member) => member.user.id === user.id),
@@ -401,10 +426,21 @@ export function OrganizationWorkspace({
                         title={isActive ? "تعلیق" : "فعال‌سازی"}
                         disabled={update.isPending}
                         onClick={() =>
-                          update.mutate({
-                            id: member.user.id,
-                            status: isActive ? "INACTIVE" : "ACTIVE",
-                          })
+                          isActive
+                            ? void modal
+                                .confirm({
+                                  title: "غیرفعال‌کردن عضویت؟",
+                                  description: `${displayName(member.user)} تا فعال‌سازی مجدد به داده‌های این سازمان دسترسی ندارد.`,
+                                  tone: "danger",
+                                  confirmLabel: "غیرفعال‌کردن",
+                                  showCancel: true,
+                                })
+                                .then(
+                                  (confirmed) =>
+                                    confirmed &&
+                                    update.mutate({ id: member.user.id, status: "INACTIVE" }),
+                                )
+                            : update.mutate({ id: member.user.id, status: "ACTIVE" })
                         }
                         className={`grid size-9 place-items-center rounded-lg border transition disabled:opacity-50 ${
                           isActive

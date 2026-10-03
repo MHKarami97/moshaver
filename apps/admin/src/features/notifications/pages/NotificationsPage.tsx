@@ -69,7 +69,7 @@ export function NotificationsPage() {
   });
 
   return (
-    <div className="grid h-[calc(100dvh-132px)] min-h-0 gap-3 overflow-hidden lg:h-[calc(100dvh-96px)]">
+    <div className="flex h-[calc(100dvh-132px)] min-h-0 flex-col gap-3 overflow-hidden lg:h-[calc(100dvh-96px)]">
       <NotificationsToolbar
         onOpenSettings={() =>
           modal.open({

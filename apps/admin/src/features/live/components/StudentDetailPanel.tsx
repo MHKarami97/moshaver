@@ -1,18 +1,25 @@
 import { Card, EmptyState } from "../../../shared/ui/ui";
-import type { LiveStudent } from "../model/live.types";
+import type { LivePanel, LiveStudent } from "../model/live.types";
 import { StudentDetail } from "./StudentDetail";
 
 export function StudentDetailPanel({
+  panel,
   student,
   now,
   formatDateTime,
 }: {
+  panel: LivePanel;
   student?: LiveStudent;
   now: number;
   formatDateTime: (value?: string | Date) => string;
 }) {
   return (
-    <Card className="hidden min-h-0 flex-col overflow-hidden p-0 lg:flex">
+    <Card
+      className={[
+        panel === "details" ? "flex" : "hidden lg:flex",
+        "min-h-0 flex-col overflow-hidden p-0",
+      ].join(" ")}
+    >
       <div className="border-b px-3 py-2">
         <strong>کنترل سریع</strong>
 

@@ -29,7 +29,7 @@ export function StudentOverview({
   loading?: boolean;
   error?: boolean;
   onRetry?: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 }) {
   const completeness = getStudentProfileCompleteness(student);
   const missing = getMissingStudentProfileFields(student);
@@ -62,9 +62,11 @@ export function StudentOverview({
             اطلاعات سریع برای تصمیم‌گیری؛ ویرایش فقط در تب پروفایل انجام می‌شود.
           </p>
         </div>
-        <Button variant="soft" className="h-9" onClick={onEdit}>
-          ویرایش پروفایل
-        </Button>
+        {onEdit ? (
+          <Button variant="soft" className="h-9" onClick={onEdit}>
+            ویرایش پروفایل
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">

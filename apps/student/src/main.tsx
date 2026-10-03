@@ -66,6 +66,7 @@ const StudentClassesPage = lazy(() =>
     default: module.StudentClassesPage,
   })),
 );
+const PermissionRequestsPage = lazy(() => import("./features/permission-requests/PermissionRequestsPage").then((module) => ({ default: module.PermissionRequestsPage })));
 
 const syncController = initializeSync();
 
@@ -380,6 +381,7 @@ function App() {
                 }
               />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/permission-requests" element={access?.mode === "student" ? <PermissionRequestsPage /> : <Navigate to="/more" replace />} />
             </Routes>
           </Suspense>
         </StudentAppShell>

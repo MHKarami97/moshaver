@@ -1,6 +1,7 @@
-import { CheckCircle2, Copy, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, Copy, Pencil, Trash2 } from "lucide-react";
 import { AdminList } from "../../../shared/ui/admin-list";
-import { Button, Input } from "../../../shared/ui/ui";
+import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
+import { Button } from "../../../shared/ui/ui";
 import type { QuestionView } from "../model/question-model";
 import { questionNumber } from "../model/question-model";
 
@@ -94,29 +95,12 @@ export function QuestionsList(props: Props) {
 
 function SearchBox({ search, setSearch }: { search: string; setSearch: (value: string) => void }) {
   return (
-    <div className="relative">
-      <Search
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-        size={16}
-      />
-      <Input
-        className="pr-9"
-        type="search"
-        placeholder="جست‌وجو در متن، مبحث یا گزینه‌ها…"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-      />
-      {search ? (
-        <Button
-          className="absolute left-1 top-1/2 h-8 -translate-y-1/2 px-2"
-          variant="ghost"
-          aria-label="پاک‌کردن جست‌وجو"
-          onClick={() => setSearch("")}
-        >
-          <RotateCcw size={15} />
-        </Button>
-      ) : null}
-    </div>
+    <CollectionToolbar
+      search={search}
+      onSearchChange={setSearch}
+      placeholder="جست‌وجو در متن، مبحث یا گزینه‌ها…"
+      onClear={search ? () => setSearch("") : undefined}
+    />
   );
 }
 
@@ -192,7 +176,7 @@ function QuestionCard({
     );
   const correct = question.correctOption || question.correct_option || question.correctAnswer;
   return (
-    <article className="grid gap-3 rounded-xl border border-slate-200 p-3 shadow-sm transition hover:border-brand/40 dark:border-slate-800">
+    <article className="grid gap-3 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-3 shadow-[var(--shadow-surface)] transition hover:border-brand/40">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           {canDelete && question.id ? (
@@ -261,7 +245,7 @@ function QuestionCard({
         ))}
       </div>
       {question.explanation || question.hint ? (
-        <details className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+        <details className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
           <summary className="cursor-pointer font-semibold">توضیح و راهنمای مرور</summary>
           {question.explanation ? <p className="mt-2">{question.explanation}</p> : null}
           {question.hint ? <p className="mt-2 text-xs">راهنما: {question.hint}</p> : null}
@@ -281,7 +265,7 @@ function QuestionCard({
 function Option({ index, value, active }: { index: number; value: string; active: boolean }) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${active ? "bg-emerald-50 font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-slate-50 dark:bg-slate-900"}`}
+      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${active ? "bg-emerald-50 font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-[rgb(var(--surface-muted))]"}`}
     >
       {active ? (
         <CheckCircle2 size={15} />
