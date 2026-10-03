@@ -109,15 +109,13 @@ npm run cmb:publish:check  # validate source release prerequisites
 npm run cmb:pack           # stage and dry-run pack all CMB packages
 ```
 
-The staged artifacts are marked `UNLICENSED` until the repository owner adds an
-explicit license. Do not publish public npm packages or promise reuse rights
-until that legal decision is made. See the [release policy](../../docs/architecture/cmb-reference-and-release.md)
-for compatibility, migration, and release gates.
-
-When the owner has added the chosen license text to the repository root, stage
-public artifacts with its SPDX identifier. For example, an MIT release uses
-`CMB_LICENSE=MIT npm run cmb:pack`; the generated artifacts then include the
-root `LICENSE` file and declare `MIT` in their package metadata.
+This repository is MIT-licensed. The staged artifacts are public-release ready
+only when their package metadata, public API, compatibility checks, and
+release gates pass; `npm run cmb:pack` still never publishes them. Stage MIT
+artifacts with `CMB_LICENSE=MIT npm run cmb:pack`; the generated artifacts then
+include the root `LICENSE` file and declare `MIT` in their package metadata.
+See the [release policy](../../docs/architecture/cmb-reference-and-release.md)
+for compatibility, migration, and publishing gates.
 
 ## فارسی
 

@@ -2,11 +2,11 @@
   <img src="docs/assets/moshaver-readme-hero.svg" alt="Moshaver v2 — role-aware education platform" width="100%" />
 </p>
 
-<h1 align="center">Moshaver v2</h1>
+<h1 align="center">Moshaver Open Platform</h1>
 
 <p align="center">
-  <strong>One connected workspace around every student.</strong><br />
-  Plan learning, follow progress, run assessments, communicate, and act on what needs attention.
+  <strong>Open-source building blocks for secure operations software.</strong><br />
+  Moshaver Education is the first connected workspace built on the platform.
 </p>
 
 <p align="center">
@@ -30,7 +30,10 @@
 
 ## What is Moshaver?
 
-**Moshaver** is an open-source education operations platform that connects the people and workflows around a student in one system.
+**Moshaver Open Platform** is an MIT-licensed, self-hostable foundation for
+secure multi-organization operations software. **Moshaver Education** is its
+first product: an education operations platform that connects the people and
+workflows around a student in one system.
 
 Instead of separating planning, assessment, communication, reporting, and follow-up into disconnected tools, Moshaver brings them together through:
 
@@ -40,7 +43,20 @@ Instead of separating planning, assessment, communication, reporting, and follow
 - shared contracts and modular backend capabilities for long-term maintainability;
 - web, PWA, Tauri desktop/native, and Android delivery paths.
 
-The active product line is **v2** on `main` / `develop`. The historical v1.4 source is preserved on `archive/v1.4`.
+The active product line is **v2** on `main` / `develop`. The historical v1.4 source is preserved on `archive/v1.4`. The public platform identity is additive;
+existing `moshaver` package names, URLs, and contracts are unchanged.
+
+## Build beyond education
+
+Moshaver is not presented as a generic CRM or a finished no-code product. Its
+reusable **CMB — Composable Modular Backend Architecture** layer provides a
+safe baseline for other operational systems: identity, sessions, authorization,
+tenancy, health, migrations, notifications, realtime, activity, and data
+transfer. Your product still owns its domain model and policy.
+
+Start with the [Moshaver Open Platform guide](docs/platform/README.md) to run
+the education product, generate a new CMB service, understand extension
+boundaries, and see the platform roadmap.
 
 ## Why Moshaver?
 
@@ -258,6 +274,9 @@ Please do **not** disclose suspected vulnerabilities in public issues. Follow [S
 | Browse all docs | [docs/README.md](docs/README.md) |
 | Run and verify locally | [Repository runbook](docs/operations/repository-runbook.md) |
 | Make a safe change | [Developer handbook](docs/operations/developer-handbook.md) |
+| Build another product on CMB | [Moshaver Open Platform](docs/platform/README.md) |
+| Platform direction | [Platform roadmap](docs/platform/ROADMAP.md) |
+| Get help | [Support](SUPPORT.md) |
 | Understand Admin coverage | [Admin capability matrix](docs/ADMIN_V2_CAPABILITY_MATRIX.md) |
 | Review product direction | [Version roadmap](docs/product/version-roadmap.md) |
 | Review changes | [Product changelog](docs/releases/product-changelog.md) |

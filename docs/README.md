@@ -1,4 +1,4 @@
-# Moshaver Education Platform documentation
+# Moshaver Open Platform documentation
 
 This directory is the navigation hub for the active Moshaver v2 monorepo. Documentation is grouped by intent so contributors can distinguish current architecture, product behavior, operations, migration plans, and historical evidence.
 
@@ -7,6 +7,7 @@ Last repository documentation refresh: **2026-10-02**.
 ## Start here
 
 - **New to the product?** Read the [Product Showcase](../SHOWCASE.md).
+- **Building another operations product?** Start with the [Open Platform guide](./platform/README.md).
 - **New to the repository?** Read [Repository architecture](./architecture/repository-architecture.md).
 - **Running it locally?** Use the [Repository runbook](./operations/repository-runbook.md).
 - **Changing code?** Use the [Developer handbook](./operations/developer-handbook.md).
@@ -24,6 +25,7 @@ docs/
 ├── operations/    Run, validate, secure, recover and deploy the system
 ├── migrations/    Compatibility gaps and staged v1-to-v2 work
 ├── product/       Product direction, UX principles and shared assets
+├── platform/      Public platform adoption guide and capability roadmap
 ├── releases/      Changelog, release notes and evidence
 └── history/       Dated audits, fixes and evidence snapshots
 ```
@@ -50,6 +52,11 @@ Current behavior belongs in `architecture/`, `components/`, or `operations/`. Un
 - [Student v2 and Tauri runtime](./architecture/student-v2-tauri-runtime.md)
 - [AI repository operating system](./architecture/ai-repository-operating-system.md)
 - [Graphify](./architecture/graphify.md)
+
+## Open Platform
+
+- [Moshaver Open Platform](./platform/README.md)
+- [Platform roadmap](./platform/ROADMAP.md)
 
 ## Components and APIs
 
