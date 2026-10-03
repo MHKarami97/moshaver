@@ -11,7 +11,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth";
 import { normalizePersianText } from "../../shared/lib/utils";
 import { adminDestination, navigationForCapabilities } from "./admin-navigation";
-import { searchCommandPaletteEntities, type CommandPaletteEntity } from "./command-palette-search";
+import {
+  matchesCommandPaletteQuery,
+  searchCommandPaletteEntities,
+  type CommandPaletteEntity,
+} from "./command-palette-search";
 import { readStoredList, writeStoredList } from "./layout-storage";
 import type { AdminCurrentNavigation } from "./layout-types";
 
@@ -124,12 +128,15 @@ export function AdminCommandPalette({
   }, [auth.capabilities, normalizedQuery, open]);
   const results = useMemo(() => {
     if (!normalizedQuery) return recentItems.length ? recentItems : availableNavigation.slice(0, 8);
-    const navigation = availableNavigation.filter((item) => {
-      const haystack = normalizePersianText(
-        `${item.title} ${item.description} ${item.section} ${item.path}`.toLowerCase(),
-      );
-      return haystack.includes(normalizedQuery);
-    });
+    const navigation = availableNavigation.filter((item) =>
+      matchesCommandPaletteQuery(
+        normalizedQuery,
+        item.title,
+        item.description,
+        item.section,
+        item.path,
+      ),
+    );
     return [...entityResults, ...navigation];
   }, [normalizedQuery, recentItems, availableNavigation, entityResults]);
 

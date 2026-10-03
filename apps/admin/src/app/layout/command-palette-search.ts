@@ -20,8 +20,20 @@ type ConversationResult = {
   student?: { id?: string; name?: string };
 };
 
-function includesQuery(query: string, ...values: Array<string | undefined | null>) {
-  return normalizePersianText(values.filter(Boolean).join(" ").toLowerCase()).includes(query);
+/**
+ * A command may be described with its words in any order. Matching every
+ * normalized query token keeps the palette predictable for Persian phrases
+ * such as "آزمون جدید" and "جدید آزمون", while preserving partial matches.
+ */
+export function matchesCommandPaletteQuery(
+  query: string,
+  ...values: Array<string | undefined | null>
+) {
+  const normalizedQuery = normalizePersianText(query).toLowerCase().trim();
+  if (!normalizedQuery) return true;
+
+  const haystack = normalizePersianText(values.filter(Boolean).join(" ").toLowerCase());
+  return normalizedQuery.split(/\s+/).every((token) => haystack.includes(token));
 }
 
 async function optionalSearch<T>(
@@ -51,7 +63,9 @@ export async function searchCommandPaletteEntities({
     sources.push(
       optionalSearch(listStudents, (students) =>
         students
-          .filter((student) => includesQuery(query, student.name, student.grade, student.major))
+          .filter((student) =>
+            matchesCommandPaletteQuery(query, student.name, student.grade, student.major),
+          )
           .slice(0, 6)
           .map((student) => ({
             id: `student:${student.id}`,
@@ -69,7 +83,13 @@ export async function searchCommandPaletteEntities({
       optionalSearch(listUsers, (users) =>
         users
           .filter((user) =>
-            includesQuery(query, user.username, user.firstName, user.lastName, user.status),
+            matchesCommandPaletteQuery(
+              query,
+              user.username,
+              user.firstName,
+              user.lastName,
+              user.status,
+            ),
           )
           .slice(0, 6)
           .map((user) => ({
@@ -87,7 +107,9 @@ export async function searchCommandPaletteEntities({
     sources.push(
       optionalSearch(listOrganizations, (organizations) =>
         organizations
-          .filter((organization) => includesQuery(query, organization.name, organization.type))
+          .filter((organization) =>
+            matchesCommandPaletteQuery(query, organization.name, organization.type),
+          )
           .slice(0, 6)
           .map((organization) => ({
             id: `organization:${organization.id}`,
@@ -104,7 +126,7 @@ export async function searchCommandPaletteEntities({
     sources.push(
       optionalSearch(getExams, (exams) =>
         exams
-          .filter((exam) => includesQuery(query, exam.title, exam.subject))
+          .filter((exam) => matchesCommandPaletteQuery(query, exam.title, exam.subject))
           .slice(0, 6)
           .map((exam) => ({
             id: `exam:${exam.id}`,
@@ -126,7 +148,7 @@ export async function searchCommandPaletteEntities({
           const conversations = Array.isArray(result) ? result : result.items;
           return conversations
             .filter((conversation) =>
-              includesQuery(
+              matchesCommandPaletteQuery(
                 query,
                 conversation.title,
                 conversation.student?.name,
@@ -147,7 +169,7 @@ export async function searchCommandPaletteEntities({
     );
 
   const actions: CommandPaletteEntity[] = [];
-  if (can("exams.create") && includesQuery(query, "ایجاد آزمون جدید create exam"))
+  if (can("exams.create") && matchesCommandPaletteQuery(query, "ایجاد آزمون جدید create exam"))
     actions.push({
       id: "action:create-exam",
       title: "آزمون جدید",
@@ -156,7 +178,10 @@ export async function searchCommandPaletteEntities({
       destination: "/admin/exams?new=1",
       kind: "action",
     });
-  if (can("students.create") && includesQuery(query, "دانش آموز جدید ایجاد دانش آموز new student"))
+  if (
+    can("students.create") &&
+    matchesCommandPaletteQuery(query, "دانش آموز جدید ایجاد دانش آموز new student")
+  )
     actions.push({
       id: "action:create-student",
       title: "دانش‌آموز جدید",

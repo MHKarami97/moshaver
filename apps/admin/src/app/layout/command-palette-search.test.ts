@@ -16,7 +16,7 @@ vi.mock("../../features/access/api/access.api", () => ({
 vi.mock("../../features/exams/api/exams.api", () => ({ getExams: mocks.getExams }));
 vi.mock("../../shared/api/api", () => ({ api: { get: mocks.get } }));
 
-import { searchCommandPaletteEntities } from "./command-palette-search";
+import { matchesCommandPaletteQuery, searchCommandPaletteEntities } from "./command-palette-search";
 
 describe("command palette entity search", () => {
   beforeEach(() => {
@@ -55,6 +55,18 @@ describe("command palette entity search", () => {
       expect.objectContaining({ id: "action:create-exam", destination: "/admin/exams?new=1" }),
     );
     expect(mocks.getExams).not.toHaveBeenCalled();
+  });
+
+  it("matches normalized query tokens regardless of their order", async () => {
+    const results = await searchCommandPaletteEntities({
+      query: "جدید آزمون",
+      capabilities: ["exams.create"],
+    });
+
+    expect(results).toContainEqual(
+      expect.objectContaining({ id: "action:create-exam", destination: "/admin/exams?new=1" }),
+    );
+    expect(matchesCommandPaletteQuery("کريمی نگار", "نگار کریمی")).toBe(true);
   });
 
   it("exposes the student create shortcut only to student creators", async () => {
