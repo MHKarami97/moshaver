@@ -3,6 +3,7 @@ import { Download, FileJson, FileSpreadsheet, FlaskConical, Upload } from "lucid
 import { useRef } from "react";
 import { notify } from "./notifications";
 import { Button, Card } from "./ui";
+import { useLocale } from "./locale";
 
 export type QuestionBankTransferPayload = {
   schemaVersion: "1.0";
@@ -29,8 +30,10 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
   onImport: (data: T) => Promise<{ created: number }>;
   onImported: () => void;
 }) {
+  const { language, profile } = useLocale();
+  const copy = questionTransferCopy[language];
   const input = useRef<HTMLInputElement>(null);
-  const label = bankType === "exam" ? "بانک سؤال آزمون" : "بانک سؤال آزمونک";
+  const label = bankType === "exam" ? copy.examBank : copy.quizBank;
   const download = useMutation({
     mutationFn: async ({
       kind,
@@ -44,18 +47,17 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
       if (format === "json") downloadJson(data, filename);
       else await writeWorkbook(data, filename);
     },
-    onSuccess: () => notify("فایل آماده دانلود شد."),
+    onSuccess: () => notify(copy.downloadReady),
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "دریافت فایل ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.downloadFailed, "error"),
   });
   const upload = useMutation({
     mutationFn: onImport,
     onSuccess: (result) => {
       onImported();
-      notify(`${result.created.toLocaleString("fa-IR")} سؤال به ${label} افزوده شد.`);
+      notify(copy.imported(result.created, profile.locale, label));
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ورود سؤال‌ها ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.importFailed, "error"),
   });
   async function selectFile(file?: File) {
     if (!file) return;
@@ -64,11 +66,11 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
         ? await readWorkbook(file, bankType)
         : (JSON.parse(await file.text()) as T);
       if (!isCompatiblePayload(data, bankType)) {
-        throw new Error("ساختار فایل با این بانک سؤال سازگار نیست.");
+        throw new Error(copy.incompatible);
       }
       upload.mutate(data);
     } catch (error) {
-      notify(error instanceof Error ? error.message : "فایل JSON یا Excel معتبر نیست.", "error");
+      notify(error instanceof Error ? error.message : copy.invalidFile, "error");
     } finally {
       if (input.current) input.current.value = "";
     }
@@ -78,11 +80,8 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
   return (
     <Card className="grid gap-3 p-3">
       <div>
-        <h2 className="text-sm font-black">ورود و خروجی {label}</h2>
-        <p className="text-xs leading-5 text-slate-500">
-          قالب را برای شروع دانلود کنید، نمونه آن را ببینید و پس از تکمیل، همان فایل را وارد کنید.
-          هر ردیف باید چهار گزینه یکتا و پاسخ صحیح داشته باشد.
-        </p>
+        <h2 className="text-sm font-black">{copy.title(label)}</h2>
+        <p className="text-xs leading-5 text-slate-500">{copy.description}</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
@@ -92,7 +91,7 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
           onClick={get("export", "xlsx")}
         >
           <Download size={15} />
-          خروجی Excel
+          {copy.exportExcel}
         </Button>
         <Button
           size="sm"
@@ -101,7 +100,7 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
           onClick={get("export", "json")}
         >
           <FileJson size={15} />
-          خروجی JSON
+          {copy.exportJson}
         </Button>
         <Button
           size="sm"
@@ -110,7 +109,7 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
           onClick={get("template", "xlsx")}
         >
           <FileSpreadsheet size={15} />
-          قالب Excel
+          {copy.templateExcel}
         </Button>
         <Button
           size="sm"
@@ -119,7 +118,7 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
           onClick={get("template", "json")}
         >
           <FlaskConical size={15} />
-          نمونه JSON
+          {copy.sampleJson}
         </Button>
         {canManage ? (
           <>
@@ -132,7 +131,7 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
             />
             <Button size="sm" loading={upload.isPending} onClick={() => input.current?.click()}>
               <Upload size={15} />
-              ورود JSON یا Excel
+              {copy.importFile}
             </Button>
           </>
         ) : null}
@@ -140,6 +139,47 @@ export function QuestionBankDataTransfer<T extends QuestionBankTransferPayload>(
     </Card>
   );
 }
+
+const questionTransferCopy = {
+  fa: {
+    examBank: "بانک سؤال آزمون",
+    quizBank: "بانک سؤال آزمونک",
+    downloadReady: "فایل آماده دانلود شد.",
+    downloadFailed: "دریافت فایل ناموفق بود.",
+    imported: (count: number, locale: string, label: string) =>
+      `${count.toLocaleString(locale)} سؤال به ${label} افزوده شد.`,
+    importFailed: "ورود سؤال‌ها ناموفق بود.",
+    incompatible: "ساختار فایل با این بانک سؤال سازگار نیست.",
+    invalidFile: "فایل JSON یا Excel معتبر نیست.",
+    title: (label: string) => `ورود و خروجی ${label}`,
+    description:
+      "قالب را برای شروع دانلود کنید، نمونه آن را ببینید و پس از تکمیل، همان فایل را وارد کنید. هر ردیف باید چهار گزینه یکتا و پاسخ صحیح داشته باشد.",
+    exportExcel: "خروجی Excel",
+    exportJson: "خروجی JSON",
+    templateExcel: "قالب Excel",
+    sampleJson: "نمونه JSON",
+    importFile: "ورود JSON یا Excel",
+  },
+  en: {
+    examBank: "Exam question bank",
+    quizBank: "Quiz question bank",
+    downloadReady: "Your file is ready to download.",
+    downloadFailed: "Could not download the file.",
+    imported: (count: number, locale: string, label: string) =>
+      `${count.toLocaleString(locale)} questions were added to ${label}.`,
+    importFailed: "Could not import the questions.",
+    incompatible: "This file is not compatible with this question bank.",
+    invalidFile: "Choose a valid JSON or Excel file.",
+    title: (label: string) => `Import and export ${label}`,
+    description:
+      "Download a template to start, review the sample, then import the completed file. Every row needs four unique choices and a correct answer.",
+    exportExcel: "Export Excel",
+    exportJson: "Export JSON",
+    templateExcel: "Excel template",
+    sampleJson: "JSON sample",
+    importFile: "Import JSON or Excel",
+  },
+} as const;
 
 function isCompatiblePayload(
   value: unknown,

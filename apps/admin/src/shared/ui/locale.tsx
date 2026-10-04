@@ -277,6 +277,24 @@ const LocaleContext = createContext<{
   formatDateTime: (value?: string | Date) => string;
 } | null>(null);
 
+/**
+ * `Intl.DateTimeFormat` does not permit component fields such as `year` with
+ * `dateStyle` or `timeStyle`. Callers may intentionally choose a style, so
+ * only add the Admin's readable date defaults when no style is supplied.
+ */
+export function getAdminDateFormatOptions(
+  profile: LocationProfile,
+  options: Intl.DateTimeFormatOptions = {},
+): Intl.DateTimeFormatOptions {
+  const hasStyle = options.dateStyle !== undefined || options.timeStyle !== undefined;
+
+  return {
+    timeZone: profile.timeZone,
+    ...(hasStyle ? {} : { year: "numeric", month: "long", day: "numeric" }),
+    ...options,
+  };
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [location, setLocationState] = useState<LocationId>(
     () => (localStorage.getItem(key) as LocationId) || "iran",
@@ -302,13 +320,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       },
       formatDate(value?: string | Date, options: Intl.DateTimeFormatOptions = {}) {
         if (!value) return "";
-        return new Intl.DateTimeFormat(`${profile.locale}-u-ca-${profile.calendar}`, {
-          timeZone: profile.timeZone,
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          ...options,
-        }).format(toDate(value));
+        return new Intl.DateTimeFormat(
+          `${profile.locale}-u-ca-${profile.calendar}`,
+          getAdminDateFormatOptions(profile, options),
+        ).format(toDate(value));
       },
       formatDateTime(value?: string | Date) {
         if (!value) return "";

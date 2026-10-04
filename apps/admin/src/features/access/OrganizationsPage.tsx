@@ -1,17 +1,28 @@
-import { useEffect, useMemo, useState, type ComponentProps, type ReactNode } from "react";
+import { useState, type ComponentProps } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Building2, CheckCircle2, Crown, Pencil, Plus, Power, RotateCcw, ShieldCheck } from "lucide-react";
+import {
+  Archive,
+  Building2,
+  CheckCircle2,
+  Crown,
+  Pencil,
+  Plus,
+  Power,
+  RotateCcw,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
-import { roleLabels } from "../../shared/lib/role-ui";
 import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
+import { useLocale } from "../../shared/ui/locale";
 import { Button, Card, EmptyState, Field, Input, Select } from "../../shared/ui/ui";
 import { AdminDataTable } from "../../shared/ui/admin-data-table";
 import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
 import {
   ManagementPageHeader,
+  ManagementMasterDetail,
   ManagementStat,
   ManagementSummaryBar,
 } from "../../shared/ui/management-workspace";
@@ -36,21 +47,8 @@ import {
 import { OrganizationWorkspace } from "./OrganizationWorkspace";
 import { AccessFlowGuidance } from "./components/AccessFlowGuidance";
 import { emptyAccessResult } from "./model/access-flow";
+import { accessCopy } from "./model/access-copy";
 
-const allRoles = Object.keys(roleLabels) as RoleCode[];
-const organizationTypes = [
-  ["SCHOOL", "مدرسه"],
-  ["ACADEMY", "آکادمی"],
-  ["COUNSELING_CENTER", "مرکز مشاوره"],
-  ["PRIVATE_PRACTICE", "مجموعه خصوصی"],
-  ["OTHER", "سایر"],
-] as const;
-const statusLabels: Record<string, string> = {
-  ACTIVE: "فعال",
-  INACTIVE: "غیرفعال",
-  DISABLED: "غیرفعال",
-  ARCHIVED: "بایگانی‌شده",
-};
 const nameOf = (user: PortalUser) =>
   [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username;
 const errorText = (error: unknown, fallback: string) =>
@@ -60,6 +58,8 @@ export function OrganizationsPage() {
   const auth = useAuth(),
     modal = useModal(),
     qc = useQueryClient();
+  const { language, profile } = useLocale();
+  const copy = accessCopy[language];
   const isPlatform = auth.hasRole("PLATFORM_ADMIN"),
     canManage = isPlatform && auth.can("organization.manage");
   const organizations = useQuery({ queryKey: ["organizations"], queryFn: listOrganizations });
@@ -74,7 +74,7 @@ export function OrganizationsPage() {
     onSuccess: async () => {
       setDraft({ name: "", type: "SCHOOL" });
       setCreating(false);
-      notify("سازمان ساخته شد.");
+      notify(copy.organizationCreated);
       await refresh();
     },
   });
@@ -83,7 +83,7 @@ export function OrganizationsPage() {
       updateOrganization(org.id, { name: org.name, type: org.type, status: org.status }),
     onSuccess: async () => {
       setEditing(null);
-      notify("اطلاعات سازمان ذخیره شد.");
+      notify(copy.organizationSaved);
       await refresh();
     },
   });
@@ -91,23 +91,28 @@ export function OrganizationsPage() {
     mutationFn: archiveOrganization,
     onSuccess: async () => {
       await refresh();
-      notify("سازمان بایگانی شد.");
+      notify(copy.organizationArchived);
     },
   });
   const setEnabled = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       setOrganizationEnabled(id, enabled),
     onSuccess: async (_, { enabled }) => {
-      notify(enabled ? "دسترسی سازمان فعال شد." : "دسترسی سازمان غیرفعال شد.");
+      notify(enabled ? copy.organizationEnabled : copy.organizationDisabled);
       await refresh();
     },
   });
   const setFeatures = useMutation({
-    mutationFn: ({ id, enabledFeatures }: { id: string; enabledFeatures: (typeof organizationFeatures)[number][0][] }) =>
-      setOrganizationFeatures(id, enabledFeatures),
+    mutationFn: ({
+      id,
+      enabledFeatures,
+    }: {
+      id: string;
+      enabledFeatures: (typeof organizationFeatures)[number][0][];
+    }) => setOrganizationFeatures(id, enabledFeatures),
     onSuccess: async () => {
       modal.close();
-      notify("قابلیت‌های سازمان به‌روزرسانی شد.");
+      notify(copy.featuresUpdated);
       await refresh();
     },
   });
@@ -127,8 +132,8 @@ export function OrganizationsPage() {
     } as OrganizationSummary);
   const openFeatures = (organization: PortalOrganization) =>
     modal.open({
-      title: `قابلیت‌های ${organization.name}`,
-      description: "قابلیت غیرفعال از منو و API اعضای این سازمان حذف می‌شود.",
+      title: copy.organizationFeatures(organization.name),
+      description: copy.featureDialogDescription,
       size: "lg",
       content: (
         <OrganizationFeatureSettings
@@ -142,8 +147,10 @@ export function OrganizationsPage() {
     });
   const openEditor = (organization?: PortalOrganization) =>
     modal.open({
-      title: organization ? `ویرایش ${organization.name}` : "سازمان جدید",
-      description: organization ? "نام و نوع سازمان را به‌روزرسانی کنید." : "نام و نوع سازمان را وارد کنید.",
+      title: organization ? copy.editOrganization(organization.name) : copy.newOrganization,
+      description: organization
+        ? copy.editOrganizationDescription
+        : copy.newOrganizationDescription,
       size: "md",
       content: (
         <OrganizationEditor
@@ -159,26 +166,26 @@ export function OrganizationsPage() {
   return (
     <div className="grid gap-5">
       <AccessFlowGuidance scope="organizations" canManage={canManage} />
-      <section className="w-full" aria-label="ابزارهای فهرست سازمان‌ها">
+      <section className="w-full" aria-label={copy.organizationListTools}>
         <ManagementSummaryBar
           action={
             canManage ? (
               <Button onClick={() => openEditor()}>
                 <Plus size={16} />
-                سازمان جدید
+                {copy.newOrganization}
               </Button>
             ) : null
           }
         >
           <div className="flex w-full flex-wrap items-end gap-3">
-            <ManagementStat label="همه سازمان‌ها" value={organizations.data?.length ?? 0} />
+            <ManagementStat label={copy.allOrganizations} value={organizations.data?.length ?? 0} />
             <ManagementStat
-              label="فعال"
+              label={copy.active}
               value={organizations.data?.filter((x) => x.status === "ACTIVE").length ?? 0}
               tone="success"
             />
             <ManagementStat
-              label="بایگانی"
+              label={copy.archived}
               value={organizations.data?.filter((x) => x.status === "ARCHIVED").length ?? 0}
             />
 
@@ -186,338 +193,280 @@ export function OrganizationsPage() {
               <CollectionToolbar
                 search={search}
                 onSearchChange={setSearch}
-                placeholder="نام سازمان…"
-                resultLabel={`${filtered.length.toLocaleString("fa-IR")} نتیجه`}
+                placeholder={copy.searchOrganizations}
+                resultLabel={copy.resultCount(filtered.length, profile.locale)}
                 onClear={search ? () => setSearch("") : undefined}
               />
             </div>
           </div>
         </ManagementSummaryBar>
       </section>
-      {false && canManage && creating ? (
-        <Card className="p-5">
-          <SectionTitle
-            icon={<Plus size={18} />}
-            title="سازمان جدید"
-            subtitle="نوع سازمان را برای نمایش و گزارش‌گیری دقیق انتخاب کنید."
-          />
-          <form
-            className="mt-4 grid gap-3 sm:grid-cols-[1fr_240px_auto]"
-            onSubmit={(e) => {
-              e.preventDefault();
-              create.mutate(draft);
-            }}
-          >
-            <Field label="نام سازمان">
-              <Input
-                required
-                minLength={2}
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              />
-            </Field>
-            <OrganizationTypeField
-              value={draft.type}
-              onChange={(type) => setDraft({ ...draft, type })}
-            />
-            <div className="flex items-end">
-              <div className="flex gap-2">
-                <Button loading={create.isPending}>ساخت سازمان</Button>
-                <Button type="button" variant="ghost" onClick={() => setCreating(false)}>
-                  انصراف
-                </Button>
-              </div>
-            </div>
-            {create.isError ? (
-              <p role="alert" className="text-sm text-rose-700">
-                {errorText(create.error, "ساخت سازمان ناموفق بود.")}
-              </p>
-            ) : null}
-          </form>
-        </Card>
-      ) : null}
-      <section className="grid items-start gap-4 xl:h-[calc(100dvh-11rem)] xl:grid-cols-[minmax(420px,.9fr)_minmax(0,1.1fr)] xl:overflow-hidden">
-        <Card className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="فهرست سازمان‌ها">
-          {organizations.isLoading ? (
-            <LoadingRows />
-          ) : organizations.isError ? (
-            <Retry message="دریافت سازمان‌ها ناموفق بود." retry={() => organizations.refetch()} />
-          ) : !filtered.length ? (
-            <div className="p-6">
-              <EmptyState
-                title={emptyAccessResult("organizations", Boolean(search))}
-                action={
-                  search
-                    ? (
+      <ManagementMasterDetail
+        detailWidth="minmax(460px,1.1fr)"
+        directory={
+          <Card aria-label={copy.organizationList}>
+            {organizations.isLoading ? (
+              <LoadingRows />
+            ) : organizations.isError ? (
+              <Retry message={copy.organizationsFailed} retry={() => organizations.refetch()} />
+            ) : !filtered.length ? (
+              <div className="p-6">
+                <EmptyState
+                  title={emptyAccessResult("organizations", Boolean(search), language)}
+                  action={
+                    search ? (
                       <Button variant="soft" onClick={() => setSearch("")}>
-                        پاک‌کردن جستجو
+                        {copy.clearSearch}
                       </Button>
-                    )
-                    : undefined
-                }
-              />
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.map((org) => (
-                <article
-                  key={org.id}
-                  className={`p-4 transition ${selectedId === org.id ? "bg-brand/5" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/40"}`}
-                >
-                  {editing?.id === org.id ? (
-                    <form
-                      className="grid gap-3"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        update.mutate(editing);
-                      }}
-                    >
-                      <Field label="نام">
-                        <Input
-                          required
-                          value={editing.name}
-                          onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                    ) : undefined
+                  }
+                />
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                {filtered.map((org) => (
+                  <article
+                    key={org.id}
+                    className={`p-4 transition ${selectedId === org.id ? "bg-brand/5" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/40"}`}
+                  >
+                    {editing?.id === org.id ? (
+                      <form
+                        className="grid gap-3"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          update.mutate(editing);
+                        }}
+                      >
+                        <Field label={copy.organizationName}>
+                          <Input
+                            required
+                            value={editing.name}
+                            onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                          />
+                        </Field>
+                        <OrganizationTypeField
+                          value={editing.type}
+                          onChange={(type) => setEditing({ ...editing, type })}
                         />
-                      </Field>
-                      <OrganizationTypeField
-                        value={editing.type}
-                        onChange={(type) => setEditing({ ...editing, type })}
-                      />
-                      <Field label="وضعیت">
-                        <Select
-                          value={editing.status}
-                          onChange={(e) => setEditing({ ...editing, status: e.target.value })}
-                        >
-                          <option value="ACTIVE">فعال</option>
-                          <option value="INACTIVE">غیرفعال</option>
-                          <option value="ARCHIVED">بایگانی‌شده</option>
-                        </Select>
-                      </Field>
-                      <div className="flex gap-2">
-                        <Button loading={update.isPending}>ذخیره</Button>
-                        <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
-                          انصراف
-                        </Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
-                          <Building2 size={19} />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="truncate font-black">{org.name}</h2>
-                            <StatusPill status={org.status} />
-                          </div>
-                          <p className="mt-1 truncate text-xs text-slate-500">
-                            {organizationTypes.find(([value]) => value === org.type)?.[1] || org.type}
-                            {org.status !== "ARCHIVED" ? ` · ${(organizationFeatures.length - (org.disabledFeatures || []).length).toLocaleString("fa-IR")} قابلیت فعال` : ""}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <IconAction
-                            label={selectedId === org.id ? "فضای کار انتخاب شده" : `بازکردن فضای کار ${org.name}`}
-                            active={selectedId === org.id}
-                            disabled={org.status === "ARCHIVED"}
-                            onClick={() => setSelectedId(org.id)}
+                        <Field label={copy.accountStatus}>
+                          <Select
+                            value={editing.status}
+                            onChange={(e) => setEditing({ ...editing, status: e.target.value })}
                           >
-                            <CheckCircle2 size={17} />
-                          </IconAction>
-                          {auth.context?.activeOrganization?.id !== org.id && org.status === "ACTIVE" ? (
-                            <IconAction label={`انتخاب ${org.name} به‌عنوان زمینه کاری`} onClick={() => activate(org)}>
-                              <Building2 size={17} />
+                            <option value="ACTIVE">{copy.activeStatus}</option>
+                            <option value="INACTIVE">{copy.inactiveStatus}</option>
+                            <option value="ARCHIVED">{copy.archivedStatus}</option>
+                          </Select>
+                        </Field>
+                        <div className="flex gap-2">
+                          <Button loading={update.isPending}>{copy.save}</Button>
+                          <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
+                            {copy.cancel}
+                          </Button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+                            <Building2 size={19} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h2 className="truncate font-black">{org.name}</h2>
+                              <StatusPill status={org.status} />
+                            </div>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              {copy.organizationType(org.type)}
+                              {org.status !== "ARCHIVED"
+                                ? ` · ${copy.enabledFeatureCount(organizationFeatures.length - (org.disabledFeatures || []).length, profile.locale)}`
+                                : ""}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <IconAction
+                              label={
+                                selectedId === org.id
+                                  ? copy.selectedWorkspace
+                                  : copy.openWorkspace(org.name)
+                              }
+                              active={selectedId === org.id}
+                              disabled={org.status === "ARCHIVED"}
+                              onClick={() => setSelectedId(org.id)}
+                            >
+                              <CheckCircle2 size={17} />
                             </IconAction>
-                          ) : null}
-                        {canManage ? (
-                          <>
-                            <IconAction label={`ویرایش ${org.name}`} onClick={() => openEditor(org)}>
-                              <Pencil size={17} />
-                            </IconAction>
-                            {org.status !== "ARCHIVED" ? (
+                            {auth.context?.activeOrganization?.id !== org.id &&
+                            org.status === "ACTIVE" ? (
                               <IconAction
-                                label={org.status === "ACTIVE" ? `غیرفعال‌کردن ${org.name}` : `فعال‌کردن ${org.name}`}
-                                tone={org.status === "ACTIVE" ? "danger" : "primary"}
-                                loading={setEnabled.isPending && setEnabled.variables?.id === org.id}
-                                disabled={setEnabled.isPending}
-                                onClick={() =>
-                                  void modal
-                                    .confirm({
-                                      title: org.status === "ACTIVE" ? "غیرفعال‌کردن سازمان؟" : "فعال‌کردن سازمان؟",
-                                      description:
-                                        org.status === "ACTIVE"
-                                          ? `دسترسی سازمانی اعضای ${org.name} تا فعال‌سازی مجدد متوقف می‌شود.`
-                                          : `دسترسی سازمانی اعضای ${org.name} دوباره فعال می‌شود.`,
-                                      confirmLabel: org.status === "ACTIVE" ? "غیرفعال‌کردن" : "فعال‌کردن",
-                                      tone: org.status === "ACTIVE" ? "danger" : undefined,
-                                      showCancel: true,
-                                    })
-                                    .then(
-                                      (confirmed) =>
-                                        confirmed &&
-                                        setEnabled.mutate({ id: org.id, enabled: org.status !== "ACTIVE" }),
-                                    )
-                                }
+                                label={copy.selectWorkspace(org.name)}
+                                onClick={() => activate(org)}
                               >
-                                <Power size={17} />
+                                <Building2 size={17} />
                               </IconAction>
                             ) : null}
-                            {org.status !== "ARCHIVED" ? (
-                              <IconAction
-                                label={`بایگانی ${org.name}`}
-                                tone="danger"
-                                loading={archive.isPending && archive.variables === org.id}
-                                onClick={async () => {
-                                  if (
-                                    await modal.confirm({
-                                      title: "بایگانی سازمان",
-                                      description: `سازمان ${org.name} بایگانی شود؟ داده‌ها حذف نمی‌شوند.`,
-                                      confirmLabel: "بایگانی",
-                                      confirmationText: "بایگانی",
-                                      tone: "danger",
-                                      cancelLabel: "انصراف",
-                                      showCancel: true,
-                                    })
-                                  )
-                                    archive.mutate(org.id);
-                                }}
-                              >
-                                <Archive size={17} />
-                              </IconAction>
-                            ) : (
-                              <IconAction
-                                label={`بازیابی ${org.name}`}
-                                onClick={() =>
-                                  void modal
-                                    .confirm({
-                                      title: "بازیابی سازمان؟",
-                                      description: `سازمان ${org.name} و فضای مدیریتی آن دوباره فعال می‌شود.`,
-                                      confirmLabel: "بازیابی",
-                                      confirmationText: "بازیابی",
-                                      showCancel: true,
-                                    })
-                                    .then(
-                                      (confirmed) =>
-                                        confirmed && update.mutate({ ...org, status: "ACTIVE" }),
-                                    )
-                                }
-                              >
-                                <RotateCcw size={17} />
-                              </IconAction>
-                            )}
-                          </>
-                        ) : null}
+                            {canManage ? (
+                              <>
+                                <IconAction
+                                  label={copy.editOrganization(org.name)}
+                                  onClick={() => openEditor(org)}
+                                >
+                                  <Pencil size={17} />
+                                </IconAction>
+                                {org.status !== "ARCHIVED" ? (
+                                  <IconAction
+                                    label={
+                                      org.status === "ACTIVE"
+                                        ? copy.deactivateOrganization(org.name)
+                                        : copy.activateOrganization(org.name)
+                                    }
+                                    tone={org.status === "ACTIVE" ? "danger" : "primary"}
+                                    loading={
+                                      setEnabled.isPending && setEnabled.variables?.id === org.id
+                                    }
+                                    disabled={setEnabled.isPending}
+                                    onClick={() =>
+                                      void modal
+                                        .confirm({
+                                          title:
+                                            org.status === "ACTIVE"
+                                              ? copy.deactivateOrganizationTitle
+                                              : copy.activateOrganizationTitle,
+                                          description:
+                                            org.status === "ACTIVE"
+                                              ? copy.deactivateOrganizationDescription(org.name)
+                                              : copy.activateOrganizationDescription(org.name),
+                                          confirmLabel:
+                                            org.status === "ACTIVE"
+                                              ? copy.disableAccounts
+                                              : copy.activateAccounts,
+                                          tone: org.status === "ACTIVE" ? "danger" : undefined,
+                                          showCancel: true,
+                                        })
+                                        .then(
+                                          (confirmed) =>
+                                            confirmed &&
+                                            setEnabled.mutate({
+                                              id: org.id,
+                                              enabled: org.status !== "ACTIVE",
+                                            }),
+                                        )
+                                    }
+                                  >
+                                    <Power size={17} />
+                                  </IconAction>
+                                ) : null}
+                                {org.status !== "ARCHIVED" ? (
+                                  <IconAction
+                                    label={copy.archiveOrganization(org.name)}
+                                    tone="danger"
+                                    loading={archive.isPending && archive.variables === org.id}
+                                    onClick={async () => {
+                                      if (
+                                        await modal.confirm({
+                                          title: copy.archiveOrganizationTitle,
+                                          description: copy.archiveOrganizationDescription(
+                                            org.name,
+                                          ),
+                                          confirmLabel: copy.archive,
+                                          confirmationText: copy.archive,
+                                          tone: "danger",
+                                          cancelLabel: copy.cancel,
+                                          showCancel: true,
+                                        })
+                                      )
+                                        archive.mutate(org.id);
+                                    }}
+                                  >
+                                    <Archive size={17} />
+                                  </IconAction>
+                                ) : (
+                                  <IconAction
+                                    label={copy.restoreOrganization(org.name)}
+                                    onClick={() =>
+                                      void modal
+                                        .confirm({
+                                          title: copy.restoreOrganizationTitle,
+                                          description: copy.restoreOrganizationDescription(
+                                            org.name,
+                                          ),
+                                          confirmLabel: copy.restoreOrganization(org.name),
+                                          confirmationText: copy.restoreOrganization(org.name),
+                                          showCancel: true,
+                                        })
+                                        .then(
+                                          (confirmed) =>
+                                            confirmed &&
+                                            update.mutate({ ...org, status: "ACTIVE" }),
+                                        )
+                                    }
+                                  >
+                                    <RotateCcw size={17} />
+                                  </IconAction>
+                                )}
+                              </>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
-        <div className="xl:h-full xl:overflow-y-auto xl:pe-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="جزئیات سازمان انتخاب‌شده">
-          {selected && canManage && selected.status !== "ARCHIVED" ? (
-            <Card className="mb-4 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-black">قابلیت‌های {selected.name}</h2>
-                  <p className="mt-1 text-xs text-slate-500">{selectedEnabledFeatureCount.toLocaleString("fa-IR")} قابلیت فعال از {organizationFeatures.length.toLocaleString("fa-IR")}</p>
-                </div>
-                <Button variant="soft" size="sm" onClick={() => openFeatures(selected)} title="مدیریت قابلیت‌های سازمان">
-                  مدیریت قابلیت‌ها
-                </Button>
+                      </>
+                    )}
+                  </article>
+                ))}
               </div>
-            </Card>
-          ) : null}
-          {selected && auth.can("organization.members.manage") && selected.status !== "ARCHIVED" ? (
-            <OrganizationWorkspace organizationId={selected.id} organizationName={selected.name} />
-          ) : (
-            <Card className="p-6">
-              <EmptyState
-                title={
-                  selected?.status === "ARCHIVED"
-                    ? "سازمان بایگانی‌شده قابل مدیریت نیست."
-                    : "یک سازمان را برای مدیریت اعضا انتخاب کنید."
-                }
+            )}
+          </Card>
+        }
+        detail={
+          <div aria-label={copy.selectedOrganizationDetails}>
+            {selected && canManage && selected.status !== "ARCHIVED" ? (
+              <Card className="mb-4 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-black">{copy.organizationFeatures(selected.name)}</h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {copy.enabledFeaturesOf(
+                        selectedEnabledFeatureCount,
+                        organizationFeatures.length,
+                        profile.locale,
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    variant="soft"
+                    size="sm"
+                    onClick={() => openFeatures(selected)}
+                    title={copy.manageOrganizationFeatures}
+                  >
+                    {copy.manageFeatures}
+                  </Button>
+                </div>
+              </Card>
+            ) : null}
+            {selected &&
+            auth.can("organization.members.manage") &&
+            selected.status !== "ARCHIVED" ? (
+              <OrganizationWorkspace
+                organizationId={selected.id}
+                organizationName={selected.name}
               />
-            </Card>
-          )}
-        </div>
-      </section>
+            ) : (
+              <Card className="p-6">
+                <EmptyState
+                  title={
+                    selected?.status === "ARCHIVED"
+                      ? copy.archivedOrganizationUnavailable
+                      : copy.selectOrganizationToManage
+                  }
+                />
+              </Card>
+            )}
+          </div>
+        }
+      />
     </div>
   );
 }
 
-function SectionTitle({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="flex gap-3">
-      <span className="grid size-9 place-items-center rounded-xl bg-brand/10 text-brand">
-        {icon}
-      </span>
-      <div>
-        <h2 className="font-black">{title}</h2>
-        <p className="text-xs text-slate-500">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-function RoleField({
-  value,
-  onChange,
-  allowPlatform,
-}: {
-  value: RoleCode;
-  onChange: (role: RoleCode) => void;
-  allowPlatform: boolean;
-}) {
-  return (
-    <Field label="نقش">
-      <Select value={value} onChange={(e) => onChange(e.target.value as RoleCode)}>
-        {allRoles
-          .filter((role) => allowPlatform || role !== "PLATFORM_ADMIN")
-          .map((role) => (
-            <option key={role} value={role}>
-              {roleLabels[role]}
-            </option>
-          ))}
-      </Select>
-    </Field>
-  );
-}
-function OrganizationField({
-  organizations,
-  value,
-  onChange,
-}: {
-  organizations: PortalOrganization[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <Field label="سازمان">
-      <Select required value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">انتخاب سازمان…</option>
-        {organizations
-          .filter((item) => item.status === "ACTIVE")
-          .map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-      </Select>
-    </Field>
-  );
-}
 function OrganizationTypeField({
   value,
   onChange,
@@ -525,12 +474,14 @@ function OrganizationTypeField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <Field label="نوع سازمان">
+    <Field label={copy.organizationKind}>
       <Select value={value} onChange={(e) => onChange(e.target.value)}>
-        {organizationTypes.map(([type, label]) => (
+        {["SCHOOL", "ACADEMY", "COUNSELING_CENTER", "PRIVATE_PRACTICE", "OTHER"].map((type) => (
           <option key={type} value={type}>
-            {label}
+            {copy.organizationType(type)}
           </option>
         ))}
       </Select>
@@ -545,6 +496,8 @@ function OrganizationEditor({
   onSubmit: (value: { name: string; type: string }) => Promise<void>;
 }) {
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   const [name, setName] = useState(organization?.name ?? "");
   const [type, setType] = useState(organization?.type ?? "SCHOOL");
   const [submitting, setSubmitting] = useState(false);
@@ -557,18 +510,32 @@ function OrganizationEditor({
         setSubmitting(true);
         setError("");
         void onSubmit({ name, type })
-          .catch((reason) => setError(errorText(reason, "ذخیره سازمان ناموفق بود.")))
+          .catch((reason) => setError(errorText(reason, copy.organizationSaveFailed)))
           .finally(() => setSubmitting(false));
       }}
     >
-      <Field label="نام سازمان">
-        <Input required minLength={2} autoFocus value={name} onChange={(event) => setName(event.target.value)} />
+      <Field label={copy.organizationName}>
+        <Input
+          required
+          minLength={2}
+          autoFocus
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
       </Field>
       <OrganizationTypeField value={type} onChange={setType} />
-      {error ? <p role="alert" className="text-sm text-rose-700">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
       <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-        <Button type="button" variant="soft" onClick={modal.close}>انصراف</Button>
-        <Button loading={submitting}>{organization ? "ذخیره تغییرات" : "ساخت سازمان"}</Button>
+        <Button type="button" variant="soft" onClick={modal.close}>
+          {copy.cancel}
+        </Button>
+        <Button loading={submitting}>
+          {organization ? copy.saveChanges : copy.createOrganization}
+        </Button>
       </div>
     </form>
   );
@@ -583,38 +550,51 @@ function OrganizationFeatureSettings({
   onChange: (features: (typeof organizationFeatures)[number][0][]) => void;
 }) {
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   const disabled = organization.disabledFeatures || [];
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {organizationFeatures.map(([code, label]) => {
         const enabled = !disabled.includes(code);
         const next = organizationFeatures
-          .filter(([feature]) => feature === code ? !enabled : !disabled.includes(feature))
+          .filter(([feature]) => (feature === code ? !enabled : !disabled.includes(feature)))
           .map(([feature]) => feature);
         const apply = () => onChange(next);
         return (
-          <div key={code} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800">
+          <div
+            key={code}
+            className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-800"
+          >
             <span className="font-medium text-sm">{label}</span>
             <button
               type="button"
               role="switch"
               aria-checked={enabled}
-              aria-label={`${enabled ? "غیرفعال‌کردن" : "فعال‌کردن"} ${label}`}
-              title={`${enabled ? "غیرفعال‌کردن" : "فعال‌کردن"} ${label}`}
+              aria-label={enabled ? copy.disableFeature(label) : copy.enableFeature(label)}
+              title={enabled ? copy.disableFeature(label) : copy.enableFeature(label)}
               disabled={pending}
               onClick={() => {
-                if (!enabled) { apply(); return; }
-                void modal.confirm({
-                  title: `غیرفعال‌کردن ${label}؟`,
-                  description: `اعضای ${organization.name} فوراً دسترسی ${label} را در منو و API از دست می‌دهند.`,
-                  confirmLabel: "غیرفعال‌کردن",
-                  confirmationText: "غیرفعال",
-                  tone: "danger",
-                }).then((confirmed) => confirmed && apply());
+                if (!enabled) {
+                  apply();
+                  return;
+                }
+                void modal
+                  .confirm({
+                    title: copy.disableFeatureTitle(label),
+                    description: copy.disableFeatureDescription(organization.name, label),
+                    confirmLabel: copy.disableAccounts,
+                    confirmationText: copy.disable,
+                    tone: "danger",
+                  })
+                  .then((confirmed) => confirmed && apply());
               }}
               className={`relative h-6 w-11 rounded-full transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 ${enabled ? "bg-brand" : "bg-slate-300 dark:bg-slate-700"}`}
             >
-              <span className={`absolute top-1 size-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-1" : "translate-x-6"}`} aria-hidden="true" />
+              <span
+                className={`absolute top-1 size-4 rounded-full bg-white shadow transition-[inset-inline-start] ${enabled ? "start-1" : "end-1"}`}
+                aria-hidden="true"
+              />
             </button>
           </div>
         );
@@ -623,11 +603,19 @@ function OrganizationFeatureSettings({
   );
 }
 function StatusPill({ status }: { status: string }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
     <span
       className={`rounded-full px-2 py-1 text-[11px] font-bold ${status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : status === "ARCHIVED" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
     >
-      {statusLabels[status] || status}
+      {status === "ACTIVE"
+        ? copy.activeStatus
+        : status === "ARCHIVED"
+          ? copy.archivedStatus
+          : status === "INACTIVE" || status === "DISABLED"
+            ? copy.inactiveStatus
+            : status}
     </span>
   );
 }
@@ -655,8 +643,10 @@ function IconAction({
   );
 }
 function LoadingRows() {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <div role="status" aria-label="در حال دریافت" className="grid gap-3 p-4">
+    <div role="status" aria-label={copy.loading} className="grid gap-3 p-4">
       {[1, 2, 3].map((item) => (
         <div key={item} className="h-20 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
       ))}
@@ -664,12 +654,14 @@ function LoadingRows() {
   );
 }
 function Retry({ message, retry }: { message: string; retry: () => void }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
     <div role="alert" className="grid justify-items-center gap-3 p-8">
       <ShieldCheck className="text-rose-600" />
       <p className="text-sm text-rose-700">{message}</p>
       <Button variant="soft" onClick={retry}>
-        تلاش دوباره
+        {copy.retry}
       </Button>
     </div>
   );

@@ -1,5 +1,6 @@
 import { LoaderCircle, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useLocale } from "./locale";
 import {
   GooeyToaster,
   gooeyToast,
@@ -16,11 +17,12 @@ function notificationId(tone: Exclude<NotificationTone, "loading">, message: str
 }
 
 export function AppToaster() {
+  const { language, profile } = useLocale();
   return (
     <GooeyToaster
-      dir="rtl"
-      position="top-left"
-      closeButton="top-right"
+      dir={profile.direction}
+      position={profile.direction === "rtl" ? "top-left" : "top-right"}
+      closeButton={profile.direction === "rtl" ? "top-right" : "top-left"}
       closeOnEscape
       richColors
       expand
@@ -34,6 +36,7 @@ export function AppToaster() {
       bounce={0.32}
       showProgress
       swipeToDismiss
+      aria-label={language === "en" ? "Notifications" : "اعلان‌ها"}
     />
   );
 }
@@ -55,8 +58,18 @@ export function notify(
   });
 }
 
+function notificationLanguage() {
+  return typeof document !== "undefined" && document.documentElement.lang.startsWith("en")
+    ? "en"
+    : "fa";
+}
+
 function countdownDescription(seconds: number) {
-  return `حذف خودکار تا ${Math.max(0, seconds).toLocaleString("fa-IR")} ثانیه دیگر`;
+  const language = notificationLanguage();
+  const formatted = Math.max(0, seconds).toLocaleString(language === "en" ? "en-US" : "fa-IR");
+  return language === "en"
+    ? `Auto-delete in ${formatted} seconds`
+    : `حذف خودکار تا ${formatted} ثانیه دیگر`;
 }
 
 function typedToast(
@@ -89,12 +102,20 @@ export const notifications = {
     });
   },
   undo(message: string, onUndo: () => void, options?: NotificationOptions, undoDuration = 10000) {
+    const language = notificationLanguage();
     return gooeyToast.warning(message, {
       duration: undoDuration,
-      description: "برای بازگردانی، دکمه زیر را انتخاب کنید.",
+      description:
+        language === "en"
+          ? "Choose the button below to restore it."
+          : "برای بازگردانی، دکمه زیر را انتخاب کنید.",
       icon: <Undo2 size={18} aria-hidden="true" />,
       showProgress: true,
-      action: { label: "بازگردانی", successLabel: "بازگردانده شد", onClick: onUndo },
+      action: {
+        label: language === "en" ? "Restore" : "بازگردانی",
+        successLabel: language === "en" ? "Restored" : "بازگردانده شد",
+        onClick: onUndo,
+      },
       ...options,
     });
   },
@@ -107,6 +128,7 @@ export const notifications = {
     onUndo: () => void,
     options?: NotificationOptions,
   ) {
+    const language = notificationLanguage();
     let remaining = seconds;
     let timer = 0;
     const id = gooeyToast.warning(message, {
@@ -115,8 +137,8 @@ export const notifications = {
       icon: <Undo2 size={18} aria-hidden="true" />,
       showProgress: true,
       action: {
-        label: "لغو حذف",
-        successLabel: "حذف لغو شد",
+        label: language === "en" ? "Undo deletion" : "لغو حذف",
+        successLabel: language === "en" ? "Deletion undone" : "حذف لغو شد",
         onClick() {
           window.clearInterval(timer);
           onUndo();

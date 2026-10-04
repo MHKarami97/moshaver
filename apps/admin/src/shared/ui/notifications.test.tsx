@@ -2,16 +2,26 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { gooeyToast } from "goey-toast";
+import { LocaleProvider } from "./locale";
 import { AppToaster, notify, notifications } from "./notifications";
+
+function renderToaster() {
+  return render(
+    <LocaleProvider>
+      <AppToaster />
+    </LocaleProvider>,
+  );
+}
 
 describe("Gooey notification adapter", () => {
   afterEach(() => {
     gooeyToast.dismiss();
+    localStorage.removeItem("moshaver-admin-location");
     cleanup();
   });
 
   it("renders typed RTL notifications", async () => {
-    render(<AppToaster />);
+    renderToaster();
     act(() => {
       notify("ذخیره شد", "success");
     });
@@ -19,8 +29,20 @@ describe("Gooey notification adapter", () => {
     expect(document.querySelector("[data-sonner-toaster]")).toHaveAttribute("dir", "rtl");
   });
 
+  it("uses an LTR notification surface for the international workspace", async () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    renderToaster();
+    act(() => {
+      notify("Saved", "success");
+    });
+
+    await screen.findByText("Saved");
+    const toaster = document.querySelector("[data-sonner-toaster]");
+    expect(toaster).toHaveAttribute("dir", "ltr");
+  });
+
   it("updates and dismisses a notification by id", async () => {
-    render(<AppToaster />);
+    renderToaster();
     let id: string | number = "";
     act(() => {
       id = notifications.loading("در حال ذخیره");

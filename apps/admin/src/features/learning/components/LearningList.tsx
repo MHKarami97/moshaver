@@ -41,6 +41,9 @@ export function LearningList({
       loading={loading}
       emptyTitle={copy.noResults}
       stickyHeader
+      scrollable
+      contentLabel={copy.resources}
+      className="max-h-[calc(100dvh-22rem)]"
       toolbar={
         <LearningFilters
           search={search}
@@ -51,11 +54,7 @@ export function LearningList({
         />
       }
     >
-      <div
-        className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto overscroll-contain ps-1 pb-1"
-        aria-label={copy.resources}
-        tabIndex={0}
-      >
+      <div className="grid gap-2 ps-1 pb-1">
         {items.map((item) => (
           <LearningRow
             key={item.id}

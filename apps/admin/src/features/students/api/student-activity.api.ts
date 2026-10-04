@@ -9,6 +9,16 @@ export const getStudentWeeklyProgress = (id: string) =>
 export const getStudentTopicPerformance = (id: string) =>
   api.get<unknown[]>(`/students/${id}/performance/topics?limit=20`);
 
-export type StudentSyncHealth = { deviceId: string; correlationId: string | null; status: "online" | "syncing" | "failed" | "offline"; pendingCount: number; failureCode: string | null; lastSuccessfulAt: string | null; updatedAt: string };
-export const getStudentSyncHealth = (id: string) => api.get<StudentSyncHealth[]>(`/students/${id}/sync-health`);
-export const reviewStudentSyncHealth = (id: string) => api.post<{ reviewed: boolean }>(`/students/${id}/sync-health/review`, {});
+export type StudentSyncHealth = {
+  deviceId: string;
+  correlationId: string | null;
+  status: "online" | "syncing" | "failed" | "offline";
+  pendingCount: number;
+  failureCode: string | null;
+  lastSuccessfulAt: string | null;
+  updatedAt: string;
+};
+export const getStudentSyncHealth = (id: string) =>
+  api.get<StudentSyncHealth[]>(`/students/${id}/sync-health`);
+export const reviewStudentSyncHealth = (id: string) =>
+  api.post<{ reviewed: boolean }>(`/students/${id}/sync-health/review`, {});

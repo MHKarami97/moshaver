@@ -42,7 +42,8 @@ export function DatePicker({
   clearable = true,
   showToday = true,
 }: DatePickerProps) {
-  const { profile, formatDate } = useLocale();
+  const { language, profile, formatDate } = useLocale();
+  const copy = datePickerCopy[language];
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"calendar" | "month" | "year">("calendar");
@@ -85,10 +86,10 @@ export function DatePicker({
             disabled={disabled}
             aria-label={
               hasValue && clearable && !required
-                ? `${formatDate(value)}؛ برای پاک کردن کلید حذف را فشار دهید`
+                ? copy.clearHint(formatDate(value))
                 : hasValue
                   ? formatDate(value)
-                  : "انتخاب تاریخ"
+                  : copy.selectDate
             }
             onKeyDown={(event) => {
               if (
@@ -104,7 +105,7 @@ export function DatePicker({
             }}
             className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-sm dark:border-slate-700 dark:bg-slate-900"
           >
-            <span>{hasValue ? formatDate(value) : "انتخاب تاریخ"}</span>
+            <span>{hasValue ? formatDate(value) : copy.selectDate}</span>
 
             {clearable && !required && hasValue ? (
               <X
@@ -159,7 +160,7 @@ export function DatePicker({
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
-                aria-label="ماه قبل"
+                aria-label={copy.previousMonth}
                 className="rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() =>
                   setCursor(shiftCalendarMonth(cursor, -1, profile.locale, profile.calendar))
@@ -178,7 +179,7 @@ export function DatePicker({
 
               <button
                 type="button"
-                aria-label="ماه بعد"
+                aria-label={copy.nextMonth}
                 className="rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
                 onClick={() =>
                   setCursor(shiftCalendarMonth(cursor, 1, profile.locale, profile.calendar))
@@ -217,7 +218,7 @@ export function DatePicker({
                 onClick={() => selectDate(todayIso())}
                 disabled={(!!min && todayIso() < min) || (!!max && todayIso() > max)}
               >
-                امروز
+                {copy.today}
               </button>
             )}
           </>
@@ -228,6 +229,23 @@ export function DatePicker({
     </div>
   );
 }
+
+const datePickerCopy = {
+  fa: {
+    selectDate: "انتخاب تاریخ",
+    clearHint: (date: string) => `${date}؛ برای پاک کردن کلید حذف را فشار دهید`,
+    previousMonth: "ماه قبل",
+    nextMonth: "ماه بعد",
+    today: "امروز",
+  },
+  en: {
+    selectDate: "Select date",
+    clearHint: (date: string) => `${date}; press Delete to clear`,
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+    today: "Today",
+  },
+} as const;
 
 function MonthPicker({ onSelect, selected, locale, calendar }: any) {
   const names = Array.from({ length: 12 }, (_, i) =>

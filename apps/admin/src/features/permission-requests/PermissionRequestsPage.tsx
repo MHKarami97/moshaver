@@ -3,15 +3,27 @@ import { Check, RefreshCw, X } from "lucide-react";
 import { api } from "../../shared/api/api";
 import { AdminList } from "../../shared/ui/admin-list";
 import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
-import { ManagementPageHeader, ManagementStat, ManagementSummaryBar } from "../../shared/ui/management-workspace";
+import {
+  ManagementPageHeader,
+  ManagementStat,
+  ManagementSummaryBar,
+} from "../../shared/ui/management-workspace";
 import { useModal } from "../../shared/ui/modal";
 import { Badge, Button, Textarea } from "../../shared/ui/ui";
 import { useLocale } from "../../shared/ui/locale";
 import { permissionRequestsCopy } from "./permission-requests-locale";
 
 type Request = {
-  id: string; studentName?: string; organizationName?: string; kind: string; title: string; details: string;
-  requestedFor: string | null; status: "PENDING" | "APPROVED" | "REJECTED"; supervisorNote: string; createdAt: string | null;
+  id: string;
+  studentName?: string;
+  organizationName?: string;
+  kind: string;
+  title: string;
+  details: string;
+  requestedFor: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  supervisorNote: string;
+  createdAt: string | null;
 };
 const statusTone = { PENDING: "amber", APPROVED: "green", REJECTED: "red" } as const;
 
@@ -26,13 +38,27 @@ export function PermissionRequestsPage() {
   const { language, profile } = useLocale();
   const copy = permissionRequestsCopy(language);
   const load = () => {
-    setLoading(true); setError("");
-    void api.get<Request[]>("/permission-requests").then(setRows).catch((value) => setError(value.message || copy.loadFailed)).finally(() => setLoading(false));
+    setLoading(true);
+    setError("");
+    void api
+      .get<Request[]>("/permission-requests")
+      .then(setRows)
+      .catch((value) => setError(value.message || copy.loadFailed))
+      .finally(() => setLoading(false));
   };
   useEffect(load, []);
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("fa-IR");
-    return rows.filter((row) => (status === "ALL" || row.status === status) && (!needle || [row.title, row.details, row.studentName, row.organizationName, row.kind].filter(Boolean).join(" ").toLocaleLowerCase("fa-IR").includes(needle)));
+    return rows.filter(
+      (row) =>
+        (status === "ALL" || row.status === status) &&
+        (!needle ||
+          [row.title, row.details, row.studentName, row.organizationName, row.kind]
+            .filter(Boolean)
+            .join(" ")
+            .toLocaleLowerCase("fa-IR")
+            .includes(needle)),
+    );
   }, [query, rows, status]);
   async function decide(row: Request, next: "APPROVED" | "REJECTED", supervisorNote: string) {
     setBusy(row.id);
@@ -72,17 +98,125 @@ export function PermissionRequestsPage() {
   const pending = rows.filter((row) => row.status === "PENDING").length;
   return (
     <section className="grid gap-4">
-      <ManagementPageHeader eyebrow={copy.eyebrow} title={copy.title} description={copy.description} action={<Button size="sm" variant="soft" loading={loading} onClick={load}><RefreshCw size={14} />{copy.refresh}</Button>} />
+      <ManagementPageHeader
+        eyebrow={copy.eyebrow}
+        title={copy.title}
+        description={copy.description}
+        action={
+          <Button size="sm" variant="soft" loading={loading} onClick={load}>
+            <RefreshCw size={14} />
+            {copy.refresh}
+          </Button>
+        }
+      />
       <ManagementSummaryBar label={copy.summary}>
         <div className="grid min-w-[min(100%,32rem)] flex-1 grid-cols-3 gap-2">
-          <ManagementStat label={copy.pending} value={pending} active={status === "PENDING"} tone="warning" onClick={() => setStatus("PENDING")} />
-          <ManagementStat label={copy.approved} value={rows.filter((row) => row.status === "APPROVED").length} active={status === "APPROVED"} tone="success" onClick={() => setStatus("APPROVED")} />
-          <ManagementStat label={copy.allItems} value={rows.length} active={status === "ALL"} tone="muted" onClick={() => setStatus("ALL")} />
+          <ManagementStat
+            label={copy.pending}
+            value={pending}
+            active={status === "PENDING"}
+            tone="warning"
+            onClick={() => setStatus("PENDING")}
+          />
+          <ManagementStat
+            label={copy.approved}
+            value={rows.filter((row) => row.status === "APPROVED").length}
+            active={status === "APPROVED"}
+            tone="success"
+            onClick={() => setStatus("APPROVED")}
+          />
+          <ManagementStat
+            label={copy.allItems}
+            value={rows.length}
+            active={status === "ALL"}
+            tone="muted"
+            onClick={() => setStatus("ALL")}
+          />
         </div>
       </ManagementSummaryBar>
-      <AdminList label={copy.queue} description={copy.queueDescription} items={visible} loading={loading} error={Boolean(error)} errorTitle={error || undefined} onRetry={load} emptyTitle={status === "PENDING" ? copy.noPending : copy.noMatches} toolbar={<CollectionToolbar search={query} onSearchChange={setQuery} placeholder={copy.search} resultLabel={copy.result(visible.length, profile.locale)} onClear={query || status !== "PENDING" ? () => { setQuery(""); setStatus("PENDING"); } : undefined} filters={( ["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((item) => <button key={item} type="button" className={`rounded px-2 py-1 text-[11px] ${status === item ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`} onClick={() => setStatus(item)}>{item === "ALL" ? copy.all : copy.status[item]}</button>)} />}>
+      <AdminList
+        label={copy.queue}
+        description={copy.queueDescription}
+        items={visible}
+        loading={loading}
+        error={Boolean(error)}
+        errorTitle={error || undefined}
+        onRetry={load}
+        emptyTitle={status === "PENDING" ? copy.noPending : copy.noMatches}
+        toolbar={
+          <CollectionToolbar
+            search={query}
+            onSearchChange={setQuery}
+            placeholder={copy.search}
+            resultLabel={copy.result(visible.length, profile.locale)}
+            onClear={
+              query || status !== "PENDING"
+                ? () => {
+                    setQuery("");
+                    setStatus("PENDING");
+                  }
+                : undefined
+            }
+            filters={(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={`rounded px-2 py-1 text-[11px] ${status === item ? "bg-[rgb(var(--surface-card))] font-semibold text-brand shadow-sm" : "text-slate-500"}`}
+                onClick={() => setStatus(item)}
+              >
+                {item === "ALL" ? copy.all : copy.status[item]}
+              </button>
+            ))}
+          />
+        }
+      >
         <div className="divide-y divide-[rgb(var(--border-subtle))]">
-          {visible.map((row) => <article key={row.id} className="grid gap-3 px-1 py-3 sm:px-2 lg:grid-cols-[minmax(15rem,1fr)_auto] lg:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold text-ink">{row.title}</h2><Badge tone={statusTone[row.status]}>{copy.status[row.status]}</Badge></div><p className="mt-1 text-xs text-slate-500">{row.studentName || copy.student} · {row.organizationName || copy.organization} · {row.kind}</p><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{row.details}</p>{row.supervisorNote ? <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1.5 text-xs text-slate-600">{copy.note}: {row.supervisorNote}</p> : null}</div>{row.status === "PENDING" ? <div className="flex shrink-0 gap-2"><Button size="sm" disabled={busy === row.id} onClick={() => openDecisionModal(row, "APPROVED")}><Check size={14} />{copy.approve}</Button><Button size="sm" variant="danger" disabled={busy === row.id} onClick={() => openDecisionModal(row, "REJECTED")}><X size={14} />{copy.reject}</Button></div> : null}</article>)}
+          {visible.map((row) => (
+            <article
+              key={row.id}
+              className="grid gap-3 px-1 py-3 sm:px-2 lg:grid-cols-[minmax(15rem,1fr)_auto] lg:items-center"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold text-ink">{row.title}</h2>
+                  <Badge tone={statusTone[row.status]}>{copy.status[row.status]}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {row.studentName || copy.student} · {row.organizationName || copy.organization} ·{" "}
+                  {row.kind}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  {row.details}
+                </p>
+                {row.supervisorNote ? (
+                  <p className="mt-2 rounded-md bg-[rgb(var(--surface-muted))] px-2 py-1.5 text-xs text-slate-600">
+                    {copy.note}: {row.supervisorNote}
+                  </p>
+                ) : null}
+              </div>
+              {row.status === "PENDING" ? (
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy === row.id}
+                    onClick={() => openDecisionModal(row, "APPROVED")}
+                  >
+                    <Check size={14} />
+                    {copy.approve}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={busy === row.id}
+                    onClick={() => openDecisionModal(row, "REJECTED")}
+                  >
+                    <X size={14} />
+                    {copy.reject}
+                  </Button>
+                </div>
+              ) : null}
+            </article>
+          ))}
         </div>
       </AdminList>
     </section>
@@ -115,7 +249,9 @@ export function PermissionDecisionModal({
       <section className="grid gap-2 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] p-3">
         <div className="flex flex-wrap items-center gap-2">
           <strong className="text-sm text-ink">{request.title}</strong>
-          <Badge tone={approving ? "green" : "red"}>{approving ? "در حال تأیید" : "در حال رد"}</Badge>
+          <Badge tone={approving ? "green" : "red"}>
+            {approving ? "در حال تأیید" : "در حال رد"}
+          </Badge>
         </div>
         <p className="text-xs text-slate-600 dark:text-slate-300">
           درخواستِ {request.studentName || "دانش‌آموز"} برای {request.organizationName || "سازمان"}
@@ -136,7 +272,11 @@ export function PermissionDecisionModal({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           aria-describedby={`permission-note-help-${request.id}`}
-          placeholder={approving ? "مثلاً: تا ساعت ۲۰ بازگردید." : "مثلاً: لطفاً زمان خروج را با مسئول خوابگاه هماهنگ کنید."}
+          placeholder={
+            approving
+              ? "مثلاً: تا ساعت ۲۰ بازگردید."
+              : "مثلاً: لطفاً زمان خروج را با مسئول خوابگاه هماهنگ کنید."
+          }
           rows={3}
           autoFocus
         />
@@ -147,8 +287,15 @@ export function PermissionDecisionModal({
           : "ثبت رد، وضعیت درخواست را تغییر می‌دهد و پیام شما در فهرست قابل پیگیری می‌ماند."}
       </p>
       <div className="flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
-        <Button type="button" variant="soft" disabled={busy} onClick={onCancel}>انصراف</Button>
-        <Button type="submit" variant={approving ? "primary" : "danger"} loading={busy} loadingLabel="در حال ثبت…">
+        <Button type="button" variant="soft" disabled={busy} onClick={onCancel}>
+          انصراف
+        </Button>
+        <Button
+          type="submit"
+          variant={approving ? "primary" : "danger"}
+          loading={busy}
+          loadingLabel="در حال ثبت…"
+        >
           {approving ? "ثبت تأیید" : "ثبت رد"}
         </Button>
       </div>

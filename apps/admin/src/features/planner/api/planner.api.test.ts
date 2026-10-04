@@ -18,9 +18,14 @@ const draft = {
 describe("Planner plan API contract", () => {
   it("maps an empty-day create to the backend import contract", () => {
     createPlan("student-1", draft);
-    expect(post).toHaveBeenCalledWith("/plans", expect.objectContaining({
-      studentId: "student-1", tasks: [], publish: false,
-    }));
+    expect(post).toHaveBeenCalledWith(
+      "/plans",
+      expect.objectContaining({
+        studentId: "student-1",
+        tasks: [],
+        publish: false,
+      }),
+    );
     expect(post.mock.calls[0][1]).not.toHaveProperty("published");
   });
 

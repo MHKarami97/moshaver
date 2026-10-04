@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth";
 import { normalizePersianText } from "../../shared/lib/utils";
+import { useAdminShellCopy, useLocale } from "../../shared/ui/locale";
 import { adminDestination, navigationForCapabilities } from "./admin-navigation";
 import {
   matchesCommandPaletteQuery,
@@ -65,6 +66,34 @@ export function AdminCommandPalette({
 }) {
   const navigate = useNavigate();
   const auth = useAuth();
+  const shellCopy = useAdminShellCopy();
+  const { language, profile } = useLocale();
+  const copy =
+    language === "en"
+      ? {
+          placeholder: "Search pages, students, users, organizations, or actions…",
+          close: "Close search",
+          recent: "Recent destinations",
+          suggestions: "Suggestions",
+          searching: "Searching…",
+          result: (count: number) => `${count.toLocaleString(profile.locale)} results`,
+          choose: "Choose",
+          open: "Open",
+          noResults: "No destination matches this search.",
+          hint: "Try a different page or section name.",
+        }
+      : {
+          placeholder: "صفحه، دانش‌آموز، کاربر، سازمان یا اقدام را جست‌وجو کنید…",
+          close: "بستن جستجو",
+          recent: "مسیرهای اخیر",
+          suggestions: "پیشنهادها",
+          searching: "در حال جست‌وجو…",
+          result: (count: number) => `${count.toLocaleString(profile.locale)} نتیجه`,
+          choose: "انتخاب",
+          open: "بازکردن",
+          noResults: "مسیری با این عبارت پیدا نشد.",
+          hint: "نام بخش یا صفحه دیگری را امتحان کنید.",
+        };
   const availableNavigation = useMemo(
     () =>
       navigationForCapabilities(auth.capabilities, auth.activeRole).flatMap((group) =>
@@ -240,7 +269,7 @@ export function AdminCommandPalette({
         className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         role="dialog"
         aria-modal="true"
-        aria-label="جستجو و رفتن سریع"
+        aria-label={shellCopy.searchAndGo}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-slate-200 px-3 dark:border-slate-700">
@@ -251,7 +280,7 @@ export function AdminCommandPalette({
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={onKeyDown}
             className="h-14 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-            placeholder="صفحه، دانش‌آموز، کاربر، سازمان یا اقدام را جست‌وجو کنید…"
+            placeholder={copy.placeholder}
             role="combobox"
             aria-autocomplete="list"
             aria-expanded="true"
@@ -266,7 +295,7 @@ export function AdminCommandPalette({
             type="button"
             className="grid size-9 shrink-0 place-items-center rounded-lg text-slate-400 outline-none transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-brand dark:hover:bg-slate-800 dark:hover:text-slate-200"
             onClick={onClose}
-            aria-label="بستن جستجو"
+            aria-label={copy.close}
           >
             <X size={17} />
           </button>
@@ -281,25 +310,25 @@ export function AdminCommandPalette({
             {!normalizedQuery ? <Clock3 size={12} /> : <Search size={12} />}
             {!normalizedQuery
               ? recentItems.length
-                ? "مسیرهای اخیر"
-                : "پیشنهادها"
+                ? copy.recent
+                : copy.suggestions
               : entityLoading
-                ? "در حال جست‌وجو…"
-                : `${results.length.toLocaleString("fa-IR")} نتیجه`}
+                ? copy.searching
+                : copy.result(results.length)}
           </span>
-          <span className="hidden items-center gap-2 sm:flex" dir="rtl">
+          <span className="hidden items-center gap-2 sm:flex">
             <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 dark:border-slate-700 dark:bg-slate-900">
               ↑ ↓
             </kbd>{" "}
-            انتخاب
+            {copy.choose}
             <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 dark:border-slate-700 dark:bg-slate-900">
               Enter
             </kbd>{" "}
-            بازکردن
+            {copy.open}
             <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 dark:border-slate-700 dark:bg-slate-900">
               Esc
             </kbd>{" "}
-            بستن
+            {copy.close}
           </span>
         </div>
 
@@ -348,10 +377,8 @@ export function AdminCommandPalette({
             <div className="grid min-h-36 place-items-center px-4 text-center text-sm text-slate-500">
               <div>
                 <Search className="mx-auto mb-2" size={24} />
-                مسیری با این عبارت پیدا نشد.
-                <p className="mt-1 text-[11px] text-slate-400">
-                  نام بخش یا صفحه دیگری را امتحان کنید.
-                </p>
+                {copy.noResults}
+                <p className="mt-1 text-[11px] text-slate-400">{copy.hint}</p>
               </div>
             </div>
           )}

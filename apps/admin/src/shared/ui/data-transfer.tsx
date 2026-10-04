@@ -80,8 +80,9 @@ export function DataTransferWorkspace(props: Props) {
     return <QuestionBankDataTransfer {...props} />;
   }
   const modal = useModal(),
-    { formatDate, profile } = useLocale(),
+    { formatDate, language, profile } = useLocale(),
     fileRef = useRef<HTMLInputElement>(null);
+  const copy = transferCopy[language];
   const canImport = props.canImport !== false;
   const canCommit = props.canCommit !== false;
   const canExport = props.canExport !== false;
@@ -119,7 +120,7 @@ export function DataTransferWorkspace(props: Props) {
       setResult(data);
       props.onImported();
     },
-    meta: { successMessage: "ورود اطلاعات با موفقیت تکمیل شد." },
+    meta: { successMessage: copy.importCompleted },
   });
   const download = useMutation({
     mutationFn: async ({
@@ -139,7 +140,7 @@ export function DataTransferWorkspace(props: Props) {
       if (format === "xlsx") await downloadTransferWorkbook(data, props.scope, filename);
       else downloadJsonData(data, filename);
     },
-    meta: { successMessage: "فایل آماده و دانلود شد." },
+    meta: { successMessage: copy.downloadReady },
   });
   const valid = !!preview.data && !preview.data.errors?.length;
 
@@ -147,8 +148,8 @@ export function DataTransferWorkspace(props: Props) {
     if (!file) return;
     if (!(props as AssessmentTransferProps).studentId) {
       modal.open({
-        title: "دانش‌آموز را انتخاب کنید",
-        description: "پیش از بارگذاری فایل، دانش‌آموز مقصد را انتخاب کنید.",
+        title: copy.selectStudent,
+        description: copy.selectStudentDescription,
         tone: "default",
       });
       return;
@@ -156,8 +157,8 @@ export function DataTransferWorkspace(props: Props) {
     const lowerName = file.name.toLowerCase();
     if (!lowerName.endsWith(".json") && !lowerName.endsWith(".xlsx")) {
       modal.open({
-        title: "فرمت فایل قابل قبول نیست",
-        description: "یک فایل Excel (.xlsx) یا JSON انتخاب کنید.",
+        title: copy.invalidFormat,
+        description: copy.invalidFormatDescription,
         tone: "danger",
       });
       return;
@@ -175,7 +176,7 @@ export function DataTransferWorkspace(props: Props) {
       preview.mutate(data);
     } catch (error) {
       modal.open({
-        title: "فایل قابل خواندن نیست",
+        title: copy.unreadableFile,
         description: workbookError(error),
         tone: "danger",
       });
@@ -188,8 +189,8 @@ export function DataTransferWorkspace(props: Props) {
       action(data);
     } catch {
       modal.open({
-        title: "JSON معتبر نیست",
-        description: "ساختار فایل، کوتیشن‌ها و ویرگول‌ها را بررسی کنید.",
+        title: copy.invalidJson,
+        description: copy.invalidJsonDescription,
         tone: "danger",
       });
     }
@@ -249,13 +250,13 @@ export function DataTransferWorkspace(props: Props) {
             {canImport ? (
               <TabButton active={tab === "import"} onClick={() => setTab("import")}>
                 <FileUp size={16} />
-                ورود اطلاعات
+                {copy.import}
               </TabButton>
             ) : null}
             {canExport ? (
               <TabButton active={tab === "export"} onClick={() => setTab("export")}>
                 <Download size={16} />
-                خروجی گرفتن
+                {copy.export}
               </TabButton>
             ) : null}
           </div>
@@ -268,7 +269,7 @@ export function DataTransferWorkspace(props: Props) {
           ) : (
             <div className="grid gap-5 xl:grid-cols-[minmax(340px,.8fr)_minmax(0,1.2fr)]">
               <section className="grid content-start gap-3">
-                <Step number={1} title="فایل را انتخاب کنید" active={!preview.data} />
+                <Step number={1} title={copy.chooseFileStep} active={!preview.data} />
                 <div
                   onDragEnter={(event) => {
                     event.preventDefault();
@@ -291,13 +292,9 @@ export function DataTransferWorkspace(props: Props) {
                       <UploadCloud size={42} className="text-slate-400" />
                     )}
                     <div>
-                      <strong className="block">
-                        {fileName || "فایل Excel یا JSON را اینجا رها کنید"}
-                      </strong>
+                      <strong className="block">{fileName || copy.dropFile}</strong>
                       <span className="mt-1 block text-xs text-slate-500">
-                        {fileName
-                          ? "فایل به‌صورت خودکار اعتبارسنجی شد"
-                          : "یا از رایانه انتخاب کنید"}
+                        {fileName ? copy.fileValidated : copy.orChooseFile}
                       </span>
                     </div>
                     <input
@@ -313,7 +310,7 @@ export function DataTransferWorkspace(props: Props) {
                       disabled={!props.studentId}
                       onClick={() => fileRef.current?.click()}
                     >
-                      {fileName ? "تغییر فایل" : "انتخاب فایل"}
+                      {fileName ? copy.changeFile : copy.chooseFile}
                     </Button>
                   </div>
                 </div>
@@ -323,10 +320,10 @@ export function DataTransferWorkspace(props: Props) {
                   onClick={() => setAdvanced((value) => !value)}
                 >
                   <ChevronDown size={16} className={`transition ${advanced ? "rotate-180" : ""}`} />
-                  ورود دستی JSON
+                  {copy.manualJson}
                 </button>
                 {advanced ? (
-                  <Field label="متن JSON">
+                  <Field label={copy.jsonText}>
                     <Textarea
                       dir="ltr"
                       rows={10}
@@ -345,7 +342,7 @@ export function DataTransferWorkspace(props: Props) {
                       disabled={!json || !props.studentId}
                       onClick={() => parse(json, (data) => preview.mutate(data))}
                     >
-                      اعتبارسنجی متن
+                      {copy.validateText}
                     </Button>
                   </Field>
                 ) : null}
@@ -387,7 +384,7 @@ export function DataTransferWorkspace(props: Props) {
                 </div>
               </section>
               <section className="grid content-start gap-4">
-                <Step number={2} title="بررسی و رفع مشکل" active={!!preview.data} />
+                <Step number={2} title={copy.reviewAndResolve} active={!!preview.data} />
                 {preview.isPending ? (
                   <ReviewLoading />
                 ) : preview.data ? (
@@ -396,7 +393,7 @@ export function DataTransferWorkspace(props: Props) {
                   <EmptyReview />
                 )}
                 <div className="border-t border-slate-200 pt-4">
-                  <Step number={3} title="روش ثبت را انتخاب کنید" active={valid} />
+                  <Step number={3} title={copy.chooseSaveMethod} active={valid} />
                   <div
                     className={`mt-3 grid gap-3 ${valid ? "" : "pointer-events-none opacity-45"}`}
                   >
@@ -789,6 +786,57 @@ function workbookError(error: unknown) {
   if (message === "WORKBOOK_SHEETS_MISSING") return "برگه Plans یا Exams در فایل وجود ندارد.";
   return "ساختار فایل یا داده‌های آن معتبر نیست. قالب نمونه را دانلود و ویرایش کنید.";
 }
+
+const transferCopy = {
+  fa: {
+    importCompleted: "ورود اطلاعات با موفقیت تکمیل شد.",
+    downloadReady: "فایل آماده و دانلود شد.",
+    selectStudent: "دانش‌آموز را انتخاب کنید",
+    selectStudentDescription: "پیش از بارگذاری فایل، دانش‌آموز مقصد را انتخاب کنید.",
+    invalidFormat: "فرمت فایل قابل قبول نیست",
+    invalidFormatDescription: "یک فایل Excel (.xlsx) یا JSON انتخاب کنید.",
+    unreadableFile: "فایل قابل خواندن نیست",
+    invalidJson: "JSON معتبر نیست",
+    invalidJsonDescription: "ساختار فایل، کوتیشن‌ها و ویرگول‌ها را بررسی کنید.",
+    import: "ورود اطلاعات",
+    export: "خروجی گرفتن",
+    chooseFile: "انتخاب فایل",
+    chooseFileStep: "فایل را انتخاب کنید",
+    dropFile: "فایل Excel یا JSON را اینجا رها کنید",
+    fileValidated: "فایل به‌صورت خودکار اعتبارسنجی شد",
+    orChooseFile: "یا از رایانه انتخاب کنید",
+    changeFile: "تغییر فایل",
+    manualJson: "ورود دستی JSON",
+    jsonText: "متن JSON",
+    validateText: "اعتبارسنجی متن",
+    reviewAndResolve: "بررسی و رفع مشکل",
+    chooseSaveMethod: "روش ثبت را انتخاب کنید",
+  },
+  en: {
+    importCompleted: "The import was completed successfully.",
+    downloadReady: "Your file is ready to download.",
+    selectStudent: "Select a student",
+    selectStudentDescription: "Select the destination student before uploading a file.",
+    invalidFormat: "Unsupported file format",
+    invalidFormatDescription: "Choose an Excel (.xlsx) or JSON file.",
+    unreadableFile: "Could not read the file",
+    invalidJson: "Invalid JSON",
+    invalidJsonDescription: "Check the structure, quotation marks, and commas.",
+    import: "Import",
+    export: "Export",
+    chooseFile: "Choose file",
+    chooseFileStep: "Choose a file",
+    dropFile: "Drop an Excel or JSON file here",
+    fileValidated: "The file was validated automatically",
+    orChooseFile: "or choose one from your device",
+    changeFile: "Change file",
+    manualJson: "Enter JSON manually",
+    jsonText: "JSON text",
+    validateText: "Validate text",
+    reviewAndResolve: "Review and resolve",
+    chooseSaveMethod: "Choose how to save",
+  },
+} as const;
 
 function downloadJsonData(data: unknown, filename: string) {
   const url = URL.createObjectURL(

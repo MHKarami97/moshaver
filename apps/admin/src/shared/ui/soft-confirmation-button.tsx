@@ -46,9 +46,9 @@ export function SoftConfirmButton({
 
   backgroundColor,
 
-  progressLabel = "برای تأیید نگه دارید",
+  progressLabel,
 
-  successLabel = "انجام شد",
+  successLabel,
 
   onComplete,
 }: Props) {
@@ -252,7 +252,7 @@ export function SoftConfirmButton({
           ) : state === "success" ? (
             <>
               <Check size={17} />
-              {successLabel}
+              {successLabel || copy.completed}
             </>
           ) : holding ? (
             <>

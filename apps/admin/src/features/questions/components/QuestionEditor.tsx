@@ -29,7 +29,7 @@ export function QuestionEditor({
   const { language } = useLocale();
   const copy = questionsCopy(language);
   return (
-    <Card className="overflow-y-auto">
+    <Card className="min-h-0">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-bold">
           {editingId ? copy.editQuestionEditor : copy.newQuestionEditor}
@@ -153,10 +153,17 @@ export function QuestionEditor({
             {validationError}
           </p>
         ) : null}
-        <Button loading={busy} disabled={disabled || busy} type="submit">
-          {editingId ? copy.saveChanges : copy.addQuestion}
-        </Button>
-        <p className="text-center text-[11px] text-slate-400">{copy.quickSave}</p>
+        <div className="sticky bottom-0 z-10 -mx-1 border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card)_/_96%)] px-1 pt-3 shadow-[0_-8px_16px_-16px_rgb(15_23_42_/_0.45)]">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="soft" disabled={busy} type="button" onClick={onCancel}>
+              {copy.cancel}
+            </Button>
+            <Button loading={busy} disabled={disabled || busy} type="submit">
+              {editingId ? copy.saveChanges : copy.addQuestion}
+            </Button>
+          </div>
+          <p className="mt-2 text-center text-[11px] text-slate-400">{copy.quickSave}</p>
+        </div>
       </form>
     </Card>
   );

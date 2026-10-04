@@ -3,7 +3,12 @@ import type { Exam, Plan } from "../../../shared/types/domain";
 import type { PlanDraft, TaskDraft, TaskFilter } from "../model/planner.types";
 import { normalizePersianText } from "../../../shared/lib/utils";
 import { normalizeTaskDraft } from "../lib/planner-model";
-export type PlannerEducationBook = { id: string; titleFa: string; category?: string; textbookCode?: string };
+export type PlannerEducationBook = {
+  id: string;
+  titleFa: string;
+  category?: string;
+  textbookCode?: string;
+};
 function normalizePlannerPlan(plan: Plan): Plan {
   return {
     ...plan,
@@ -37,12 +42,20 @@ export const getPlanForDate = (studentId: string, date: string) =>
     .get<Plan[]>(
       `/plans?studentId=${encodeURIComponent(studentId)}&date=${encodeURIComponent(date)}`,
     )
-    .then((items) => items[0] ? normalizePlannerPlan(items[0]) : null);
+    .then((items) => (items[0] ? normalizePlannerPlan(items[0]) : null));
 export const getPlannerExams = (studentId: string) =>
   api.get<Exam[]>(`/exams?studentId=${encodeURIComponent(studentId)}`);
-export const getPlannerEducationBooks = (student: { gradeId?: number | null; educationTypeId?: string; trackId?: string }) => {
-  if (!student.gradeId || !student.educationTypeId) return Promise.resolve<PlannerEducationBook[]>([]);
-  const query = new URLSearchParams({ grade: String(student.gradeId), educationTypeId: student.educationTypeId });
+export const getPlannerEducationBooks = (student: {
+  gradeId?: number | null;
+  educationTypeId?: string;
+  trackId?: string;
+}) => {
+  if (!student.gradeId || !student.educationTypeId)
+    return Promise.resolve<PlannerEducationBook[]>([]);
+  const query = new URLSearchParams({
+    grade: String(student.gradeId),
+    educationTypeId: student.educationTypeId,
+  });
   if (student.trackId) query.set("trackId", student.trackId);
   return api.get<PlannerEducationBook[]>(`/education-catalog/books?${query}`);
 };
@@ -95,7 +108,12 @@ export type PlanSharePreview = {
     overCapacityDayCount: number;
     proposedMinutes: number;
   };
-  recipients: Array<{ studentId: string; name: string; existingPlanCount: number; timeConflictCount: number }>;
+  recipients: Array<{
+    studentId: string;
+    name: string;
+    existingPlanCount: number;
+    timeConflictCount: number;
+  }>;
 };
 export const previewPlanRange = (id: string, body: PlanShareRangeRequest) =>
   api.post<PlanSharePreview>(`/education-sharing/plans/${id}/range/preview`, body);

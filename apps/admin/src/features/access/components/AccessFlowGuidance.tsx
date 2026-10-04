@@ -1,5 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import { accessFlowGuidance, type AccessFlowScope } from "../model/access-flow";
 
 export function AccessFlowGuidance({
@@ -9,7 +10,8 @@ export function AccessFlowGuidance({
   scope: AccessFlowScope;
   canManage: boolean;
 }) {
-  const guidance = accessFlowGuidance(scope, canManage);
+  const { language } = useLocale();
+  const guidance = accessFlowGuidance(scope, canManage, language);
 
   return (
     <Card className="border-brand/20 bg-brand/5 p-4" aria-label={guidance.title}>

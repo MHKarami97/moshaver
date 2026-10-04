@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth";
 import type { OrganizationSummary, RoleCode } from "../../shared/types/domain";
-import { roleLabels } from "../../shared/lib/role-ui";
+import { roleLabel, roleLabels } from "../../shared/lib/role-ui";
 import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
+import { useLocale } from "../../shared/ui/locale";
 import { Button, Card, EmptyState, Field, Input, Select } from "../../shared/ui/ui";
 import { AdminDataTable } from "../../shared/ui/admin-data-table";
 import { CollectionToolbar } from "../../shared/ui/collection-toolbar";
@@ -46,21 +47,9 @@ import {
 import { OrganizationWorkspace } from "./OrganizationWorkspace";
 import { AccessFlowGuidance } from "./components/AccessFlowGuidance";
 import { emptyAccessResult } from "./model/access-flow";
+import { accessCopy } from "./model/access-copy";
 
 const allRoles = Object.keys(roleLabels) as RoleCode[];
-const organizationTypes = [
-  ["SCHOOL", "مدرسه"],
-  ["ACADEMY", "آکادمی"],
-  ["COUNSELING_CENTER", "مرکز مشاوره"],
-  ["PRIVATE_PRACTICE", "مجموعه خصوصی"],
-  ["OTHER", "سایر"],
-] as const;
-const statusLabels: Record<string, string> = {
-  ACTIVE: "فعال",
-  INACTIVE: "غیرفعال",
-  DISABLED: "غیرفعال",
-  ARCHIVED: "بایگانی‌شده",
-};
 const nameOf = (user: PortalUser) =>
   [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username;
 const errorText = (error: unknown, fallback: string) =>
@@ -70,6 +59,8 @@ export function UsersPage() {
   const auth = useAuth(),
     modal = useModal(),
     qc = useQueryClient();
+  const { language, profile } = useLocale();
+  const copy = accessCopy[language];
   const [searchParams, setSearchParams] = useSearchParams();
   const canManage = auth.can("users.manage"),
     isPlatform = auth.hasRole("PLATFORM_ADMIN"),
@@ -103,7 +94,7 @@ export function UsersPage() {
     mutationFn: (body: Parameters<typeof createUser>[0]) => createUser(body),
     onSuccess: async () => {
       modal.close();
-      notify("حساب کاربری ساخته شد.");
+      notify(copy.userCreated);
       await refresh();
     },
   });
@@ -111,20 +102,20 @@ export function UsersPage() {
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setUserActive(id, active),
     onSuccess: async () => {
       await refresh();
-      notify("وضعیت حساب به‌روزرسانی شد.");
+      notify(copy.userStatusUpdated);
     },
   });
   const archive = useMutation({
     mutationFn: archiveUser,
     onSuccess: async () => {
       await refresh();
-      notify("حساب بایگانی شد.");
+      notify(copy.userArchived);
     },
   });
   const transferOwnership = useMutation({
     mutationFn: transferPlatformOwnership,
     onSuccess: async () => {
-      notify("مالکیت پلتفرم واگذار شد. حساب قبلی همچنان مدیر پلتفرم است.");
+      notify(copy.ownershipTransferred);
       await refresh();
     },
   });
@@ -134,7 +125,7 @@ export function UsersPage() {
     onSuccess: async (_, values) => {
       setSelectedIds([]);
       await refresh();
-      notify(`${values.ids.length.toLocaleString("fa-IR")} حساب به‌روزرسانی شد.`);
+      notify(copy.accountsUpdated(values.ids.length, profile.locale));
     },
   });
   const save = useMutation({
@@ -156,7 +147,7 @@ export function UsersPage() {
     },
     onSuccess: async () => {
       setEditing(null);
-      notify("مشخصات و دسترسی حساب ذخیره شد.");
+      notify(copy.userAccessSaved);
       await refresh();
     },
   });
@@ -222,16 +213,15 @@ export function UsersPage() {
           <div className="flex gap-3">
             <Crown className="mt-0.5 shrink-0 text-brand" size={20} />
             <div>
-              <h2 className="font-black">مالکیت پلتفرم</h2>
+              <h2 className="font-black">{copy.platformOwnership}</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                برای کارکنان، نقش محدود متناسب با کارشان انتخاب کنید. فقط هنگام نیاز واقعی، مدیر
-                پلتفرم بسازید؛ سپس می‌توانید مالکیت را به آن حساب واگذار کنید.
+                {copy.platformOwnershipDescription}
               </p>
             </div>
           </div>
         </Card>
       ) : null}
-      <section className="grid gap-3" aria-label="ابزارهای فهرست کاربران">
+      <section className="grid gap-3" aria-label={copy.userListTools}>
         <ManagementSummaryBar
           action={
             canManage ? (
@@ -239,8 +229,8 @@ export function UsersPage() {
                 onClick={() => {
                   setEditing(null);
                   modal.open({
-                    title: "ساخت حساب جدید",
-                    description: "حساب را از ابتدا با نقش و محدوده درست ایجاد کنید.",
+                    title: copy.newUser,
+                    description: copy.newUserDescription,
                     size: "lg",
                     content: (
                       <UserCreateForm
@@ -257,19 +247,19 @@ export function UsersPage() {
                 }}
               >
                 <Plus size={16} />
-                کاربر جدید
+                {copy.newUser}
               </Button>
             ) : null
           }
         >
-          <ManagementStat label="همه حساب‌ها" value={users.data?.length ?? 0} />
+          <ManagementStat label={copy.allAccounts} value={users.data?.length ?? 0} />
           <ManagementStat
-            label="فعال"
+            label={copy.active}
             value={users.data?.filter((x) => x.status === "ACTIVE").length ?? 0}
             tone="success"
           />
           <ManagementStat
-            label="نقش"
+            label={copy.roles}
             value={new Set(users.data?.flatMap((x) => x.assignments.map((a) => a.role))).size}
           />
         </ManagementSummaryBar>
@@ -277,10 +267,50 @@ export function UsersPage() {
           <CollectionToolbar
             search={search}
             onSearchChange={setSearch}
-            placeholder="نام یا نام کاربری…"
-            resultLabel={`${visible.length.toLocaleString("fa-IR")} نتیجه از ${(users.data?.length || 0).toLocaleString("fa-IR")}`}
-            onClear={search || status !== "ALL" ? () => { setSearch(""); setStatus("ALL"); } : undefined}
-            filters={<>{isPlatform ? <Select aria-label="محدوده سازمان" className="h-8 min-w-32 border-0 bg-transparent text-[11px]" value={organizationId} onChange={(e) => { setOrganizationId(e.target.value); setSelectedUserId(""); setSelectedIds([]); }}><option value="">همه پلتفرم</option>{organizations.data?.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}</Select> : null}<Select aria-label="وضعیت حساب" className="h-8 min-w-28 border-0 bg-transparent text-[11px]" value={status} onChange={(e) => setStatus(e.target.value)}><option value="ALL">همه وضعیت‌ها</option><option value="ACTIVE">فعال</option><option value="DISABLED">غیرفعال</option><option value="ARCHIVED">بایگانی‌شده</option></Select></>}
+            placeholder={copy.searchUsers}
+            resultLabel={copy.userResults(visible.length, users.data?.length || 0, profile.locale)}
+            onClear={
+              search || status !== "ALL"
+                ? () => {
+                    setSearch("");
+                    setStatus("ALL");
+                  }
+                : undefined
+            }
+            filters={
+              <>
+                {isPlatform ? (
+                  <Select
+                    aria-label={copy.organizationScope}
+                    className="h-8 min-w-32 border-0 bg-transparent text-[11px]"
+                    value={organizationId}
+                    onChange={(e) => {
+                      setOrganizationId(e.target.value);
+                      setSelectedUserId("");
+                      setSelectedIds([]);
+                    }}
+                  >
+                    <option value="">{copy.platformScope}</option>
+                    {organizations.data?.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name}
+                      </option>
+                    ))}
+                  </Select>
+                ) : null}
+                <Select
+                  aria-label={copy.accountStatus}
+                  className="h-8 min-w-28 border-0 bg-transparent text-[11px]"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="ALL">{copy.allStatuses}</option>
+                  <option value="ACTIVE">{copy.activeStatus}</option>
+                  <option value="DISABLED">{copy.inactiveStatus}</option>
+                  <option value="ARCHIVED">{copy.archivedStatus}</option>
+                </Select>
+              </>
+            }
           />
         </Card>
       </section>
@@ -288,8 +318,8 @@ export function UsersPage() {
         <Card className="border-brand/30 p-5">
           <SectionTitle
             icon={<Pencil size={18} />}
-            title={`ویرایش ${nameOf(editing)}`}
-            subtitle="مشخصات، نقش و محدوده دسترسی را یکجا ذخیره کنید."
+            title={copy.editAccount(nameOf(editing))}
+            subtitle={copy.editAccountDescription}
           />
           <form
             className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3"
@@ -298,7 +328,7 @@ export function UsersPage() {
               save.mutate();
             }}
           >
-            <Field label="نام کاربری">
+            <Field label={copy.username}>
               <Input
                 required
                 minLength={2}
@@ -307,13 +337,13 @@ export function UsersPage() {
                 onChange={(e) => setEditDraft({ ...editDraft, username: e.target.value })}
               />
             </Field>
-            <Field label="نام">
+            <Field label={copy.firstName}>
               <Input
                 value={editDraft.firstName}
                 onChange={(e) => setEditDraft({ ...editDraft, firstName: e.target.value })}
               />
             </Field>
-            <Field label="نام خانوادگی">
+            <Field label={copy.lastName}>
               <Input
                 value={editDraft.lastName}
                 onChange={(e) => setEditDraft({ ...editDraft, lastName: e.target.value })}
@@ -327,7 +357,7 @@ export function UsersPage() {
               />
             ) : (
               <p className="self-end rounded-xl bg-slate-100 p-3 text-xs leading-5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                برای حفظ دسترسی، نقش حساب فعلی و مالک پلتفرم از اینجا قابل تغییر نیست.
+                {copy.protectedAccountHint}
               </p>
             )}
             {!isProtected(editing) && editDraft.role !== "PLATFORM_ADMIN" ? (
@@ -338,50 +368,50 @@ export function UsersPage() {
               />
             ) : null}
             <div className="flex items-end gap-2">
-              <Button loading={save.isPending}>ذخیره تغییرات</Button>
+              <Button loading={save.isPending}>{copy.saveChanges}</Button>
               <Button type="button" variant="ghost" onClick={() => setEditing(null)}>
-                انصراف
+                {copy.cancel}
               </Button>
             </div>
             {save.isError ? (
               <p role="alert" className="text-sm text-rose-700">
-                {errorText(save.error, "ویرایش حساب ناموفق بود.")}
+                {errorText(save.error, copy.accountSaveFailed)}
               </p>
             ) : null}
           </form>
         </Card>
       ) : null}
       <section className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,.65fr)]">
-        <Card className="overflow-hidden" aria-label="فهرست کاربران">
+        <Card className="overflow-hidden" aria-label={copy.userList}>
           <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <h2 className="font-black">فهرست کاربران</h2>
-            <p className="text-xs text-slate-500">
-              نقش و عملیات مجاز هر حساب در همان ردیف در دسترس است.
-            </p>
+            <h2 className="font-black">{copy.userList}</h2>
+            <p className="text-xs text-slate-500">{copy.usersDescription}</p>
           </div>
           {users.isLoading ? (
             <LoadingRows />
           ) : users.isError ? (
-            <Retry message="دریافت کاربران ناموفق بود." retry={() => users.refetch()} />
+            <Retry message={copy.usersFailed} retry={() => users.refetch()} />
           ) : !visible.length ? (
             <div className="p-6">
               <EmptyState
-                title={emptyAccessResult("users", Boolean(search || status !== "ALL" || organizationId))}
+                title={emptyAccessResult(
+                  "users",
+                  Boolean(search || status !== "ALL" || organizationId),
+                  language,
+                )}
                 action={
-                  search || status !== "ALL" || organizationId
-                    ? (
-                      <Button
-                        variant="soft"
-                        onClick={() => {
-                          setSearch("");
-                          setStatus("ALL");
-                          setOrganizationId("");
-                        }}
-                      >
-                        پاک‌کردن فیلترها
-                      </Button>
-                    )
-                    : undefined
+                  search || status !== "ALL" || organizationId ? (
+                    <Button
+                      variant="soft"
+                      onClick={() => {
+                        setSearch("");
+                        setStatus("ALL");
+                        setOrganizationId("");
+                      }}
+                    >
+                      {copy.clearFilters}
+                    </Button>
+                  ) : undefined
                 }
               />
             </div>
@@ -389,7 +419,7 @@ export function UsersPage() {
             <AdminDataTable
               rows={visible}
               rowId={(user) => user.id}
-              label="فهرست کاربران"
+              label={copy.userList}
               activeId={selectedUserId}
               onRowClick={(user) => setSelectedUserId(user.id)}
               selectedIds={selectedIds}
@@ -405,9 +435,12 @@ export function UsersPage() {
                       onClick={() =>
                         void modal
                           .confirm({
-                            title: "فعال‌سازی حساب‌های انتخاب‌شده؟",
-                            description: `دسترسی ${selectedRows.length.toLocaleString("fa-IR")} حساب دوباره فعال می‌شود.`,
-                            confirmLabel: "فعال‌سازی",
+                            title: copy.activateSelectedAccountsTitle,
+                            description: copy.activateSelectedAccountsDescription(
+                              selectedRows.length,
+                              profile.locale,
+                            ),
+                            confirmLabel: copy.activateAccounts,
                             showCancel: true,
                           })
                           .then(
@@ -420,7 +453,7 @@ export function UsersPage() {
                           )
                       }
                     >
-                      فعال‌سازی
+                      {copy.activateAccounts}
                     </Button>
                   }
                   <Button
@@ -431,10 +464,13 @@ export function UsersPage() {
                     onClick={() =>
                       void modal
                         .confirm({
-                          title: "غیرفعال‌کردن حساب‌های انتخاب‌شده؟",
-                          description: `دسترسی ${selectedRows.length.toLocaleString("fa-IR")} حساب متوقف می‌شود.`,
+                          title: copy.disableSelectedAccountsTitle,
+                          description: copy.disableSelectedAccountsDescription(
+                            selectedRows.length,
+                            profile.locale,
+                          ),
                           tone: "danger",
-                          confirmLabel: "غیرفعال‌کردن",
+                          confirmLabel: copy.disableAccounts,
                         })
                         .then(
                           (confirmed) =>
@@ -446,21 +482,21 @@ export function UsersPage() {
                         )
                     }
                   >
-                    غیرفعال‌کردن
+                    {copy.disableAccounts}
                   </Button>
                 </>
               )}
               columns={[
                 {
                   id: "user",
-                  header: "کاربر",
+                  header: copy.user,
                   cell: (user) => (
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <strong>{nameOf(user)}</strong>
                         {user.isPlatformOwner ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                            <Crown size={12} /> مالک پلتفرم
+                            <Crown size={12} /> {copy.platformOwner}
                           </span>
                         ) : null}
                         <StatusPill status={user.status} />
@@ -474,10 +510,10 @@ export function UsersPage() {
                             key={`${item.role}-${item.organizationId}-${index}`}
                             className="rounded-full bg-brand/10 px-2 py-1 text-[11px] font-bold text-brand"
                           >
-                            {roleLabels[item.role] || item.role}
+                            {roleLabel(item.role, language)}
                             {item.organizationId
-                              ? ` · ${organizations.data?.find((org) => org.id === item.organizationId)?.name || "سازمان"}`
-                              : " · سطح پلتفرم"}
+                              ? ` · ${organizations.data?.find((org) => org.id === item.organizationId)?.name || copy.organization}`
+                              : ` · ${copy.platformLevel}`}
                           </span>
                         ))}
                       </div>
@@ -486,13 +522,13 @@ export function UsersPage() {
                 },
                 {
                   id: "actions",
-                  header: "عملیات",
+                  header: copy.actions,
                   cell: (user) =>
                     canManage ? (
                       <div className="flex flex-wrap items-center gap-2">
                         <Button variant="soft" onClick={() => startEdit(user)}>
                           <Pencil size={15} />
-                          ویرایش
+                          {copy.edit}
                         </Button>
                         {!isProtected(user) ? (
                           <Button
@@ -503,10 +539,10 @@ export function UsersPage() {
                               user.status === "ACTIVE"
                                 ? void modal
                                     .confirm({
-                                      title: "غیرفعال‌کردن حساب؟",
-                                      description: `دسترسی ${nameOf(user)} و نشست‌های فعال او متوقف می‌شود.`,
+                                      title: copy.disableAccountTitle,
+                                      description: copy.disableAccountDescription(nameOf(user)),
                                       tone: "danger",
-                                      confirmLabel: "غیرفعال‌کردن",
+                                      confirmLabel: copy.disableAccounts,
                                     })
                                     .then(
                                       (confirmed) =>
@@ -515,11 +551,13 @@ export function UsersPage() {
                                 : toggle.mutate({ id: user.id, active: true })
                             }
                           >
-                            {user.status === "ACTIVE" ? "غیرفعال" : "فعال‌سازی"}
+                            {user.status === "ACTIVE" ? copy.disable : copy.activateAccounts}
                           </Button>
                         ) : (
                           <span className="text-xs font-bold text-slate-500">
-                            {user.isPlatformOwner ? "ابتدا واگذاری مالکیت" : "حساب فعلی"}
+                            {user.isPlatformOwner
+                              ? copy.transferOwnershipFirst
+                              : copy.currentAccount}
                           </span>
                         )}
                         {isPlatform && user.status !== "ARCHIVED" && !isProtected(user) ? (
@@ -530,24 +568,24 @@ export function UsersPage() {
                             onClick={async () => {
                               if (
                                 await modal.confirm({
-                                  title: "بایگانی حساب",
-                                  description: `حساب ${nameOf(user)} بایگانی و نشست‌های آن بسته شود؟`,
-                                  confirmLabel: "بایگانی",
-                                  confirmationText: "بایگانی",
+                                  title: copy.archiveAccountTitle,
+                                  description: copy.archiveAccountDescription(nameOf(user)),
+                                  confirmLabel: copy.archive,
+                                  confirmationText: copy.archive,
                                   tone: "danger",
-                                  cancelLabel: "انصراف",
+                                  cancelLabel: copy.cancel,
                                   showCancel: true,
                                 })
                               )
                                 archive.mutate(user.id);
                             }}
                           >
-                            بایگانی
+                            {copy.archive}
                           </Button>
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-500">فقط مشاهده</span>
+                      <span className="text-xs text-slate-500">{copy.readOnly}</span>
                     ),
                 },
               ]}
@@ -568,18 +606,18 @@ export function UsersPage() {
               </div>
               <div className="grid gap-3 p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">وضعیت حساب</span>
+                  <span className="text-xs text-slate-500">{copy.accountStatus}</span>
                   <StatusPill status={selectedUser.status} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">نقش‌ها و محدوده‌ها</p>
+                  <p className="text-xs text-slate-500">{copy.rolesAndScopes}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {selectedUser.assignments.map((item, index) => (
                       <span
                         key={`${item.role}-${index}`}
                         className="rounded-full bg-brand/10 px-2 py-1 text-xs font-bold text-brand"
                       >
-                        {roleLabels[item.role] || item.role}
+                        {roleLabel(item.role, language)}
                       </span>
                     ))}
                   </div>
@@ -595,31 +633,31 @@ export function UsersPage() {
                     onClick={() =>
                       void modal
                         .confirm({
-                          title: "واگذاری مالکیت پلتفرم؟",
-                          description: `${nameOf(selectedUser)} مالک جدید می‌شود. حساب شما مدیر پلتفرم می‌ماند اما دیگر نمی‌تواند مدیر پلتفرم بسازد یا مالکیت را واگذار کند.`,
-                          confirmLabel: "واگذاری مالکیت",
-                          confirmationText: "واگذاری مالکیت",
+                          title: copy.transferOwnershipTitle,
+                          description: copy.transferOwnershipDescription(nameOf(selectedUser)),
+                          confirmLabel: copy.transferOwnership,
+                          confirmationText: copy.transferOwnership,
                           tone: "danger",
-                          cancelLabel: "انصراف",
+                          cancelLabel: copy.cancel,
                           showCancel: true,
                         })
                         .then((confirmed) => confirmed && transferOwnership.mutate(selectedUser.id))
                     }
                   >
-                    <Crown size={15} /> واگذاری مالکیت پلتفرم
+                    <Crown size={15} /> {copy.transferOwnership}
                   </Button>
                 ) : null}
                 {canManage ? (
                   <Button variant="soft" onClick={() => startEdit(selectedUser)}>
                     <Pencil size={15} />
-                    ویرایش حساب و دسترسی
+                    {copy.editAccountAccess}
                   </Button>
                 ) : null}
               </div>
             </Card>
           ) : (
             <Card className="p-6">
-              <EmptyState title="یک کاربر را برای مشاهده جزئیات انتخاب کنید." />
+              <EmptyState title={copy.selectUserForDetails} />
             </Card>
           )}
         </div>
@@ -641,6 +679,8 @@ function UserCreateForm({
   allowPlatform: boolean;
   onSubmit: (body: Parameters<typeof createUser>[0]) => Promise<unknown>;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   const [draft, setDraft] = useState({
     username: "",
     password: "",
@@ -670,13 +710,13 @@ function UserCreateForm({
             ...(requiresOrganization ? { organizationId: draft.organizationId } : {}),
           });
         } catch (submissionError) {
-          setError(errorText(submissionError, "ساخت حساب ناموفق بود."));
+          setError(errorText(submissionError, copy.accountCreateFailed));
         } finally {
           setIsSubmitting(false);
         }
       }}
     >
-      <Field label="نام کاربری">
+      <Field label={copy.username}>
         <Input
           required
           minLength={2}
@@ -685,7 +725,7 @@ function UserCreateForm({
           onChange={(event) => setDraft({ ...draft, username: event.target.value })}
         />
       </Field>
-      <Field label="رمز اولیه (حداقل ۱۲ نویسه)">
+      <Field label={copy.password}>
         <Input
           required
           minLength={12}
@@ -700,13 +740,13 @@ function UserCreateForm({
         onChange={(role) => setDraft({ ...draft, role })}
         allowPlatform={allowPlatform}
       />
-      <Field label="نام">
+      <Field label={copy.firstName}>
         <Input
           value={draft.firstName}
           onChange={(event) => setDraft({ ...draft, firstName: event.target.value })}
         />
       </Field>
-      <Field label="نام خانوادگی">
+      <Field label={copy.lastName}>
         <Input
           value={draft.lastName}
           onChange={(event) => setDraft({ ...draft, lastName: event.target.value })}
@@ -726,7 +766,7 @@ function UserCreateForm({
       ) : null}
       <div className="md:col-span-2 flex justify-end">
         <Button loading={isSubmitting} disabled={requiresOrganization && !draft.organizationId}>
-          ساخت حساب
+          {copy.createAccount}
         </Button>
       </div>
     </form>
@@ -763,14 +803,16 @@ function RoleField({
   onChange: (role: RoleCode) => void;
   allowPlatform: boolean;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <Field label="نقش">
+    <Field label={copy.role}>
       <Select value={value} onChange={(e) => onChange(e.target.value as RoleCode)}>
         {allRoles
           .filter((role) => allowPlatform || role !== "PLATFORM_ADMIN")
           .map((role) => (
             <option key={role} value={role}>
-              {roleLabels[role]}
+              {roleLabel(role, language)}
             </option>
           ))}
       </Select>
@@ -786,10 +828,12 @@ function OrganizationField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <Field label="سازمان">
+    <Field label={copy.organization}>
       <Select required value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">انتخاب سازمان…</option>
+        <option value="">{copy.selectOrganization}</option>
         {organizations
           .filter((item) => item.status === "ACTIVE")
           .map((item) => (
@@ -808,12 +852,14 @@ function OrganizationTypeField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <Field label="نوع سازمان">
+    <Field label={copy.organizationKind}>
       <Select value={value} onChange={(e) => onChange(e.target.value)}>
-        {organizationTypes.map(([type, label]) => (
+        {["SCHOOL", "ACADEMY", "COUNSELING_CENTER", "PRIVATE_PRACTICE", "OTHER"].map((type) => (
           <option key={type} value={type}>
-            {label}
+            {copy.organizationType(type)}
           </option>
         ))}
       </Select>
@@ -821,11 +867,19 @@ function OrganizationTypeField({
   );
 }
 function StatusPill({ status }: { status: string }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
     <span
       className={`rounded-full px-2 py-1 text-[11px] font-bold ${status === "ACTIVE" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : status === "ARCHIVED" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
     >
-      {statusLabels[status] || status}
+      {status === "ACTIVE"
+        ? copy.activeStatus
+        : status === "ARCHIVED"
+          ? copy.archivedStatus
+          : status === "INACTIVE" || status === "DISABLED"
+            ? copy.inactiveStatus
+            : status}
     </span>
   );
 }
@@ -853,8 +907,10 @@ function IconAction({
   );
 }
 function LoadingRows() {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
-    <div role="status" aria-label="در حال دریافت" className="grid gap-3 p-4">
+    <div role="status" aria-label={copy.loading} className="grid gap-3 p-4">
       {[1, 2, 3].map((item) => (
         <div key={item} className="h-20 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
       ))}
@@ -862,12 +918,14 @@ function LoadingRows() {
   );
 }
 function Retry({ message, retry }: { message: string; retry: () => void }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   return (
     <div role="alert" className="grid justify-items-center gap-3 p-8">
       <ShieldCheck className="text-rose-600" />
       <p className="text-sm text-rose-700">{message}</p>
       <Button variant="soft" onClick={retry}>
-        تلاش دوباره
+        {copy.retry}
       </Button>
     </div>
   );

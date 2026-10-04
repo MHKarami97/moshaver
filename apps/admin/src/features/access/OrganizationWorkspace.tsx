@@ -19,7 +19,7 @@ import type { RoleCode } from "../../shared/types/domain";
 import { Button, Card, EmptyState, Field, Select } from "../../shared/ui/ui";
 import { useModal } from "../../shared/ui/modal";
 import { notify } from "../../shared/ui/notifications";
-import { roleLabels } from "../../shared/lib/role-ui";
+import { roleLabel } from "../../shared/lib/role-ui";
 import { useAuth } from "../auth";
 import { useLocale } from "../../shared/ui/locale";
 import { accessCopy } from "./model/access-copy";
@@ -40,28 +40,15 @@ import {
   type RelationshipStudent,
 } from "./api/access.api";
 
-const roles: Array<{ value: RoleCode; label: string }> = [
-  { value: "STUDENT", label: "دانش‌آموز" },
-  { value: "GUARDIAN", label: "سرپرست" },
-  { value: "ADVISOR", label: "مشاور" },
-  { value: "TEACHER", label: "دبیر" },
-  { value: "MENTOR", label: "منتور" },
-  { value: "CONTENT_MANAGER", label: "مدیر محتوا" },
-  { value: "ORGANIZATION_ADMIN", label: "مدیر سازمان" },
+const roles: RoleCode[] = [
+  "STUDENT",
+  "GUARDIAN",
+  "ADVISOR",
+  "TEACHER",
+  "MENTOR",
+  "CONTENT_MANAGER",
+  "ORGANIZATION_ADMIN",
 ];
-
-const relationTypeLabels: Record<string, string> = {
-  GUARDIAN_OF: "سرپرست",
-  ADVISOR_OF: "مشاور",
-  TEACHER_OF: "دبیر",
-  MENTOR_OF: "منتور",
-};
-
-const statusLabels: Record<string, string> = {
-  PENDING: "در انتظار بررسی",
-  ACCEPTED: "تأییدشده",
-  REJECTED: "ردشده",
-};
 
 const statusTones: Record<string, string> = {
   PENDING:
@@ -196,7 +183,7 @@ export function OrganizationWorkspace({
     mutationFn: ({ id, action }: { id: string; action: "accept" | "reject" }) =>
       action === "accept" ? acceptRelationship(id) : rejectRelationship(id),
     onSuccess: async (_, variables) => {
-      notify(variables.action === "accept" ? "درخواست ارتباط تأیید شد." : "درخواست ارتباط رد شد.");
+      notify(variables.action === "accept" ? copy.relationshipAccepted : copy.relationshipRejected);
       await refresh();
     },
   });
@@ -204,20 +191,20 @@ export function OrganizationWorkspace({
     mutationFn: (body: Parameters<typeof createRelationship>[0]) => createRelationship(body),
     onSuccess: async () => {
       modal.close();
-      notify("ارتباط ایجاد شد.");
+      notify(copy.relationshipCreated);
       await refresh();
     },
   });
   const revokeLink = useMutation({
     mutationFn: removeRelationship,
     onSuccess: async () => {
-      notify("ارتباط لغو شد.");
+      notify(copy.relationshipRemoved);
       await refresh();
     },
   });
   const guardianOverride = useMutation({
     mutationFn: allowGuardianChange,
-    onSuccess: () => notify("محدودیت تغییر سرپرست لغو شد."),
+    onSuccess: () => notify(copy.guardianChangeAllowed),
   });
 
   const available = (users.data || []).filter(
@@ -317,8 +304,8 @@ export function OrganizationWorkspace({
               <Field label={copy.organizationRole}>
                 <Select value={role} onChange={(e) => setRole(e.target.value as RoleCode)}>
                   {roles.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
+                    <option key={item} value={item}>
+                      {roleLabel(item, language)}
                     </option>
                   ))}
                 </Select>
@@ -394,15 +381,16 @@ export function OrganizationWorkspace({
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {member.roles.map((item) => roleLabels[item] || item).join("، ") ||
-                          copy.noRole}
+                        {member.roles
+                          .map((item) => roleLabel(item, language))
+                          .join(language === "en" ? ", " : "، ") || copy.noRole}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-1.5">
                       <div className="relative">
                         <select
-                          aria-label={`نقش ${member.user.username}`}
+                          aria-label={copy.memberRoleFor(member.user.username)}
                           value={member.roles[0] || "ADVISOR"}
                           disabled={update.isPending}
                           onChange={(event) =>
@@ -414,8 +402,8 @@ export function OrganizationWorkspace({
                           className="h-9 appearance-none rounded-lg border border-slate-200 bg-white pe-7 ps-3 text-xs outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900"
                         >
                           {roles.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
+                            <option key={item} value={item}>
+                              {roleLabel(item, language)}
                             </option>
                           ))}
                         </select>
@@ -427,16 +415,18 @@ export function OrganizationWorkspace({
 
                       <button
                         type="button"
-                        title={isActive ? "تعلیق" : "فعال‌سازی"}
+                        title={isActive ? copy.suspend : copy.activate}
                         disabled={update.isPending}
                         onClick={() =>
                           isActive
                             ? void modal
                                 .confirm({
-                                  title: "غیرفعال‌کردن عضویت؟",
-                                  description: `${displayName(member.user)} تا فعال‌سازی مجدد به داده‌های این سازمان دسترسی ندارد.`,
+                                  title: copy.suspendMembershipTitle,
+                                  description: copy.suspendMembershipDescription(
+                                    displayName(member.user),
+                                  ),
                                   tone: "danger",
-                                  confirmLabel: "غیرفعال‌کردن",
+                                  confirmLabel: copy.disableAccounts,
                                   showCancel: true,
                                 })
                                 .then(
@@ -457,15 +447,17 @@ export function OrganizationWorkspace({
 
                       <button
                         type="button"
-                        title="حذف عضو"
+                        title={copy.removeMember}
                         disabled={remove.isPending}
                         onClick={() =>
                           void modal
                             .confirm({
-                              title: "حذف عضو از سازمان؟",
-                              description: `عضویت ${displayName(member.user)} حذف می‌شود؛ حساب کاربری او حذف نخواهد شد.`,
+                              title: copy.removeMembershipTitle,
+                              description: copy.removeMembershipDescription(
+                                displayName(member.user),
+                              ),
                               tone: "danger",
-                              confirmLabel: "حذف عضویت",
+                              confirmLabel: copy.removeMembership,
                             })
                             .then((confirmed) => confirmed && remove.mutate(member.user.id))
                         }
@@ -488,15 +480,15 @@ export function OrganizationWorkspace({
             title={copy.relationships}
             description={
               pendingCount
-                ? `${pendingCount} درخواست در انتظار بررسی`
+                ? copy.pendingRelationshipCount(pendingCount, language === "fa" ? "fa-IR" : "en-US")
                 : copy.relationshipsDescription
             }
             action={
               <Button
                 onClick={() =>
                   modal.open({
-                    title: "ارتباط جدید",
-                    description: "فقط اعضای فعال همین سازمان برای ارتباط قابل انتخاب هستند.",
+                    title: copy.newRelationship,
+                    description: copy.newRelationshipDescription,
                     size: "md",
                     content: (
                       <RelationshipCreateForm
@@ -557,14 +549,14 @@ export function OrganizationWorkspace({
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                          {relationTypeLabels[item.type] || item.type}
+                          {copy.relationTypeLabel(item.type)}
                         </span>
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                             statusTones[item.status] || ""
                           }`}
                         >
-                          {statusLabels[item.status] || item.status}
+                          {copy.relationshipStatus(item.status)}
                         </span>
                       </div>
                     </div>
@@ -579,11 +571,10 @@ export function OrganizationWorkspace({
                           onClick={() =>
                             void modal
                               .confirm({
-                                title: "رد درخواست ارتباط؟",
-                                description:
-                                  "این درخواست رد می‌شود و برای ایجاد ارتباط، درخواست تازه‌ای لازم خواهد بود.",
+                                title: copy.rejectRelationshipTitle,
+                                description: copy.rejectRelationshipDescription,
                                 tone: "danger",
-                                confirmLabel: "رد درخواست",
+                                confirmLabel: copy.rejectRelationship,
                               })
                               .then(
                                 (confirmed) =>
@@ -592,14 +583,14 @@ export function OrganizationWorkspace({
                           }
                         >
                           <X size={14} />
-                          رد
+                          {copy.reject}
                         </Button>
                         <Button
                           loading={decide.isPending}
                           onClick={() => decide.mutate({ id: item.id, action: "accept" })}
                         >
                           <Check size={14} />
-                          تأیید
+                          {copy.approve}
                         </Button>
                       </>
                     ) : (
@@ -610,7 +601,7 @@ export function OrganizationWorkspace({
                             loading={guardianOverride.isPending}
                             onClick={() => guardianOverride.mutate(item.student.id)}
                           >
-                            لغو محدودیت تغییر
+                            {copy.allowGuardianChange}
                           </Button>
                         ) : null}
                         <Button
@@ -619,16 +610,19 @@ export function OrganizationWorkspace({
                           onClick={() =>
                             void modal
                               .confirm({
-                                title: "لغو ارتباط؟",
-                                description: `ارتباط بین ${displayName(item.fromUser)} و ${item.student.name} لغو می‌شود.`,
+                                title: copy.revokeRelationshipTitle,
+                                description: copy.revokeRelationshipDescription(
+                                  displayName(item.fromUser),
+                                  item.student.name,
+                                ),
                                 tone: "danger",
-                                confirmLabel: "لغو ارتباط",
+                                confirmLabel: copy.revokeRelationship,
                               })
                               .then((confirmed) => confirmed && revokeLink.mutate(item.id))
                           }
                         >
                           <Trash2 size={14} />
-                          لغو ارتباط
+                          {copy.revokeRelationship}
                         </Button>
                       </>
                     )}
@@ -654,6 +648,8 @@ function RelationshipCreateForm({
     body: Omit<Parameters<typeof createRelationship>[0], "organizationId">,
   ) => Promise<unknown>;
 }) {
+  const { language } = useLocale();
+  const copy = accessCopy[language];
   const [fromUserId, setFromUserId] = useState("");
   const [toStudentId, setToStudentId] = useState("");
   const [type, setType] = useState<Parameters<typeof createRelationship>[0]["type"]>("GUARDIAN_OF");
@@ -673,15 +669,15 @@ function RelationshipCreateForm({
         try {
           await onSubmit({ fromUserId, toStudentId, type });
         } catch {
-          setError("ایجاد ارتباط ناموفق بود.");
+          setError(copy.relationCreateFailed);
         } finally {
           setIsSubmitting(false);
         }
       }}
     >
-      <Field label="کاربر مرتبط">
+      <Field label={copy.relatedUser}>
         <Select required value={fromUserId} onChange={(event) => setFromUserId(event.target.value)}>
-          <option value="">انتخاب کاربر…</option>
+          <option value="">{copy.selectUser}</option>
           {eligibleMembers.map((member) => (
             <option key={member.user.id} value={member.user.id}>
               {displayName(member.user)}
@@ -689,13 +685,13 @@ function RelationshipCreateForm({
           ))}
         </Select>
       </Field>
-      <Field label="دانش‌آموز">
+      <Field label={copy.student}>
         <Select
           required
           value={toStudentId}
           onChange={(event) => setToStudentId(event.target.value)}
         >
-          <option value="">انتخاب دانش‌آموز…</option>
+          <option value="">{copy.selectStudent}</option>
           {students.map((student) => (
             <option key={student.id} value={student.id}>
               {student.name}
@@ -703,12 +699,12 @@ function RelationshipCreateForm({
           ))}
         </Select>
       </Field>
-      <Field label="نوع ارتباط">
+      <Field label={copy.relationType}>
         <Select value={type} onChange={(event) => setType(event.target.value as typeof type)}>
-          <option value="GUARDIAN_OF">سرپرست</option>
-          <option value="ADVISOR_OF">مشاور</option>
-          <option value="TEACHER_OF">دبیر</option>
-          <option value="MENTOR_OF">منتور</option>
+          <option value="GUARDIAN_OF">{copy.relationTypeLabel("GUARDIAN_OF")}</option>
+          <option value="ADVISOR_OF">{copy.relationTypeLabel("ADVISOR_OF")}</option>
+          <option value="TEACHER_OF">{copy.relationTypeLabel("TEACHER_OF")}</option>
+          <option value="MENTOR_OF">{copy.relationTypeLabel("MENTOR_OF")}</option>
         </Select>
       </Field>
       {error ? (
@@ -718,7 +714,7 @@ function RelationshipCreateForm({
       ) : null}
       <div className="flex justify-end">
         <Button loading={isSubmitting} disabled={!fromUserId || !toStudentId}>
-          ایجاد ارتباط
+          {copy.newRelationship}
         </Button>
       </div>
     </form>

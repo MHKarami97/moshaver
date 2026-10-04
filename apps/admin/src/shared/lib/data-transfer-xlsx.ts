@@ -151,7 +151,9 @@ export function examplePayload(scope: Scope): TransferPayload {
               openAt: "2026-09-21T08:00:00.000Z",
               closeAt: "2026-09-21T10:00:00.000Z",
               instructions: ["با دقت پاسخ دهید."],
-              syllabus: [{ subject: "ریاضی", description: "فصل اول", required: true, track: "دوازدهم" }],
+              syllabus: [
+                { subject: "ریاضی", description: "فصل اول", required: true, track: "دوازدهم" },
+              ],
               questions: [
                 {
                   text: "حاصل ۲ + ۲ کدام است؟",
@@ -171,8 +173,14 @@ function readPlans(sheet: Worksheet) {
   const grouped = new Map<
     string,
     {
-      date: string; published: boolean; title: string; dayLabel: string; persianDate: string;
-      jalaliId: string; motivationText: string; tasks: Array<Record<string, unknown>>;
+      date: string;
+      published: boolean;
+      title: string;
+      dayLabel: string;
+      persianDate: string;
+      jalaliId: string;
+      motivationText: string;
+      tasks: Array<Record<string, unknown>>;
     }
   >();
   for (const row of rows) {
@@ -230,7 +238,10 @@ function readExams(sheet: Worksheet) {
       questions: [],
     };
     const syllabusSubject = text(row.syllabusSubject);
-    if (syllabusSubject && !exam.syllabus.some((item: Record<string, unknown>) => item.subject === syllabusSubject))
+    if (
+      syllabusSubject &&
+      !exam.syllabus.some((item: Record<string, unknown>) => item.subject === syllabusSubject)
+    )
       exam.syllabus.push({
         subject: syllabusSubject,
         description: text(row.syllabusDescription),
@@ -290,7 +301,9 @@ function addPlans(sheet: Worksheet, plans: Array<Record<string, any>>) {
   sheet.columns = planHeaders.map((header) => ({
     header,
     key: header,
-    width: ["title", "planTitle", "description", "note", "motivationText"].includes(header) ? 28 : 16,
+    width: ["title", "planTitle", "description", "note", "motivationText"].includes(header)
+      ? 28
+      : 16,
   }));
   for (const plan of plans)
     for (const task of plan.tasks || [])
@@ -337,7 +350,9 @@ function addExams(sheet: Worksheet, exams: Array<Record<string, any>>) {
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
         sortOrder: question.sortOrder,
-        instructions: Array.isArray(exam.instructions) ? exam.instructions.join("\n") : exam.instructions,
+        instructions: Array.isArray(exam.instructions)
+          ? exam.instructions.join("\n")
+          : exam.instructions,
         syllabusSubject: syllabusItem.subject,
         syllabusDescription: syllabusItem.description,
         syllabusRequired: syllabusItem.required,

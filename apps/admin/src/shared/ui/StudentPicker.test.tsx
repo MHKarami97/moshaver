@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Student } from "../types/domain";
 import { StudentPicker } from "./StudentPicker";
+import { LocaleProvider } from "./locale";
 
 const students: Student[] = Array.from({ length: 100 }, (_, index) => ({
   id: `student-${index + 1}`,
@@ -50,5 +51,19 @@ describe("StudentPicker at cohort scale", () => {
     expect(within(screen.getByRole("listbox")).getAllByRole("option")[1]).toHaveFocus();
     await user.keyboard("{End}");
     expect(within(screen.getByRole("listbox")).getAllByRole("option")[2]).toHaveFocus();
+  });
+
+  it("uses English labels and LTR-safe text when the international workspace is active", async () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    const user = userEvent.setup();
+    render(
+      <LocaleProvider>
+        <StudentPicker students={students.slice(0, 2)} value="" onChange={() => undefined} />
+      </LocaleProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Select student" }));
+    expect(screen.getByText("2 available accounts")).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Student list" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Name, username, grade, or subject…")).toBeInTheDocument();
   });
 });

@@ -7,14 +7,14 @@ import { Button, Input } from "./ui";
 export function CollectionToolbar({
   search,
   onSearchChange,
-  placeholder = "جست‌وجو…",
+  placeholder,
   searchLabel,
   searchInputType = "search",
   filters,
   actions,
   resultLabel,
   onClear,
-  label = "ابزارهای فهرست",
+  label,
   sticky = false,
 }: {
   search?: string;
@@ -32,10 +32,14 @@ export function CollectionToolbar({
   sticky?: boolean;
 }) {
   const copy = useSharedUiCopy();
+  const resolvedPlaceholder =
+    placeholder || (copy.locale.startsWith("en") ? "Search…" : "جست‌وجو…");
+  const resolvedLabel =
+    label || (copy.locale.startsWith("en") ? "Collection tools" : "ابزارهای فهرست");
   return (
     <div
       className={`collection-toolbar min-w-0 ${sticky ? "sticky top-0 z-20 bg-[rgb(var(--surface-card))] py-2 shadow-[0_1px_0_rgb(var(--border-subtle))]" : ""}`}
-      aria-label={label}
+      aria-label={resolvedLabel}
     >
       {onSearchChange ? (
         <label className="relative min-w-0 flex-1 basis-52">
@@ -48,9 +52,9 @@ export function CollectionToolbar({
             type={searchInputType}
             value={search || ""}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             className="h-9 ps-9 text-xs"
-            aria-label={searchLabel || placeholder}
+            aria-label={searchLabel || resolvedPlaceholder}
           />
         </label>
       ) : null}

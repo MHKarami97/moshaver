@@ -24,8 +24,7 @@ export type StudentAssignment = {
 };
 
 export type AssignmentInput =
-  | { mode: "AUTO" }
-  | { mode: "MANUAL"; organizationId: string; advisorUserId: string };
+  { mode: "AUTO" } | { mode: "MANUAL"; organizationId: string; advisorUserId: string };
 
 export type AssignmentAdvisor = Pick<
   PortalUser,

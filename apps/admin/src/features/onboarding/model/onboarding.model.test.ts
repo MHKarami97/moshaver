@@ -28,19 +28,19 @@ describe("onboarding model", () => {
       },
     ] as never;
 
-    expect(eligibleAdvisorsForOrganization(advisors, "org-1").map((advisor) => advisor.id)).toEqual([
-      "a-1",
-    ]);
+    expect(eligibleAdvisorsForOrganization(advisors, "org-1").map((advisor) => advisor.id)).toEqual(
+      ["a-1"],
+    );
   });
 
   it("keeps manual submission unavailable until the directory and both choices are ready", () => {
     expect(canSubmitManualAssignment({ organizationId: "", advisorUserId: "" }, false)).toBe(false);
-    expect(canSubmitManualAssignment({ organizationId: "org", advisorUserId: "advisor" }, true)).toBe(
-      false,
-    );
-    expect(canSubmitManualAssignment({ organizationId: "org", advisorUserId: "advisor" }, false)).toBe(
-      true,
-    );
+    expect(
+      canSubmitManualAssignment({ organizationId: "org", advisorUserId: "advisor" }, true),
+    ).toBe(false);
+    expect(
+      canSubmitManualAssignment({ organizationId: "org", advisorUserId: "advisor" }, false),
+    ).toBe(true);
     expect(displayAdvisor({ username: "advisor", firstName: "نام", lastName: "خانوادگی" })).toBe(
       "نام خانوادگی",
     );

@@ -31,18 +31,39 @@ export function getTimelineRange(
   let start = config.startHour * 60;
   let end = config.endHour * 60;
   for (const task of tasks) {
-    if (task.start && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.start)) start = Math.min(start, Math.floor(timeToMinutes(task.start) / config.slotMinutes) * config.slotMinutes);
-    if (task.end && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.end)) end = Math.max(end, Math.ceil(timeToMinutes(task.end) / config.slotMinutes) * config.slotMinutes);
+    if (task.start && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.start))
+      start = Math.min(
+        start,
+        Math.floor(timeToMinutes(task.start) / config.slotMinutes) * config.slotMinutes,
+      );
+    if (task.end && /^([01]\d|2[0-3]):[0-5]\d$/.test(task.end))
+      end = Math.max(
+        end,
+        Math.ceil(timeToMinutes(task.end) / config.slotMinutes) * config.slotMinutes,
+      );
   }
   return { start, end: Math.min(24 * 60, end) };
 }
 
-export function timeToPosition(time: string, rangeStart: number, slotHeight: number, slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes) {
+export function timeToPosition(
+  time: string,
+  rangeStart: number,
+  slotHeight: number,
+  slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes,
+) {
   return ((timeToMinutes(time) - rangeStart) / slotMinutes) * slotHeight;
 }
 
-export function durationToHeight(start: string, end: string, slotHeight: number, slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes) {
-  return Math.max(Math.max(8, slotHeight - 2), Math.round(Math.max(15, minutesBetween(start, end)) / slotMinutes) * slotHeight - 2);
+export function durationToHeight(
+  start: string,
+  end: string,
+  slotHeight: number,
+  slotMinutes = DEFAULT_TIMELINE_CONFIG.slotMinutes,
+) {
+  return Math.max(
+    Math.max(8, slotHeight - 2),
+    Math.round(Math.max(15, minutesBetween(start, end)) / slotMinutes) * slotHeight - 2,
+  );
 }
 
 export function plannerRange(date: string, mode: PlannerMode, locale = "en", calendar = "gregory") {

@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { educationLabel } from "../lib/utils";
 import { Button } from "./ui";
+import { useOptionalAdminLanguage } from "./locale";
 
 export type StudentAllocationCandidate = {
   id: string;
@@ -28,6 +29,9 @@ export function StudentAllocationControl({
   label?: string;
   classes?: Array<{ id: string; name: string; status?: string; students: Array<{ id: string }> }>;
 }) {
+  const language = useOptionalAdminLanguage();
+  const numberLocale = language === "en" ? "en-US" : "fa-IR";
+  const copy = allocationCopy[language];
   const [search, setSearch] = useState("");
   const [grade, setGrade] = useState("");
   const [educationType, setEducationType] = useState("");
@@ -49,8 +53,8 @@ export function StudentAllocationControl({
               .find((item) => item.id === classId)
               ?.students.some((item) => item.id === student.id)) &&
           `${student.name} ${student.grade || ""} ${student.major || ""}`
-            .toLocaleLowerCase("fa")
-            .includes(search.trim().toLocaleLowerCase("fa")),
+            .toLocaleLowerCase(numberLocale)
+            .includes(search.trim().toLocaleLowerCase(numberLocale)),
       ),
     [
       classId,
@@ -73,7 +77,7 @@ export function StudentAllocationControl({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="text-sm">{label}</strong>
         <span className="text-xs text-slate-500">
-          {selectedIds.length.toLocaleString("fa-IR")} انتخاب
+          {copy.selected(selectedIds.length, numberLocale)}
         </span>
       </div>
       <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 dark:border-slate-700 dark:bg-slate-900">
@@ -82,17 +86,17 @@ export function StudentAllocationControl({
           className="min-w-0 flex-1 bg-transparent text-sm outline-none"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="جست‌وجوی نام، پایه یا رشته"
+          placeholder={copy.search}
         />
       </label>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-          aria-label="فیلتر پایه"
+          aria-label={copy.gradeFilter}
           value={grade}
           onChange={(event) => setGrade(event.target.value)}
         >
-          <option value="">همه پایه‌ها</option>
+          <option value="">{copy.allGrades}</option>
           {[
             ...new Set(
               students
@@ -100,16 +104,16 @@ export function StudentAllocationControl({
                 .filter(Boolean),
             ),
           ]
-            .sort((a, b) => a.localeCompare(b, "fa", { numeric: true }))
+            .sort((a, b) => a.localeCompare(b, numberLocale, { numeric: true }))
             .map((value) => (
               <option key={String(value)} value={value || ""}>
-                {gradeLabel(value)}
+                {gradeLabel(value, language, numberLocale)}
               </option>
             ))}
         </select>
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-          aria-label="نوع یادگیرنده"
+          aria-label={copy.learnerType}
           value={learnerProfile}
           onChange={(event) => {
             setLearnerProfile(event.target.value as "" | "school" | "independent");
@@ -117,13 +121,13 @@ export function StudentAllocationControl({
             else setIndependentType("");
           }}
         >
-          <option value="">همه یادگیرندگان</option>
-          <option value="school">دانش‌آموز مدرسه</option>
-          <option value="independent">یادگیرنده مستقل</option>
+          <option value="">{copy.allLearners}</option>
+          <option value="school">{copy.schoolStudent}</option>
+          <option value="independent">{copy.independentLearner}</option>
         </select>
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-          aria-label="نوع یادگیرنده مستقل"
+          aria-label={copy.independentType}
           value={independentType}
           disabled={learnerProfile === "school"}
           onChange={(event) => {
@@ -134,12 +138,12 @@ export function StudentAllocationControl({
             }
           }}
         >
-          <option value="">همه نوع‌های مستقل</option>
+          <option value="">{copy.allIndependentTypes}</option>
           {[
-            ["adult", "بزرگسال"],
-            ["gap_year", "سال فاصله"],
-            ["homeschool", "آموزش خانگی"],
-            ["other", "سایر"],
+            ["adult", copy.adult],
+            ["gap_year", copy.gapYear],
+            ["homeschool", copy.homeschool],
+            ["other", copy.other],
           ].map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -149,12 +153,12 @@ export function StudentAllocationControl({
         {classes.length ? (
           <select
             className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-            aria-label="فیلتر کلاس"
+            aria-label={copy.classFilter}
             value={classId}
             disabled={learnerProfile === "independent"}
             onChange={(event) => setClassId(event.target.value)}
           >
-            <option value="">همه کلاس‌ها</option>
+            <option value="">{copy.allClasses}</option>
             {classes
               .filter((item) => !item.status || item.status === "ACTIVE")
               .map((item) => (
@@ -166,14 +170,14 @@ export function StudentAllocationControl({
         ) : null}
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-          aria-label="فیلتر نوع آموزش"
+          aria-label={copy.educationFilter}
           value={educationType}
           onChange={(event) => {
             setEducationType(event.target.value);
             setTrack("");
           }}
         >
-          <option value="">همه نوع‌ها</option>
+          <option value="">{copy.allTypes}</option>
           {[...new Set(students.map((student) => student.educationTypeId).filter(Boolean))]
             .sort()
             .map((value) => (
@@ -184,11 +188,11 @@ export function StudentAllocationControl({
         </select>
         <select
           className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-          aria-label="فیلتر رشته"
+          aria-label={copy.trackFilter}
           value={track}
           onChange={(event) => setTrack(event.target.value)}
         >
-          <option value="">همه رشته‌ها</option>
+          <option value="">{copy.allTracks}</option>
           {[
             ...new Set(
               students
@@ -197,7 +201,7 @@ export function StudentAllocationControl({
                 .filter(Boolean),
             ),
           ]
-            .sort((a, b) => a!.localeCompare(b!, "fa"))
+            .sort((a, b) => a!.localeCompare(b!, numberLocale))
             .map((value) => (
               <option key={String(value)} value={value || ""}>
                 {educationLabel(value!)}
@@ -214,10 +218,10 @@ export function StudentAllocationControl({
             onChange([...new Set([...selectedIds, ...visible.map((student) => student.id)])])
           }
         >
-          انتخاب نتایج
+          {copy.selectResults}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => onChange([])}>
-          پاک‌سازی
+          {copy.clear}
         </Button>
       </div>
       <div className="grid max-h-64 gap-2 overflow-auto sm:grid-cols-2">
@@ -236,20 +240,76 @@ export function StudentAllocationControl({
               <strong className="block truncate text-sm">{student.name}</strong>
               <small className="block truncate text-xs text-slate-500">
                 {student.learnerProfile === "independent"
-                  ? `یادگیرنده مستقل${student.independentType ? ` · ${student.independentType}` : ""}`
-                  : `${student.grade || "پایه نامشخص"} · ${student.major || "رشته نامشخص"}`}
+                  ? `${copy.independentLearner}${student.independentType ? ` · ${student.independentType}` : ""}`
+                  : `${student.grade || copy.unknownGrade} · ${student.major || copy.unknownTrack}`}
               </small>
             </span>
           </label>
         ))}
       </div>
-      {!visible.length ? (
-        <p className="text-center text-xs text-slate-500">دانش‌آموزی با این فیلتر پیدا نشد.</p>
-      ) : null}
+      {!visible.length ? <p className="text-center text-xs text-slate-500">{copy.empty}</p> : null}
     </section>
   );
 }
 
-function gradeLabel(value: string) {
-  return value.startsWith("پایه") ? value : `پایه ${Number(value).toLocaleString("fa-IR")}`;
+function gradeLabel(value: string, language: "fa" | "en", locale: string) {
+  if (language === "en") return `Grade ${Number(value).toLocaleString(locale)}`;
+  return value.startsWith("پایه") ? value : `پایه ${Number(value).toLocaleString(locale)}`;
 }
+
+const allocationCopy = {
+  fa: {
+    selected: (count: number, locale: string) => `${count.toLocaleString(locale)} انتخاب`,
+    search: "جست‌وجوی نام، پایه یا رشته",
+    gradeFilter: "فیلتر پایه",
+    allGrades: "همه پایه‌ها",
+    learnerType: "نوع یادگیرنده",
+    allLearners: "همه یادگیرندگان",
+    schoolStudent: "دانش‌آموز مدرسه",
+    independentLearner: "یادگیرنده مستقل",
+    independentType: "نوع یادگیرنده مستقل",
+    allIndependentTypes: "همه نوع‌های مستقل",
+    adult: "بزرگسال",
+    gapYear: "سال فاصله",
+    homeschool: "آموزش خانگی",
+    other: "سایر",
+    classFilter: "فیلتر کلاس",
+    allClasses: "همه کلاس‌ها",
+    educationFilter: "فیلتر نوع آموزش",
+    allTypes: "همه نوع‌ها",
+    trackFilter: "فیلتر رشته",
+    allTracks: "همه رشته‌ها",
+    selectResults: "انتخاب نتایج",
+    clear: "پاک‌سازی",
+    unknownGrade: "پایه نامشخص",
+    unknownTrack: "رشته نامشخص",
+    empty: "دانش‌آموزی با این فیلتر پیدا نشد.",
+  },
+  en: {
+    selected: (count: number, locale: string) => `${count.toLocaleString(locale)} selected`,
+    search: "Search by name, grade, or subject",
+    gradeFilter: "Grade filter",
+    allGrades: "All grades",
+    learnerType: "Learner type",
+    allLearners: "All learners",
+    schoolStudent: "School student",
+    independentLearner: "Independent learner",
+    independentType: "Independent learner type",
+    allIndependentTypes: "All independent types",
+    adult: "Adult",
+    gapYear: "Gap year",
+    homeschool: "Homeschool",
+    other: "Other",
+    classFilter: "Class filter",
+    allClasses: "All classes",
+    educationFilter: "Education type filter",
+    allTypes: "All types",
+    trackFilter: "Subject filter",
+    allTracks: "All subjects",
+    selectResults: "Select results",
+    clear: "Clear",
+    unknownGrade: "Unknown grade",
+    unknownTrack: "Unknown subject",
+    empty: "No students match this filter.",
+  },
+} as const;

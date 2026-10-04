@@ -10,13 +10,29 @@ export type PortalUser = {
   isPlatformOwner?: boolean;
   assignments: Array<{ role: RoleCode; organizationId: string | null }>;
 };
-export type PortalOrganization = { id: string; name: string; type: string; status: string; disabledFeatures?: string[] };
+export type PortalOrganization = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  disabledFeatures?: string[];
+};
 export const organizationFeatures = [
-  ["PLANNER", "برنامه‌ریز"], ["LEARNING", "سیستم یادگیری"], ["EXAMS", "آزمون‌ها"],
-  ["QUIZZES", "آزمونک‌ها"], ["QUESTION_BANK", "بانک سؤال"], ["SUBJECTS", "درس‌ها"],
-  ["EDUCATION", "مرکز آموزش و کلاس‌ها"], ["RESOURCES", "منابع آموزشی"], ["CHAT", "گفتگو"],
-  ["REPORTS", "گزارش‌ها"], ["STUDENTS", "مدیریت دانش‌آموزان"], ["FAMILY", "خانه خانواده"],
-  ["ONBOARDING", "ورود دانش‌آموزان"], ["ANALYTICS", "تحلیل و پیشنهادها"], ["IMPORT_EXPORT", "ورود و خروج داده"],
+  ["PLANNER", "برنامه‌ریز"],
+  ["LEARNING", "سیستم یادگیری"],
+  ["EXAMS", "آزمون‌ها"],
+  ["QUIZZES", "آزمونک‌ها"],
+  ["QUESTION_BANK", "بانک سؤال"],
+  ["SUBJECTS", "درس‌ها"],
+  ["EDUCATION", "مرکز آموزش و کلاس‌ها"],
+  ["RESOURCES", "منابع آموزشی"],
+  ["CHAT", "گفتگو"],
+  ["REPORTS", "گزارش‌ها"],
+  ["STUDENTS", "مدیریت دانش‌آموزان"],
+  ["FAMILY", "خانه خانواده"],
+  ["ONBOARDING", "ورود دانش‌آموزان"],
+  ["ANALYTICS", "تحلیل و پیشنهادها"],
+  ["IMPORT_EXPORT", "ورود و خروج داده"],
 ] as const;
 export type OrganizationFeatureCode = (typeof organizationFeatures)[number][0];
 export type OrganizationMember = {
