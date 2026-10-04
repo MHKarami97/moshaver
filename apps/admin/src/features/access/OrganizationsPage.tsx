@@ -456,6 +456,10 @@ export function OrganizationsPage() {
               <OrganizationWorkspace
                 organizationId={selected.id}
                 organizationName={selected.name}
+                studentSignupManagedByOrganization={selected.studentSignupManagedByOrganization}
+                studentSignupEnabled={selected.studentSignupEnabled}
+                studentSignupLimit={selected.studentSignupLimit}
+                studentSignupCount={selected.studentSignupCount}
               />
             ) : (
               <Card className="p-6">
