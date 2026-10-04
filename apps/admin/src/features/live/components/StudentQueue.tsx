@@ -32,7 +32,7 @@ export function StudentQueue({
       ].join(" ")}
     >
       <div className="flex items-center justify-between border-b px-3 py-2">
-        <strong>{language === "fa" ? "صف عملیات دانش‌آموزان" : "Student operations queue"}</strong>
+        <strong>{copy.operationsQueue}</strong>
 
         <Badge tone={students.some(needsAttention) ? "red" : "green"}>
           {language === "fa"

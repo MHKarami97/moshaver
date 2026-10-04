@@ -1,5 +1,4 @@
 import { Activity } from "lucide-react";
-import { fa } from "../../../shared/lib/utils";
 import { Badge, Card, EmptyState } from "../../../shared/ui/ui";
 import type { LiveEvent, LivePanel } from "../model/live.types";
 import { CompactSkeleton } from "./CompactSkeleton";
@@ -31,10 +30,10 @@ export function TimelinePanel({
         <span className="flex items-center gap-2">
           <Activity size={17} className="text-brand" />
 
-          <strong>{language === "fa" ? "رویدادهای اخیر" : "Recent events"}</strong>
+          <strong>{copy.recentEvents}</strong>
         </span>
 
-        <Badge>{fa(events.length)}</Badge>
+        <Badge>{events.length.toLocaleString(language === "fa" ? "fa-IR" : "en-US")}</Badge>
       </div>
 
       {events.length ? (

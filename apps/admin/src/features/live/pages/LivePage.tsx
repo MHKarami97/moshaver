@@ -11,9 +11,11 @@ import { useLiveClock } from "../hooks/useLiveClock";
 import { useLiveData } from "../hooks/useLiveData";
 import { useLiveStudents } from "../hooks/useLiveStudents";
 import type { LiveFilter, LivePanel } from "../model/live.types";
+import { liveCopy } from "../model/live-copy";
 
 export function LivePage() {
-  const { formatDateTime } = useLocale();
+  const { formatDateTime, language } = useLocale();
+  const copy = liveCopy[language];
 
   const [search, setSearch] = useState("");
 
@@ -50,9 +52,9 @@ export function LivePage() {
 
       {live.isError ? (
         <Card className="border-rose-200 bg-rose-50 text-rose-800">
-          <strong>دریافت وضعیت زنده ممکن نشد.</strong>
+          <strong>{copy.loadFailed}</strong>
 
-          <p className="mt-1 text-sm">اتصال را بررسی کنید و دوباره تلاش کنید.</p>
+          <p className="mt-1 text-sm">{copy.loadFailedHint}</p>
 
           <Button
             className="mt-3"
@@ -61,7 +63,7 @@ export function LivePage() {
               void live.refetch();
             }}
           >
-            تلاش دوباره
+            {copy.retry}
           </Button>
         </Card>
       ) : null}

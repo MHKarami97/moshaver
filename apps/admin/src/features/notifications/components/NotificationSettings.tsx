@@ -7,12 +7,16 @@ import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import type { PushStatus } from "../model/notification-model";
 import type { NotificationContextValue } from "../model/notification.types";
 import { NotificationPreference } from "./NotificationPreference";
+import { notificationCopy } from "../model/notification-copy";
+import type { AdminLanguage } from "../../../shared/ui/locale";
 
 type Props = {
   notifications?: NotificationContextValue;
+  language?: AdminLanguage;
 };
 
-export function pushDeviceLabel(userAgent: string) {
+export function pushDeviceLabel(userAgent: string, language: "fa" | "en" = "fa") {
+  const copy = notificationCopy[language];
   const browser = /edg\//i.test(userAgent)
     ? "Microsoft Edge"
     : /firefox\//i.test(userAgent)
@@ -21,7 +25,7 @@ export function pushDeviceLabel(userAgent: string) {
         ? "Chrome"
         : /safari\//i.test(userAgent)
           ? "Safari"
-          : "مرورگر ناشناس";
+          : copy.unknownBrowser;
   const platform = /android/i.test(userAgent)
     ? "Android"
     : /iphone|ipad|ipod/i.test(userAgent)
@@ -32,39 +36,43 @@ export function pushDeviceLabel(userAgent: string) {
           ? "macOS"
           : /linux/i.test(userAgent)
             ? "Linux"
-            : "دستگاه ناشناس";
+            : copy.unknownDevice;
   return `${browser} · ${platform}`;
 }
 
-export function pushDateTime(value: string | null) {
+export function pushDateTime(value: string | null, language: "fa" | "en" = "fa") {
   if (!value || Number.isNaN(new Date(value).getTime())) return "—";
-  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "short", timeStyle: "short" }).format(
-    new Date(value),
-  );
+  return new Intl.DateTimeFormat(language === "fa" ? "fa-IR" : "en-US", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 /**
  * Passing `notifications` is recommended for content rendered by a global
  * ModalProvider. The modal may live outside NotificationProvider's subtree.
  */
-export function NotificationSettings({ notifications }: Props = {}) {
+export function NotificationSettings({ notifications, language = "fa" }: Props = {}) {
   if (notifications) {
-    return <NotificationSettingsContent notifications={notifications} />;
+    return <NotificationSettingsContent notifications={notifications} language={language} />;
   }
 
-  return <NotificationSettingsFromContext />;
+  return <NotificationSettingsFromContext language={language} />;
 }
 
-function NotificationSettingsFromContext() {
+function NotificationSettingsFromContext({ language }: { language: AdminLanguage }) {
   const notifications = useAdminNotifications();
-  return <NotificationSettingsContent notifications={notifications} />;
+  return <NotificationSettingsContent notifications={notifications} language={language} />;
 }
 
 function NotificationSettingsContent({
   notifications,
+  language,
 }: {
   notifications: NotificationContextValue;
+  language: AdminLanguage;
 }) {
+  const copy = notificationCopy[language];
   const [status, setStatus] = useState<PushStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -106,7 +114,7 @@ function NotificationSettingsContent({
       }
       notify(successMessage, "success");
     } catch (error) {
-      notify(error instanceof Error ? error.message : "عملیات اعلان ناموفق بود.", "error");
+      notify(error instanceof Error ? error.message : copy.operationFailed, "error");
     } finally {
       setBusy("");
     }
@@ -116,7 +124,7 @@ function NotificationSettingsContent({
     return (
       <div
         className="h-48 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800"
-        aria-label="در حال دریافت تنظیمات اعلان"
+        aria-label={copy.loadingSettings}
       />
     );
   }
@@ -127,29 +135,29 @@ function NotificationSettingsContent({
         <div className="flex items-start gap-2">
           <AlertCircle className="mt-0.5 shrink-0" size={18} />
           <div>
-            <strong className="block">تنظیمات اعلان دریافت نشد</strong>
+            <strong className="block">{copy.settingsFailed}</strong>
             <p className="mt-1 text-xs leading-5 opacity-80">{loadError}</p>
           </div>
         </div>
         <Button variant="soft" onClick={() => void loadStatus()}>
           <RefreshCw size={15} />
-          تلاش دوباره
+          {copy.retry}
         </Button>
       </div>
     );
   }
 
   const message = !status?.supported
-    ? "این مرورگر Push را پشتیبانی نمی‌کند."
+    ? copy.pushUnsupported
     : !status.serverConfigured
-      ? "کلیدهای Web Push روی سرور تنظیم نشده‌اند."
+      ? copy.pushServerMissing
       : status.permission === "denied"
-        ? "اجازه اعلان در تنظیمات مرورگر مسدود شده است."
+        ? copy.pushPermissionDenied
         : status.registered
-          ? "اعلان سیستمی این دستگاه فعال است."
+          ? copy.pushEnabled
           : status.permission === "default"
-            ? "منتظر اجازه مرورگر: برای ادامه، فعال‌سازی را بزنید و اجازه اعلان را تأیید کنید."
-            : "اعلان سیستمی این دستگاه غیرفعال است؛ برای دریافت در پس‌زمینه آن را فعال کنید.";
+            ? copy.pushPermissionPending
+            : copy.pushDisabled;
 
   return (
     <div className="grid gap-4">
@@ -171,14 +179,10 @@ function NotificationSettingsContent({
             loading={busy === "disable"}
             disabled={Boolean(busy && busy !== "disable")}
             onClick={() =>
-              void action(
-                "disable",
-                notifications.disablePush,
-                "اعلان سیستمی این دستگاه غیرفعال شد.",
-              )
+              void action("disable", notifications.disablePush, copy.pushDisabledSuccess)
             }
           >
-            غیرفعال‌کردن Push
+            {copy.disablePush}
           </Button>
         ) : (
           <Button
@@ -189,11 +193,9 @@ function NotificationSettingsContent({
               !status.serverConfigured ||
               status.permission === "denied"
             }
-            onClick={() =>
-              void action("enable", notifications.enablePush, "اعلان سیستمی این دستگاه فعال شد.")
-            }
+            onClick={() => void action("enable", notifications.enablePush, copy.pushEnabledSuccess)}
           >
-            فعال‌کردن اعلان سیستمی
+            {copy.enablePush}
           </Button>
         )}
 
@@ -207,11 +209,11 @@ function NotificationSettingsContent({
               async () => {
                 await notifications.testPush();
               },
-              "درخواست اعلان آزمایشی ثبت شد؛ دریافت آن را روی همین دستگاه بررسی کنید.",
+              copy.pushTestSuccess,
             )
           }
         >
-          ارسال اعلان آزمایشی
+          {copy.testPush}
         </Button>
 
         <Button
@@ -220,43 +222,47 @@ function NotificationSettingsContent({
           onClick={() => notifications.testSound(false)}
         >
           <Volume2 size={15} />
-          آزمایش صدا
+          {copy.testSound}
         </Button>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
         <NotificationPreference
-          label="پیام‌ها"
+          label={copy.messages}
           name="messages"
           status={status}
           save={notifications.savePushPreferences}
           setStatus={setStatus}
+          language={language}
         />
         <NotificationPreference
-          label="آزمون‌ها"
+          label={copy.exams}
           name="exams"
           status={status}
           save={notifications.savePushPreferences}
           setStatus={setStatus}
+          language={language}
         />
         <NotificationPreference
-          label="برنامه و درس"
+          label={copy.lessons}
           name="lessons"
           status={status}
           save={notifications.savePushPreferences}
           setStatus={setStatus}
+          language={language}
         />
         <NotificationPreference
-          label="اطلاعیه‌ها"
+          label={copy.announcements}
           name="announcements"
           status={status}
           save={notifications.savePushPreferences}
           setStatus={setStatus}
+          language={language}
         />
       </div>
       {status?.devices?.length ? (
         <section className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-          <h3 className="text-sm font-bold">وضعیت تحویل روی مرورگرها و دستگاه‌ها</h3>
+          <h3 className="text-sm font-bold">{copy.deliveryStatus}</h3>
           <div className="mt-2 grid gap-2">
             {status.devices.map((device) => (
               <div
@@ -264,21 +270,21 @@ function NotificationSettingsContent({
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-900"
               >
                 <span className="min-w-0 truncate" title={device.userAgent}>
-                  {device.current ? "این دستگاه · " : ""}
-                  {pushDeviceLabel(device.userAgent)}
+                  {device.current ? `${copy.thisDevice} · ` : ""}
+                  {pushDeviceLabel(device.userAgent, language)}
                 </span>
                 <span
-                  className={`text-left ${device.failureCount ? "text-rose-700" : "text-emerald-700"}`}
+                  className={`text-end ${device.failureCount ? "text-rose-700" : "text-emerald-700"}`}
                 >
                   <span className="block">
                     {device.failureCount
-                      ? `${device.failureCount.toLocaleString("fa-IR")} خطای تحویل`
+                      ? `${device.failureCount.toLocaleString(language === "fa" ? "fa-IR" : "en-US")} ${copy.deliveryErrors}`
                       : device.lastSuccessAt
-                        ? `تحویل موفق: ${pushDateTime(device.lastSuccessAt)}`
-                        : "در انتظار نخستین تحویل"}
+                        ? `${copy.deliverySuccess} ${pushDateTime(device.lastSuccessAt, language)}`
+                        : copy.waitingFirstDelivery}
                   </span>
                   <small className="block text-[10px] text-slate-400">
-                    آخرین فعالیت: {pushDateTime(device.updatedAt)}
+                    {copy.lastActivity} {pushDateTime(device.updatedAt, language)}
                   </small>
                 </span>
               </div>

@@ -2,6 +2,7 @@ import { AlertTriangle, ExternalLink, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { fa } from "../../../shared/lib/utils";
 import { Badge, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import {
   attentionSignalCount,
   elapsed,
@@ -11,6 +12,7 @@ import {
 } from "../lib/live-helpers";
 import type { LiveStudent } from "../model/live.types";
 import { MiniMetric } from "./MiniMetric";
+import { liveCopy } from "../model/live-copy";
 
 export function StudentCard({
   student,
@@ -21,7 +23,10 @@ export function StudentCard({
   now: number;
   formatDateTime: (value?: string | Date) => string;
 }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   const attention = needsAttention(student);
+  const number = (value: number) => (language === "fa" ? fa(value) : value.toLocaleString("en-US"));
 
   return (
     <Card
@@ -47,7 +52,7 @@ export function StudentCard({
 
             <span
               className={[
-                "absolute bottom-0 left-0 size-3 rounded-full border-2 border-white",
+                "absolute bottom-0 [inset-inline-start:0] size-3 rounded-full border-2 border-white",
                 student.presence?.online ? "bg-emerald-500" : "bg-slate-400",
               ].join(" ")}
             />
@@ -57,7 +62,7 @@ export function StudentCard({
             <strong className="block truncate">{student.name}</strong>
 
             <small className="text-slate-500">
-              {[student.grade, student.major].filter(Boolean).join(" • ") || "بدون مشخصات تحصیلی"}
+              {[student.grade, student.major].filter(Boolean).join(" • ") || copy.noAcademic}
             </small>
           </div>
 
@@ -65,20 +70,20 @@ export function StudentCard({
         </div>
 
         <div className="mt-4 rounded-lg bg-slate-50 p-3">
-          <small className="text-slate-500">فعالیت فعلی</small>
+          <small className="text-slate-500">{copy.currentActivity}</small>
 
           <strong className="mt-1 block truncate text-sm">
             {student.activeSession?.title ||
               student.currentView ||
-              (student.presence?.online ? "داخل برنامه" : "بدون فعالیت جاری")}
+              (student.presence?.online ? copy.inApp : copy.noCurrentActivity)}
           </strong>
 
           <span className="mt-1 block text-xs text-slate-500">
             {student.activeSession?.subject ||
               student.presence?.deviceLabel ||
               (student.lastActivityAt
-                ? `آخرین حضور ${formatDateTime(student.lastActivityAt)}`
-                : "بدون سابقه حضور")}
+                ? `${copy.lastPresence} ${formatDateTime(student.lastActivityAt)}`
+                : copy.noPresence)}
           </span>
 
           {student.activeSession?.startedAt ? (
@@ -89,17 +94,17 @@ export function StudentCard({
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-          <MiniMetric label="کار عقب‌افتاده" value={fa(student.remainingTasks)} />
+          <MiniMetric label={copy.remainingTasks} value={number(student.remainingTasks)} />
 
           <MiniMetric
-            label="درخواست باز"
-            value={fa(attentionSignalCount(student, "OPEN_RECOVERY"))}
+            label={copy.openRequest}
+            value={number(attentionSignalCount(student, "OPEN_RECOVERY"))}
             warn={attentionSignalCount(student, "OPEN_RECOVERY") > 0}
           />
 
           <MiniMetric
-            label="مسئله باز"
-            value={fa(attentionSignalCount(student, "TASK_ISSUE"))}
+            label={copy.openIssue}
+            value={number(attentionSignalCount(student, "TASK_ISSUE"))}
             warn={attentionSignalCount(student, "TASK_ISSUE") > 0}
           />
         </div>
@@ -107,7 +112,7 @@ export function StudentCard({
         {attention ? (
           <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
             <AlertTriangle size={15} />
-            این دانش‌آموز نیازمند پیگیری است.
+            {copy.requiresFollowUp}
           </div>
         ) : null}
 
@@ -117,7 +122,7 @@ export function StudentCard({
             to={`/admin/students?studentId=${encodeURIComponent(student.id)}`}
           >
             <ExternalLink size={15} />
-            پرونده
+            {copy.profile}
           </Link>
 
           <Link
@@ -125,7 +130,7 @@ export function StudentCard({
             to={`/admin/communication/chat?studentId=${encodeURIComponent(student.id)}`}
           >
             <MessageCircle size={15} />
-            پیام
+            {copy.message}
           </Link>
         </div>
       </div>

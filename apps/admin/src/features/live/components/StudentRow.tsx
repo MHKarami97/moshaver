@@ -29,7 +29,7 @@ export function StudentRow({
         containIntrinsicSize: "72px",
       }}
       className={[
-        "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-right transition hover:bg-slate-50",
+        "grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 text-start transition hover:bg-slate-50",
         active ? "bg-indigo-50" : "",
       ].join(" ")}
     >
@@ -38,7 +38,7 @@ export function StudentRow({
 
         <i
           className={[
-            "absolute bottom-0 left-0 size-2.5 rounded-full border-2 border-white",
+            "absolute bottom-0 [inset-inline-start:0] size-2.5 rounded-full border-2 border-white",
             student.presence?.online ? "bg-emerald-500" : "bg-slate-400",
           ].join(" ")}
         />
@@ -59,7 +59,7 @@ export function StudentRow({
         </small>
       </span>
 
-      <span className="text-left">
+      <span className="text-end">
         <Badge tone={stateTone(student.state)}>{stateLabel(student.state, language)}</Badge>
 
         {student.activeSession?.startedAt ? (

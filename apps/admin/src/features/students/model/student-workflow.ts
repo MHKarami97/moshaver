@@ -1,11 +1,9 @@
 export type StudentWorkflowAction = {
   id: "planner" | "learning" | "reports" | "exams";
-  title: string;
-  description: string;
   destination: string;
 };
 
-type WorkflowDefinition = Omit<StudentWorkflowAction, "destination"> & {
+type WorkflowDefinition = Pick<StudentWorkflowAction, "id"> & {
   capability: string;
   path: string;
 };
@@ -19,29 +17,21 @@ type WorkflowDefinition = Omit<StudentWorkflowAction, "destination"> & {
 const workflowDefinitions: readonly WorkflowDefinition[] = [
   {
     id: "planner",
-    title: "برنامه‌ریزی",
-    description: "برنامه و وظایف این دانش‌آموز را بررسی کنید",
     capability: "plans.read",
     path: "planner",
   },
   {
     id: "learning",
-    title: "یادگیری و مرور",
-    description: "مرورها، تسلط و موارد یادگیری را پیگیری کنید",
     capability: "learning.read",
     path: "learning",
   },
   {
     id: "reports",
-    title: "گزارش پیشرفت",
-    description: "گزارش‌های روزانه و روند عملکرد را ببینید",
     capability: "reports.read",
     path: "reports",
   },
   {
     id: "exams",
-    title: "آزمون‌ها",
-    description: "تلاش‌ها و وضعیت آزمون‌های دانش‌آموز را بررسی کنید",
     capability: "exams.read",
     path: "exams",
   },
@@ -55,8 +45,8 @@ export function studentWorkflowActions(
 
   return workflowDefinitions
     .filter((item) => capabilities.includes(item.capability))
-    .map(({ capability: _capability, path, ...item }) => ({
-      ...item,
+    .map(({ capability: _capability, path, id }) => ({
+      id,
       destination: `/admin/${path}?studentId=${encodeURIComponent(studentId)}`,
     }));
 }

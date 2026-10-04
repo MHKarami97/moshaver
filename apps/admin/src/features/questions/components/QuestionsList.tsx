@@ -2,8 +2,10 @@ import { CheckCircle2, Copy, Pencil, Trash2 } from "lucide-react";
 import { AdminList } from "../../../shared/ui/admin-list";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { Button } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { QuestionView } from "../model/question-model";
 import { questionNumber } from "../model/question-model";
+import { questionsCopy } from "../questions-locale";
 
 type Props = {
   examId: string;
@@ -27,6 +29,8 @@ type Props = {
 };
 
 export function QuestionsList(props: Props) {
+  const { language } = useLocale();
+  const copy = questionsCopy(language);
   const {
     examId,
     items,
@@ -51,14 +55,14 @@ export function QuestionsList(props: Props) {
   const allSelected = Boolean(visibleIds.length) && visibleIds.every((id) => selected.includes(id));
   return (
     <AdminList
-      label="سؤال‌های آزمون"
-      description={`${items.length.toLocaleString("fa-IR")} از ${total.toLocaleString("fa-IR")} سؤال نمایش داده می‌شود.`}
+      label={copy.title}
+      description={copy.shownQuestions(items.length, total)}
       items={items}
       loading={loading}
       error={error}
       onRetry={onRetry}
-      emptyTitle={examId ? "سؤالی برای نمایش نیست." : "ابتدا یک آزمون انتخاب کنید."}
-      toolbar={examId ? <SearchBox search={search} setSearch={setSearch} /> : null}
+      emptyTitle={examId ? copy.noQuestions : copy.selectExamFirst}
+      toolbar={examId ? <SearchBox copy={copy} search={search} setSearch={setSearch} /> : null}
       actions={
         canDelete && items.length ? (
           <SelectionActions
@@ -68,6 +72,7 @@ export function QuestionsList(props: Props) {
             setSelected={setSelected}
             bulkBusy={bulkBusy}
             onBulkDelete={onBulkDelete}
+            copy={copy}
           />
         ) : null
       }
@@ -86,6 +91,7 @@ export function QuestionsList(props: Props) {
             onCopy={onCopy}
             onEdit={onEdit}
             onDelete={onDelete}
+            copy={copy}
           />
         ))}
       </div>
@@ -93,12 +99,20 @@ export function QuestionsList(props: Props) {
   );
 }
 
-function SearchBox({ search, setSearch }: { search: string; setSearch: (value: string) => void }) {
+function SearchBox({
+  search,
+  setSearch,
+  copy,
+}: {
+  search: string;
+  setSearch: (value: string) => void;
+  copy: ReturnType<typeof questionsCopy>;
+}) {
   return (
     <CollectionToolbar
       search={search}
       onSearchChange={setSearch}
-      placeholder="جست‌وجو در متن، مبحث یا گزینه‌ها…"
+      placeholder={copy.searchQuestions}
       onClear={search ? () => setSearch("") : undefined}
     />
   );
@@ -111,6 +125,7 @@ function SelectionActions({
   setSelected,
   bulkBusy,
   onBulkDelete,
+  copy,
 }: {
   allSelected: boolean;
   selected: string[];
@@ -118,6 +133,7 @@ function SelectionActions({
   setSelected: (value: string[]) => void;
   bulkBusy: boolean;
   onBulkDelete: () => void;
+  copy: ReturnType<typeof questionsCopy>;
 }) {
   return (
     <>
@@ -134,12 +150,12 @@ function SelectionActions({
             )
           }
         />
-        انتخاب نتایج
+        {copy.selectResults}
       </label>
       {selected.length ? (
         <Button size="sm" variant="danger" loading={bulkBusy} onClick={onBulkDelete}>
           <Trash2 size={14} />
-          حذف {selected.length.toLocaleString("fa-IR")} سؤال
+          {copy.deleteSelected(selected.length)}
         </Button>
       ) : null}
     </>
@@ -157,6 +173,7 @@ function QuestionCard({
   onCopy,
   onEdit,
   onDelete,
+  copy,
 }: {
   question: QuestionView;
   index: number;
@@ -168,6 +185,7 @@ function QuestionCard({
   onCopy: (question: QuestionView, index: number) => void;
   onEdit: (question: QuestionView, index: number) => void;
   onDelete: (question: QuestionView) => void;
+  copy: ReturnType<typeof questionsCopy>;
 }) {
   const options =
     question.options ||
@@ -194,7 +212,7 @@ function QuestionCard({
             />
           ) : null}
           <span className="text-xs font-bold text-brand">
-            سؤال {questionNumber(question, index + 1).toLocaleString("fa-IR")}
+            {copy.questionNumber(questionNumber(question, index + 1))}
           </span>
         </div>
         {question.id && (canCreate || canUpdate || canDelete) ? (
@@ -203,8 +221,8 @@ function QuestionCard({
               <Button
                 className="h-8 px-2"
                 variant="ghost"
-                title="ساخت کپی برای ویرایش"
-                aria-label="کپی سؤال"
+                title={copy.copyForEditing}
+                aria-label={copy.copyQuestion}
                 onClick={() => onCopy(question, index)}
               >
                 <Copy size={14} />
@@ -214,7 +232,7 @@ function QuestionCard({
               <Button
                 className="h-8 px-2"
                 variant="ghost"
-                aria-label="ویرایش سؤال"
+                aria-label={copy.editQuestionAction}
                 onClick={() => onEdit(question, index)}
               >
                 <Pencil size={14} />
@@ -224,7 +242,7 @@ function QuestionCard({
               <Button
                 className="h-8 px-2"
                 variant="danger"
-                aria-label="حذف سؤال"
+                aria-label={copy.deleteQuestionAction}
                 onClick={() => onDelete(question)}
               >
                 <Trash2 size={14} />
@@ -246,9 +264,13 @@ function QuestionCard({
       </div>
       {question.explanation || question.hint ? (
         <details className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-          <summary className="cursor-pointer font-semibold">توضیح و راهنمای مرور</summary>
+          <summary className="cursor-pointer font-semibold">{copy.explanationAndHint}</summary>
           {question.explanation ? <p className="mt-2">{question.explanation}</p> : null}
-          {question.hint ? <p className="mt-2 text-xs">راهنما: {question.hint}</p> : null}
+          {question.hint ? (
+            <p className="mt-2 text-xs">
+              {copy.hint}: {question.hint}
+            </p>
+          ) : null}
         </details>
       ) : null}
       {[question.book, question.chapter, question.lesson, question.topic].some(Boolean) ? (

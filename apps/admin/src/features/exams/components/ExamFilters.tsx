@@ -1,13 +1,10 @@
-import {
-  CheckCircle2,
-  FilePenLine,
-  SlidersHorizontal,
-  Trash2,
-} from "lucide-react";
+import { CheckCircle2, FilePenLine, SlidersHorizontal, Trash2 } from "lucide-react";
 import type { Exam } from "../../../shared/types/domain";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { Badge, Button, Card, Select } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { ExamFilterStatus, ExamVisibilityFilter } from "../model/exam.types";
+import { examsCopy } from "../exams-locale";
 
 export function ExamFilters({
   exams,
@@ -34,6 +31,8 @@ export function ExamFilters({
   onClear: () => void;
   onBulk: (action: "publish" | "draft" | "delete") => void;
 }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const hasFilters = Boolean(search || status !== "all" || visibility !== "all");
 
   const publishedCount = exams.filter((exam) => exam.published).length;
@@ -52,43 +51,42 @@ export function ExamFilters({
             </div>
 
             <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">فیلتر آزمون‌ها</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{copy.filters}</p>
               <p className="hidden text-xs text-slate-500 sm:block dark:text-slate-400">
-                جست‌وجو، وضعیت انتشار و وضعیت برگزاری
+                {copy.filtersHint}
               </p>
             </div>
           </div>
-
         </div>
 
         <CollectionToolbar
           search={search}
           onSearchChange={onSearchChange}
-          placeholder="جست‌وجوی نام، درس یا تاریخ…"
+          placeholder={copy.searchExams}
           onClear={hasFilters ? onClear : undefined}
           filters={
             <>
               <Select
                 className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
-                aria-label="فیلتر وضعیت آزمون"
+                aria-label={copy.examStatusFilter}
                 value={status}
                 onChange={(event) => onStatusChange(event.target.value as ExamFilterStatus)}
               >
-                <option value="all">همه وضعیت‌ها</option>
-                <option value="upcoming">آینده</option>
-                <option value="active">فعال</option>
-                <option value="completed">تمام‌شده</option>
-                <option value="cancelled">لغوشده</option>
+                <option value="all">{copy.allStatuses}</option>
+                <option value="upcoming">{copy.upcoming}</option>
+                <option value="active">{copy.active}</option>
+                <option value="completed">{copy.completed}</option>
+                <option value="cancelled">{copy.cancelled}</option>
               </Select>
               <Select
                 className="h-8 min-w-36 border-0 bg-transparent px-2 text-xs shadow-none"
-                aria-label="فیلتر انتشار آزمون"
+                aria-label={copy.examVisibilityFilter}
                 value={visibility}
                 onChange={(event) => onVisibilityChange(event.target.value as ExamVisibilityFilter)}
               >
-                <option value="all">منتشر و پیش‌نویس</option>
-                <option value="published">منتشرشده</option>
-                <option value="draft">پیش‌نویس</option>
+                <option value="all">{copy.allVisibility}</option>
+                <option value="published">{copy.published}</option>
+                <option value="draft">{copy.draft}</option>
               </Select>
             </>
           }
@@ -96,13 +94,17 @@ export function ExamFilters({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-xs sm:px-4">
-        <Badge tone="blue">{exams.length} کل</Badge>
-        <Badge tone="green">{publishedCount} منتشر</Badge>
-        <Badge tone="amber">{draftCount} پیش‌نویس</Badge>
+        <Badge tone="blue">{copy.total(exams.length)}</Badge>
+        <Badge tone="green">{copy.publishedCount(publishedCount)}</Badge>
+        <Badge tone="amber">{copy.draftCount(draftCount)}</Badge>
 
-        {withoutQuestionsCount ? <Badge tone="red">{withoutQuestionsCount} بدون سؤال</Badge> : null}
+        {withoutQuestionsCount ? (
+          <Badge tone="red">{copy.withoutQuestions(withoutQuestionsCount)}</Badge>
+        ) : null}
 
-        {pendingRetryCount ? <Badge tone="amber">{pendingRetryCount} درخواست مجدد</Badge> : null}
+        {pendingRetryCount ? (
+          <Badge tone="amber">{copy.pendingRetries(pendingRetryCount)}</Badge>
+        ) : null}
       </div>
 
       {selectedCount ? (
@@ -112,7 +114,7 @@ export function ExamFilters({
               <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 px-2 text-xs text-white dark:bg-slate-100 dark:text-slate-900">
                 {selectedCount}
               </span>
-              آزمون انتخاب شده
+              {copy.selectedExams(selectedCount)}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -122,7 +124,7 @@ export function ExamFilters({
                 onClick={() => onBulk("publish")}
               >
                 <CheckCircle2 size={14} />
-                انتشار
+                {copy.publish}
               </Button>
 
               <Button
@@ -131,7 +133,7 @@ export function ExamFilters({
                 onClick={() => onBulk("draft")}
               >
                 <FilePenLine size={14} />
-                پیش‌نویس
+                {copy.makeDraft}
               </Button>
 
               <Button
@@ -140,7 +142,7 @@ export function ExamFilters({
                 onClick={() => onBulk("delete")}
               >
                 <Trash2 size={14} />
-                حذف
+                {copy.delete}
               </Button>
             </div>
           </div>

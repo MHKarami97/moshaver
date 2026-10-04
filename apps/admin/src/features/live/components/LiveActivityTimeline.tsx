@@ -1,9 +1,13 @@
 import { Clock3 } from "lucide-react";
+import { useLocale } from "../../../shared/ui/locale";
+import { liveCopy } from "../model/live-copy";
 
 export function LiveActivityTimeline({ events }: { events: Array<Record<string, unknown>> }) {
+  const { language } = useLocale();
+  const copy = liveCopy[language];
   if (!events.length) {
     return (
-      <div className="rounded-xl border p-4 text-sm text-slate-500">فعالیتی ثبت نشده است.</div>
+      <div className="rounded-xl border p-4 text-sm text-slate-500">{copy.noActivityRecorded}</div>
     );
   }
 
@@ -19,7 +23,7 @@ export function LiveActivityTimeline({ events }: { events: Array<Record<string, 
           </span>
           <div>
             <strong className="text-sm text-ink dark:text-white">
-              {String(event.eventType ?? "Activity")}
+              {String(event.eventType ?? copy.activity)}
             </strong>
             <p className="text-xs text-slate-500">{String(event.createdAt ?? "")}</p>
           </div>

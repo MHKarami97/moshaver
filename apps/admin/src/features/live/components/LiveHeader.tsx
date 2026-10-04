@@ -26,7 +26,7 @@ export function LiveHeader({
         {copy.realtime}
       </div>
 
-      <div className="mr-auto flex flex-wrap items-center gap-3">
+      <div className="ms-auto flex flex-wrap items-center gap-3">
         <span className="text-xs text-slate-500">
           {generatedAt ? `${copy.lastSync} ${formatDateTime(generatedAt)}` : copy.waitingSync}
         </span>

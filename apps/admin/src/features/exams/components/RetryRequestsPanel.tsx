@@ -1,5 +1,7 @@
 import { Check, X } from "lucide-react";
 import { Button, Badge, Card } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 import type { RetryRequest } from "../model/exam.types";
 
 export function RetryRequestsPanel({
@@ -9,6 +11,8 @@ export function RetryRequestsPanel({
   requests: RetryRequest[];
   onReview?: (request: RetryRequest, status: "approved" | "rejected") => void;
 }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   if (!requests.length) {
     return null;
   }
@@ -17,7 +21,7 @@ export function RetryRequestsPanel({
     <Card className="border-amber-200 bg-amber-50/50">
       <details open>
         <summary className="cursor-pointer font-bold">
-          {requests.length} درخواست تلاش مجدد در انتظار بررسی
+          {copy.retryRequests(requests.length)}
         </summary>
 
         <div className="divide-y rounded-md border bg-white">
@@ -25,13 +29,15 @@ export function RetryRequestsPanel({
             <div key={request.id} className="flex items-center justify-between gap-3 px-3 py-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <strong className="truncate text-sm">{request.examTitle || "آزمون"}</strong>
+                  <strong className="truncate text-sm">
+                    {request.examTitle || copy.untitledExam}
+                  </strong>
 
-                  {!onReview && <Badge tone="amber">در انتظار بررسی مشاور</Badge>}
+                  {!onReview && <Badge tone="amber">{copy.awaitingAdvisor}</Badge>}
                 </div>
 
                 <p className="truncate text-xs text-slate-500">
-                  {request.reason || request.message || "بدون توضیح"}
+                  {request.reason || request.message || copy.noExplanation}
                 </p>
               </div>
 
@@ -39,8 +45,8 @@ export function RetryRequestsPanel({
                 <div className="flex shrink-0 gap-1">
                   <Button
                     size="sm"
-                    aria-label="تأیید"
-                    title="تأیید"
+                    aria-label={copy.approve}
+                    title={copy.approve}
                     onClick={() => onReview(request, "approved")}
                   >
                     <Check size={14} />
@@ -49,8 +55,8 @@ export function RetryRequestsPanel({
                   <Button
                     size="sm"
                     variant="danger"
-                    aria-label="رد"
-                    title="رد"
+                    aria-label={copy.reject}
+                    title={copy.reject}
                     onClick={() => onReview(request, "rejected")}
                   >
                     <X size={14} />

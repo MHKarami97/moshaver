@@ -2,6 +2,7 @@ import { ArrowRight, CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { Badge, Button, EmptyState } from "../../../shared/ui/ui";
 import { useLocale } from "../../../shared/ui/locale";
 import { optionLabel } from "../lib/exam-formatters";
+import { examsCopy } from "../exams-locale";
 import type { AttemptDetail } from "../model/exam-model";
 import { Metric } from "./Metric";
 
@@ -16,7 +17,8 @@ export function AttemptReview({
   error: boolean;
   back: () => void;
 }) {
-  const { formatDateTime } = useLocale();
+  const { language, formatDateTime } = useLocale();
+  const copy = examsCopy(language);
 
   if (loading) {
     return <div className="h-72 animate-pulse rounded-lg bg-slate-100" />;
@@ -25,10 +27,10 @@ export function AttemptReview({
   if (error || !detail) {
     return (
       <EmptyState
-        title="دریافت جزئیات تلاش ناموفق بود."
+        title={copy.attemptDetailFailed}
         action={
           <Button variant="soft" onClick={back}>
-            بازگشت
+            {copy.back}
           </Button>
         }
       />
@@ -39,31 +41,31 @@ export function AttemptReview({
     <div className="grid gap-4">
       <header className="flex flex-wrap items-center gap-3">
         <Button className="h-9" variant="ghost" onClick={back}>
-          <ArrowRight size={16} />
-          بازگشت
+          <ArrowRight size={16} className="rtl:rotate-180" />
+          {copy.back}
         </Button>
 
         <div className="min-w-0 flex-1">
-          <strong>{detail.examTitle || detail.title || "جزئیات تلاش"}</strong>
+          <strong>{detail.examTitle || detail.title || copy.attemptDetails}</strong>
 
           <p className="text-xs text-slate-500">{formatDateTime(detail.submittedAt)}</p>
         </div>
 
         <Badge tone={detail.percent >= 70 ? "green" : detail.percent >= 40 ? "amber" : "red"}>
-          {detail.percent}٪
+          {detail.percent.toLocaleString(language === "fa" ? "fa-IR" : "en-US")}%
         </Badge>
       </header>
 
       <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-        <Metric label="درست" value={detail.correct} />
+        <Metric label={copy.correct} value={detail.correct} />
 
-        <Metric label="غلط" value={detail.wrong} />
+        <Metric label={copy.incorrect} value={detail.wrong} />
 
-        <Metric label="نزده" value={detail.blank} />
+        <Metric label={copy.blank} value={detail.blank} />
 
         <Metric
-          label="مدت"
-          value={`${Math.round(Number(detail.durationSeconds || 0) / 60)} دقیقه`}
+          label={copy.duration}
+          value={copy.minutes(Math.round(Number(detail.durationSeconds || 0) / 60))}
         />
       </div>
 
@@ -91,13 +93,13 @@ export function AttemptReview({
             </div>
 
             <p className="mt-2 text-xs">
-              پاسخ دانش‌آموز: {optionLabel(answer.selectedOption)} • پاسخ صحیح:{" "}
+              {copy.studentAnswer}: {optionLabel(answer.selectedOption)} • {copy.correctAnswer}:{" "}
               {optionLabel(answer.correctOption)}
             </p>
 
             {answer.errorReason ? (
               <p className="mt-2 rounded bg-rose-50 p-2 text-xs text-rose-800">
-                علت خطا: {answer.errorReason}
+                {copy.errorReason}: {answer.errorReason}
               </p>
             ) : null}
 
@@ -110,7 +112,7 @@ export function AttemptReview({
             {answer.learningStatus ? (
               <span className="mt-2 flex items-center gap-1 text-xs text-indigo-700">
                 <Clock3 size={13} />
-                وضعیت مرور: {answer.learningStatus}
+                {copy.reviewStatus}: {answer.learningStatus}
               </span>
             ) : null}
           </article>

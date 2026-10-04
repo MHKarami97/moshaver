@@ -1,6 +1,8 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { LoaderCircle } from "lucide-react";
 import { notify } from "../../../shared/ui/notifications";
+import { notificationCopy } from "../model/notification-copy";
+import type { AdminLanguage } from "../../../shared/ui/locale";
 import type { PushPreferences, PushStatus } from "../model/notification-model";
 
 export function NotificationPreference({
@@ -9,13 +11,16 @@ export function NotificationPreference({
   status,
   save,
   setStatus,
+  language = "fa",
 }: {
   label: string;
   name: keyof PushPreferences;
   status: PushStatus | null;
   save: (value: PushPreferences) => Promise<void>;
   setStatus: Dispatch<SetStateAction<PushStatus | null>>;
+  language?: AdminLanguage;
 }) {
+  const copy = notificationCopy[language];
   const [saving, setSaving] = useState(false);
   const enabled = status?.preferences[name] !== false;
 
@@ -37,7 +42,7 @@ export function NotificationPreference({
       await save(preferences);
     } catch {
       setStatus(previous);
-      notify("ذخیره ترجیح اعلان انجام نشد.", "error");
+      notify(copy.savePreferenceFailed, "error");
     } finally {
       setSaving(false);
     }
@@ -60,7 +65,7 @@ export function NotificationPreference({
           checked={enabled}
           disabled={!status || saving}
           onChange={(event) => void updatePreference(event.target.checked)}
-          aria-label={`اعلان ${label}`}
+          aria-label={`${copy.notificationFor} ${label}`}
           className="size-4 accent-brand"
         />
       </span>

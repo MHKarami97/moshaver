@@ -2,9 +2,13 @@ import { BellRing, MessageSquare, Settings2, Volume2, VolumeX } from "lucide-rea
 import { Button, Card } from "../../../shared/ui/ui";
 import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import { ToggleButton } from "./ToggleButton";
+import { useLocale } from "../../../shared/ui/locale";
+import { notificationCopy } from "../model/notification-copy";
 
 export function NotificationsToolbar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const notifications = useAdminNotifications();
+  const { language } = useLocale();
+  const copy = notificationCopy[language];
 
   return (
     <Card className="flex shrink-0 flex-wrap items-center gap-2 p-2 sm:gap-3 dark:border-slate-800 dark:bg-slate-900">
@@ -14,9 +18,9 @@ export function NotificationsToolbar({ onOpenSettings }: { onOpenSettings: () =>
         </span>
         <div>
           <strong className="block leading-5 text-slate-900 dark:text-white">
-            {notifications.unread.toLocaleString("fa-IR")}
+            {notifications.unread.toLocaleString(language === "fa" ? "fa-IR" : "en-US")}
           </strong>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">خوانده‌نشده</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400">{copy.unreadCount}</span>
         </div>
       </div>
 
@@ -30,7 +34,7 @@ export function NotificationsToolbar({ onOpenSettings }: { onOpenSettings: () =>
           }
         }}
         icon={notifications.soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        label="صدای اعلان"
+        label={copy.notificationSound}
       />
 
       <ToggleButton
@@ -43,12 +47,12 @@ export function NotificationsToolbar({ onOpenSettings }: { onOpenSettings: () =>
           }
         }}
         icon={<MessageSquare size={16} />}
-        label="صدای پیام"
+        label={copy.messageSound}
       />
 
       <Button variant="soft" onClick={onOpenSettings}>
         <Settings2 size={16} />
-        تنظیمات دستگاه
+        {copy.deviceSettings}
       </Button>
     </Card>
   );

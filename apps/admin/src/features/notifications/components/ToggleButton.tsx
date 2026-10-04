@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useLocale } from "../../../shared/ui/locale";
+import { notificationCopy } from "../model/notification-copy";
 
 export function ToggleButton({
   active,
@@ -11,12 +13,14 @@ export function ToggleButton({
   icon: ReactNode;
   label: string;
 }) {
+  const { language } = useLocale();
+  const copy = notificationCopy[language];
   return (
     <button
       type="button"
       role="switch"
       aria-checked={active}
-      aria-label={`${label}: ${active ? "فعال" : "غیرفعال"}`}
+      aria-label={`${label}: ${active ? copy.enabled : copy.disabled}`}
       onClick={onClick}
       className={[
         "flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition",

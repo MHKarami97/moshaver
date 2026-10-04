@@ -5,6 +5,7 @@ import { useLocale } from "../../../shared/ui/locale";
 import { Badge, Button, EmptyState } from "../../../shared/ui/ui";
 import { ViewportPopover } from "../../../shared/ui/popover";
 import { useAdminNotifications } from "../hooks/useAdminNotifications";
+import { notificationCopy } from "../model/notification-copy";
 import {
   notificationAdminUrl,
   notificationTone,
@@ -13,7 +14,9 @@ import {
 
 export function HeaderNotifications() {
   const notifications = useAdminNotifications();
-  const { formatDateTime } = useLocale();
+  const { formatDateTime, language } = useLocale();
+  const copy = notificationCopy[language];
+  const number = notifications.unread.toLocaleString(language === "fa" ? "fa-IR" : "en-US");
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -34,13 +37,15 @@ export function HeaderNotifications() {
               ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"
               : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800",
           ].join(" ")}
-          aria-label={`${notifications.unread.toLocaleString("fa-IR")} اعلان خوانده‌نشده`}
+          aria-label={`${number} ${copy.unreadCount}`}
         >
           <Bell size={18} />
 
           {notifications.unread ? (
-            <span className="absolute -left-2 -top-2 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-black leading-5 text-white ring-2 ring-white dark:ring-slate-900">
-              {Math.min(notifications.unread, 99).toLocaleString("fa-IR")}
+            <span className="absolute -top-2 grid min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-black leading-5 text-white ring-2 ring-white dark:ring-slate-900 [inset-inline-start:-0.5rem]">
+              {Math.min(notifications.unread, 99).toLocaleString(
+                language === "fa" ? "fa-IR" : "en-US",
+              )}
               {notifications.unread > 99 ? "+" : ""}
             </span>
           ) : null}
@@ -49,9 +54,9 @@ export function HeaderNotifications() {
     >
       <header className="flex items-center justify-between border-b border-slate-100 p-3 dark:border-slate-800">
         <div>
-          <strong className="text-slate-900 dark:text-white">اعلان‌ها</strong>
+          <strong className="text-slate-900 dark:text-white">{copy.notifications}</strong>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {notifications.unread.toLocaleString("fa-IR")} خوانده‌نشده
+            {number} {copy.unreadCount}
           </p>
         </div>
 
@@ -63,7 +68,7 @@ export function HeaderNotifications() {
             onClick={notifications.markAllRead}
           >
             <CheckCheck size={15} />
-            خواندن همه
+            {copy.markAll}
           </Button>
         ) : null}
       </header>
@@ -80,7 +85,7 @@ export function HeaderNotifications() {
           <div className="grid gap-2 p-3 text-center">
             <AlertCircle className="mx-auto text-rose-500" size={24} />
             <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">
-              {notifications.errorMessage || "دریافت اعلان‌ها ناموفق بود."}
+              {notifications.errorMessage || copy.loadFailed}
             </p>
             <Button
               className="mx-auto h-8 px-3 text-xs"
@@ -89,7 +94,7 @@ export function HeaderNotifications() {
               onClick={notifications.refresh}
             >
               <RefreshCw size={14} />
-              تلاش دوباره
+              {copy.retry}
             </Button>
           </div>
         ) : notifications.items.length ? (
@@ -98,7 +103,7 @@ export function HeaderNotifications() {
               key={item.id}
               type="button"
               className={[
-                "rounded-lg p-2 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+                "rounded-lg p-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
                 item.isRead
                   ? "hover:bg-slate-50 dark:hover:bg-slate-800"
                   : "bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40",
@@ -115,7 +120,9 @@ export function HeaderNotifications() {
                 <strong className="line-clamp-1 text-sm text-slate-900 dark:text-white">
                   {item.title}
                 </strong>
-                <Badge tone={notificationTone(item.type)}>{notificationTypeLabel(item.type)}</Badge>
+                <Badge tone={notificationTone(item.type)}>
+                  {notificationTypeLabel(item.type, language)}
+                </Badge>
               </span>
 
               {item.body ? (
@@ -132,7 +139,7 @@ export function HeaderNotifications() {
             </button>
           ))
         ) : (
-          <EmptyState title="اعلان جدیدی وجود ندارد." />
+          <EmptyState title={copy.noNew} />
         )}
       </div>
 
@@ -141,7 +148,7 @@ export function HeaderNotifications() {
         to="/admin/communication/notifications"
         onClick={() => setOpen(false)}
       >
-        مشاهده مرکز اعلان‌ها
+        {copy.viewCenter}
         <ExternalLink size={14} />
       </Link>
     </ViewportPopover>

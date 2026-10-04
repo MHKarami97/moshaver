@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button, Field, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 
 export function RetryReviewForm({
   status,
@@ -12,6 +14,8 @@ export function RetryReviewForm({
   onSubmit: (note: string) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const [note, setNote] = useState(initialNote);
 
   const [submitting, setSubmitting] = useState(false);
@@ -34,14 +38,12 @@ export function RetryReviewForm({
       }}
     >
       <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-        {status === "approved"
-          ? "با تأیید، دانش‌آموز می‌تواند یک تلاش تازه برای این آزمون آغاز کند."
-          : "دلیل رد برای ثبت سابقه و اطلاع‌رسانی روشن لازم است."}
+        {status === "approved" ? copy.approvedRetryHint : copy.rejectedRetryHint}
       </p>
 
       <Field
-        label={status === "approved" ? "یادداشت مشاور (اختیاری)" : "دلیل رد درخواست"}
-        error={invalid ? "برای رد درخواست، دلیل را وارد کنید." : undefined}
+        label={status === "approved" ? copy.advisorNote : copy.rejectionReason}
+        error={invalid ? copy.rejectionReasonRequired : undefined}
       >
         <Textarea
           autoFocus
@@ -52,13 +54,11 @@ export function RetryReviewForm({
         />
       </Field>
 
-      <small className="text-left text-slate-400">
-        {note.length.toLocaleString("fa-IR")} / ۱۲۰۰
-      </small>
+      <small className="text-start text-slate-400">{copy.characters(note.length, 1200)}</small>
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="soft" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
 
         <Button
@@ -66,7 +66,7 @@ export function RetryReviewForm({
           disabled={invalid}
           loading={submitting}
         >
-          {status === "approved" ? "تأیید تلاش" : "رد درخواست"}
+          {status === "approved" ? copy.approveAttempt : copy.rejectRequest}
         </Button>
       </div>
     </form>

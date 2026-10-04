@@ -16,6 +16,8 @@ import {
 import type { Exam } from "../../../shared/types/domain";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 import { ExamCard } from "./ExamCard";
 
 type ViewMode = "grid" | "list";
@@ -59,6 +61,8 @@ export function ExamList({
   onManageAssignments?: (exam: Exam) => void;
   onAnalytics?: (exam: Exam) => void;
 }) {
+  const { language, formatDate } = useLocale();
+  const copy = examsCopy(language);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const allSelected =
@@ -76,34 +80,48 @@ export function ExamList({
                 onChange={(event) => onSelectAll(event.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 accent-teal-600 dark:border-slate-700"
               />
-              <span>انتخاب همه نتایج</span>
+              <span>{copy.selectAllResults}</span>
             </label>
           ) : (
             <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">فهرست آزمون‌ها</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">مدیریت و مشاهده آزمون‌ها</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {copy.examList}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{copy.examListHint}</p>
             </div>
           )}
 
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <Badge tone="blue">{filtered.length} نتیجه</Badge>
-            {filtered.length !== exams.length ? <span>از {exams.length} آزمون</span> : null}
+            <Badge tone="blue">{copy.results(filtered.length)}</Badge>
+            {filtered.length !== exams.length ? (
+              <span>{copy.resultsFrom(exams.length)}</span>
+            ) : null}
           </div>
 
           {selected.length ? (
             <span className="rounded-md bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300">
-              {selected.length} انتخاب شده
+              {copy.selected(selected.length)}
             </span>
           ) : null}
         </div>
 
         <SegmentedControl
-          ariaLabel="نوع نمایش آزمون‌ها"
+          ariaLabel={copy.displayMode}
           value={viewMode}
           onValueChange={setViewMode}
           options={[
-            { value: "list", ariaLabel: "نمایش لیستی", title: "نمایش لیستی", label: <List size={17} /> },
-            { value: "grid", ariaLabel: "نمایش شبکه‌ای", title: "نمایش شبکه‌ای", label: <Grid2X2 size={17} /> },
+            {
+              value: "list",
+              ariaLabel: copy.listView,
+              title: copy.listView,
+              label: <List size={17} />,
+            },
+            {
+              value: "grid",
+              ariaLabel: copy.gridView,
+              title: copy.gridView,
+              label: <Grid2X2 size={17} />,
+            },
           ]}
         />
       </div>
@@ -113,7 +131,7 @@ export function ExamList({
           viewMode === "grid" ? (
             <div
               className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
-              aria-label="در حال دریافت آزمون‌ها"
+              aria-label={copy.loadingExams}
             >
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <div
@@ -123,7 +141,7 @@ export function ExamList({
               ))}
             </div>
           ) : (
-            <div className="space-y-2" aria-label="در حال دریافت آزمون‌ها">
+            <div className="space-y-2" aria-label={copy.loadingExams}>
               {[1, 2, 3, 4, 5].map((item) => (
                 <div
                   key={item}
@@ -135,18 +153,18 @@ export function ExamList({
         ) : error ? (
           <div className="py-8">
             <EmptyState
-              title="دریافت آزمون‌ها ناموفق بود؛ اتصال را بررسی و دوباره تلاش کنید."
+              title={copy.loadExamsFailed}
               action={
                 <Button className="gap-1.5" variant="soft" onClick={onRetry}>
                   <RefreshCcw size={15} />
-                  تلاش دوباره
+                  {copy.retry}
                 </Button>
               }
             />
           </div>
         ) : !filtered.length ? (
           <div className="py-8">
-            <EmptyState title="آزمونی با این فیلتر پیدا نشد." />
+            <EmptyState title={copy.noFilteredExams} />
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -164,10 +182,10 @@ export function ExamList({
                 onDeleteSyllabus={onDeleteSyllabus}
                 studentId={studentId}
                 showQuestions={showQuestions}
-              onManageAssignments={
+                onManageAssignments={
                   onManageAssignments ? () => onManageAssignments(exam) : undefined
-              }
-              onAnalytics={onAnalytics ? () => onAnalytics(exam) : undefined}
+                }
+                onAnalytics={onAnalytics ? () => onAnalytics(exam) : undefined}
               />
             ))}
           </div>
@@ -197,178 +215,195 @@ export function ExamList({
             </div>
             <div className="hidden overflow-hidden rounded-lg border border-[rgb(var(--border-subtle))] md:block">
               <div className="overflow-x-auto">
-              <div className="min-w-[1060px]">
-                <div className="grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 border-b border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">
-                  <span aria-hidden="true" />
-                  <span>آزمون</span>
-                  <span>وضعیت</span>
-                  <span>تاریخ</span>
-                  <span>مدت</span>
-                  <span>سؤال</span>
-                  <span>عملیات</span>
-                </div>
+                <div className="min-w-[1060px]">
+                  <div className="grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 border-b border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                    <span aria-hidden="true" />
+                    <span>{copy.exam}</span>
+                    <span>{copy.status}</span>
+                    <span>{copy.date}</span>
+                    <span>{copy.duration}</span>
+                    <span>{copy.question}</span>
+                    <span>{copy.actions}</span>
+                  </div>
 
-                <div className="divide-y divide-[rgb(var(--border-subtle))]">
-                  {filtered.map((exam) => {
-                    const isSelected = selected.includes(exam.id);
-                    const questionCount =
-                      exam.delivery?.questionCount ?? exam.questions?.length ?? 0;
+                  <div className="divide-y divide-[rgb(var(--border-subtle))]">
+                    {filtered.map((exam) => {
+                      const isSelected = selected.includes(exam.id);
+                      const questionCount =
+                        exam.delivery?.questionCount ?? exam.questions?.length ?? 0;
 
-                    return (
-                      <div
-                        key={exam.id}
-                        className={[
-                          "grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 px-3 py-3 text-sm transition-colors",
-                          isSelected
-                            ? "bg-teal-50/70 dark:bg-teal-950/20"
-                            : "bg-[rgb(var(--surface-card))] hover:bg-[rgb(var(--surface-muted))]",
-                        ].join(" ")}
-                      >
-                        <div className="flex items-center justify-center">
-                          {onCheck ? (
-                            <input
-                              type="checkbox"
-                              aria-label={`انتخاب آزمون ${exam.title}`}
-                              checked={isSelected}
-                              onChange={(event) => onCheck(exam.id, event.target.checked)}
-                              className="h-4 w-4 rounded border-slate-300 accent-teal-600 dark:border-slate-700"
-                            />
-                          ) : null}
-                        </div>
+                      return (
+                        <div
+                          key={exam.id}
+                          className={[
+                            "grid grid-cols-[40px_minmax(240px,2fr)_130px_130px_110px_90px_minmax(330px,1fr)] items-center gap-3 px-3 py-3 text-sm transition-colors",
+                            isSelected
+                              ? "bg-teal-50/70 dark:bg-teal-950/20"
+                              : "bg-[rgb(var(--surface-card))] hover:bg-[rgb(var(--surface-muted))]",
+                          ].join(" ")}
+                        >
+                          <div className="flex items-center justify-center">
+                            {onCheck ? (
+                              <input
+                                type="checkbox"
+                                aria-label={copy.selectExam(exam.title)}
+                                checked={isSelected}
+                                onChange={(event) => onCheck(exam.id, event.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 accent-teal-600 dark:border-slate-700"
+                              />
+                            ) : null}
+                          </div>
 
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
-                              {exam.title}
-                            </p>
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <p className="truncate font-semibold text-slate-900 dark:text-slate-100">
+                                {exam.title}
+                              </p>
 
-                            {exam.organization?.name ? (
-                              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                                {exam.organization.name}
+                              {exam.organization?.name ? (
+                                <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                  {exam.organization.name}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                              {exam.subject ? <span>{exam.subject}</span> : null}
+                              {exam.subjects?.length ? (
+                                <span>{exam.subjects.join("، ")}</span>
+                              ) : null}
+                              {exam.maxAttempts ? (
+                                <span>
+                                  {copy.attempts}:{" "}
+                                  {exam.maxAttempts.toLocaleString(
+                                    language === "fa" ? "fa-IR" : "en-US",
+                                  )}
+                                </span>
+                              ) : null}
+
+                              {exam.delivery?.assignmentCount !== undefined ? (
+                                <span>
+                                  {copy.assignments}:{" "}
+                                  {exam.delivery.assignmentCount.toLocaleString(
+                                    language === "fa" ? "fa-IR" : "en-US",
+                                  )}
+                                </span>
+                              ) : null}
+
+                              {exam.delivery?.attemptCount !== undefined ? (
+                                <span>
+                                  {copy.answers}:{" "}
+                                  {exam.delivery.attemptCount.toLocaleString(
+                                    language === "fa" ? "fa-IR" : "en-US",
+                                  )}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {exam.note ? (
+                              <p className="mt-1.5 truncate text-xs text-slate-400 dark:text-slate-500">
+                                {exam.note}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="flex flex-col items-start gap-1.5">
+                            <Badge tone={exam.published ? "green" : "amber"}>
+                              {exam.published ? copy.published : copy.draft}
+                            </Badge>
+
+                            {exam.status ? (
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                {exam.status}
                               </span>
                             ) : null}
                           </div>
 
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                            {exam.subject ? <span>{exam.subject}</span> : null}
-                            {exam.subjects?.length ? <span>{exam.subjects.join("، ")}</span> : null}
-                            {exam.maxAttempts ? <span>{exam.maxAttempts} تلاش</span> : null}
-
-                            {exam.delivery?.assignmentCount !== undefined ? (
-                              <span>{exam.delivery.assignmentCount} تخصیص</span>
-                            ) : null}
-
-                            {exam.delivery?.attemptCount !== undefined ? (
-                              <span>{exam.delivery.attemptCount} پاسخ</span>
-                            ) : null}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                            <CalendarDays size={14} className="shrink-0 text-slate-400" />
+                            <span>{exam.persianDate ?? formatDate(exam.isoDate)}</span>
                           </div>
 
-                          {exam.note ? (
-                            <p className="mt-1.5 truncate text-xs text-slate-400 dark:text-slate-500">
-                              {exam.note}
-                            </p>
-                          ) : null}
-                        </div>
-
-                        <div className="flex flex-col items-start gap-1.5">
-                          <Badge tone={exam.published ? "green" : "amber"}>
-                            {exam.published ? "منتشرشده" : "پیش‌نویس"}
-                          </Badge>
-
-                          {exam.status ? (
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                              {exam.status}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                            <Clock3 size={14} className="shrink-0 text-slate-400" />
+                            <span>
+                              {exam.durationMinutes ? copy.minutes(exam.durationMinutes) : "—"}
                             </span>
-                          ) : null}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                            <FileQuestion size={14} className="shrink-0 text-slate-400" />
+                            <span>{questionCount}</span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {onToggle ? (
+                              <Button
+                                size="sm"
+                                variant="soft"
+                                disabled={toggleBusyId === exam.id}
+                                onClick={() => onToggle(exam)}
+                                className="gap-1"
+                              >
+                                <Send size={13} />
+                                {exam.published ? copy.cancelPublish : copy.publish}
+                              </Button>
+                            ) : null}
+
+                            {onEdit ? (
+                              <Button
+                                size="sm"
+                                variant="soft"
+                                onClick={() => onEdit(exam)}
+                                className="gap-1"
+                              >
+                                <Edit3 size={13} />
+                                {copy.edit}
+                              </Button>
+                            ) : null}
+
+                            {onAddSyllabus ? (
+                              <Button
+                                size="sm"
+                                variant="soft"
+                                onClick={() => onAddSyllabus(exam)}
+                                className="gap-1"
+                              >
+                                <BookOpen size={13} />
+                                {copy.syllabus}
+                              </Button>
+                            ) : null}
+
+                            {onManageAssignments ? (
+                              <Button
+                                size="sm"
+                                variant="soft"
+                                onClick={() => onManageAssignments(exam)}
+                                className="gap-1"
+                              >
+                                <UserRoundCheck size={13} />
+                                {copy.manageAssignments}
+                              </Button>
+                            ) : null}
+
+                            {onDelete ? (
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => onDelete(exam)}
+                                className="gap-1"
+                              >
+                                <Trash2 size={13} />
+                                {copy.delete}
+                              </Button>
+                            ) : null}
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                          <CalendarDays size={14} className="shrink-0 text-slate-400" />
-                          <span>
-                            {exam.persianDate ?? new Date(exam.isoDate).toLocaleDateString("fa-IR")}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                          <Clock3 size={14} className="shrink-0 text-slate-400" />
-                          <span>
-                            {exam.durationMinutes ? `${exam.durationMinutes} دقیقه` : "—"}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
-                          <FileQuestion size={14} className="shrink-0 text-slate-400" />
-                          <span>{questionCount}</span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {onToggle ? (
-                            <Button
-                              size="sm"
-                              variant="soft"
-                              disabled={toggleBusyId === exam.id}
-                              onClick={() => onToggle(exam)}
-                              className="gap-1"
-                            >
-                              <Send size={13} />
-                              {exam.published ? "لغو انتشار" : "انتشار"}
-                            </Button>
-                          ) : null}
-
-                          {onEdit ? (
-                            <Button
-                              size="sm"
-                              variant="soft"
-                              onClick={() => onEdit(exam)}
-                              className="gap-1"
-                            >
-                              <Edit3 size={13} />
-                              ویرایش
-                            </Button>
-                          ) : null}
-
-                          {onAddSyllabus ? (
-                            <Button
-                              size="sm"
-                              variant="soft"
-                              onClick={() => onAddSyllabus(exam)}
-                              className="gap-1"
-                            >
-                              <BookOpen size={13} />
-                              بودجه‌بندی
-                            </Button>
-                          ) : null}
-
-                          {onManageAssignments ? (
-                            <Button
-                              size="sm"
-                              variant="soft"
-                              onClick={() => onManageAssignments(exam)}
-                              className="gap-1"
-                            >
-                              <UserRoundCheck size={13} />
-                              تخصیص
-                            </Button>
-                          ) : null}
-
-                          {onDelete ? (
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => onDelete(exam)}
-                              className="gap-1"
-                            >
-                              <Trash2 size={13} />
-                              حذف
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           </>
         )}

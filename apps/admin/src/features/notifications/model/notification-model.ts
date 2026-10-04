@@ -1,4 +1,6 @@
 import type { NotificationContract } from "@moshaver/api-contract";
+import type { AdminLanguage } from "../../../shared/ui/locale";
+import { notificationCopy } from "./notification-copy";
 
 export type AdminNotification = Partial<NotificationContract> &
   Pick<NotificationContract, "id" | "title">;
@@ -69,16 +71,17 @@ export function notificationTone(type?: string) {
   return "neutral" as const;
 }
 
-export function notificationTypeLabel(type?: string) {
+export function notificationTypeLabel(type?: string, language: AdminLanguage = "fa") {
+  const copy = notificationCopy[language];
   return (
     (
       {
-        message: "پیام",
-        exam: "آزمون",
-        lesson: "برنامه",
-        announcement: "اطلاعیه",
+        message: copy.message,
+        exam: copy.exam,
+        lesson: copy.lesson,
+        announcement: copy.announcement,
       } as Record<string, string>
-    )[type || ""] || "اعلان"
+    )[type || ""] || copy.notification
   );
 }
 

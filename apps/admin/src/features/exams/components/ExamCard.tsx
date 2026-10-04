@@ -14,6 +14,7 @@ import { Badge, Button } from "../../../shared/ui/ui";
 import { examReadiness } from "../model/exam-model";
 import { statusLabel } from "../lib/exam-formatters";
 import { Metric } from "./Metric";
+import { examsCopy } from "../exams-locale";
 
 export function ExamCard({
   exam,
@@ -44,7 +45,8 @@ export function ExamCard({
   onManageAssignments?: () => void;
   onAnalytics?: () => void;
 }) {
-  const { formatDate, formatDateTime } = useLocale();
+  const { language, formatDate, formatDateTime } = useLocale();
+  const copy = examsCopy(language);
 
   const readiness = examReadiness(exam);
 
@@ -73,21 +75,21 @@ export function ExamCard({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
-        <Metric label="وضعیت" value={statusLabel(exam.status) || "نامشخص"} />
+        <Metric label={copy.status} value={statusLabel(exam.status) || copy.notAvailable} />
 
-        <Metric label="دقیقه" value={exam.durationMinutes || 120} />
+        <Metric label={copy.duration} value={exam.durationMinutes || 120} />
 
-        <Metric label="سؤال" value={exam.delivery?.questionCount || 0} />
+        <Metric label={copy.question} value={exam.delivery?.questionCount || 0} />
 
-        <Metric label="تلاش" value={exam.maxAttempts || 1} />
+        <Metric label={copy.attempts} value={exam.maxAttempts || 1} />
       </div>
 
       <p className="mt-3 rounded-md bg-[rgb(var(--surface-muted))] px-3 py-2 text-xs leading-5 text-slate-500">
-        {`${(exam.delivery?.assignmentCount || 0).toLocaleString("fa-IR")} تخصیص • ${(exam.delivery?.attemptCount || 0).toLocaleString("fa-IR")} تلاش • ${(exam.delivery?.notStartedCount || 0).toLocaleString("fa-IR")} شروع نشده`}
+        {`${(exam.delivery?.assignmentCount || 0).toLocaleString(language === "fa" ? "fa-IR" : "en-US")} ${copy.assignments} • ${(exam.delivery?.attemptCount || 0).toLocaleString(language === "fa" ? "fa-IR" : "en-US")} ${copy.attempts} • ${(exam.delivery?.notStartedCount || 0).toLocaleString(language === "fa" ? "fa-IR" : "en-US")} ${copy.notStarted}`}
       </p>
 
       <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-        <Timer size={14} /> {formatDateTime(exam.openAt)} تا {formatDateTime(exam.closeAt)}
+        <Timer size={14} /> {formatDateTime(exam.openAt)} {copy.to} {formatDateTime(exam.closeAt)}
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -97,7 +99,7 @@ export function ExamCard({
           >
             <Button className="h-8 px-2 text-xs" variant="soft">
               <FileQuestion size={14} />
-              سؤال‌ها
+              {copy.questions}
             </Button>
           </Link>
         ) : null}
@@ -106,13 +108,13 @@ export function ExamCard({
           <details className="relative">
             <summary className="flex h-8 cursor-pointer list-none items-center gap-1 rounded-md border border-[rgb(var(--border-subtle))] px-2 text-xs text-slate-600">
               <MoreHorizontal size={15} />
-              گزینه‌ها
+              {copy.options}
             </summary>
             <div className="absolute left-0 z-10 mt-1 grid min-w-36 gap-1 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-1 shadow-lg">
               {onEdit ? (
                 <Button className="justify-start" size="sm" variant="ghost" onClick={onEdit}>
                   <Pencil size={14} />
-                  ویرایش
+                  {copy.edit}
                 </Button>
               ) : null}
               {onManageAssignments ? (
@@ -123,12 +125,12 @@ export function ExamCard({
                   onClick={onManageAssignments}
                 >
                   <Users size={14} />
-                  تخصیص
+                  {copy.manageAssignments}
                 </Button>
               ) : null}
               {onAnalytics ? (
                 <Button className="justify-start" size="sm" variant="ghost" onClick={onAnalytics}>
-                  تحلیل عملکرد
+                  {copy.analytics}
                 </Button>
               ) : null}
               {onToggle ? (
@@ -139,13 +141,13 @@ export function ExamCard({
                   loading={toggleBusy}
                   onClick={onToggle}
                 >
-                  {exam.published ? "پیش‌نویس" : "انتشار"}
+                  {exam.published ? copy.makeDraft : copy.publish}
                 </Button>
               ) : null}
               {onDelete ? (
                 <Button className="justify-start" size="sm" variant="danger" onClick={onDelete}>
                   <Trash2 size={14} />
-                  حذف
+                  {copy.delete}
                 </Button>
               ) : null}
             </div>
@@ -155,13 +157,13 @@ export function ExamCard({
 
       {exam.published && !exam.delivery?.questionCount ? (
         <p className="mt-3 rounded-md bg-rose-50 p-2 text-xs text-rose-700">
-          این آزمون منتشر شده اما هیچ سؤالی ندارد؛ برای دانش‌آموز آماده نیست.
+          {copy.publishedWithoutQuestions}
         </p>
       ) : null}
 
       <details className="mt-3 border-t border-[rgb(var(--border-subtle))] pt-3">
         <summary className="flex cursor-pointer list-none justify-between">
-          <strong className="text-xs">بودجه‌بندی ({exam.syllabus?.length || 0})</strong>
+          <strong className="text-xs">{copy.syllabusCount(exam.syllabus?.length || 0)}</strong>
 
           {onAddSyllabus ? (
             <button
@@ -172,7 +174,7 @@ export function ExamCard({
                 onAddSyllabus();
               }}
             >
-              + افزودن
+              + {copy.add}
             </button>
           ) : null}
         </summary>
@@ -190,7 +192,7 @@ export function ExamCard({
 
               {onDeleteSyllabus ? (
                 <button className="text-rose-700" onClick={() => onDeleteSyllabus(item.id)}>
-                  حذف
+                  {copy.delete}
                 </button>
               ) : null}
             </div>
@@ -198,7 +200,7 @@ export function ExamCard({
 
           {!exam.syllabus?.length ? (
             <p className="rounded-md bg-[rgb(var(--surface-muted))] p-2 text-xs text-slate-500">
-              بودجه‌بندی ثبت نشده است.
+              {copy.noSyllabus}
             </p>
           ) : null}
         </div>

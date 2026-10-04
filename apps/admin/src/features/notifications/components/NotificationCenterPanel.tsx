@@ -147,7 +147,7 @@ export function NotificationCenterPanel({
         ) : null
       }
     >
-      <div className="grid h-full min-h-0 gap-1 overflow-y-auto overscroll-contain pl-1 [scrollbar-gutter:stable]">
+      <div className="grid h-full min-h-0 gap-1 overflow-y-auto overscroll-contain [padding-inline-start:0.25rem] [scrollbar-gutter:stable]">
         {items.map((item) => (
           <button
             key={item.id}
@@ -157,7 +157,7 @@ export function NotificationCenterPanel({
               containIntrinsicSize: "76px",
             }}
             className={[
-              "rounded-lg border px-3 py-2 text-right shadow-[var(--shadow-surface)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+              "rounded-lg border px-3 py-2 text-start shadow-[var(--shadow-surface)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
               item.isRead
                 ? "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand dark:hover:border-brand"
                 : "border-indigo-200 bg-indigo-50/70 hover:border-brand dark:border-indigo-900 dark:bg-indigo-950/20",
@@ -173,7 +173,9 @@ export function NotificationCenterPanel({
               <strong className="min-w-0 flex-1 truncate text-sm text-slate-900 dark:text-white">
                 {item.title}
               </strong>
-              <Badge tone={notificationTone(item.type)}>{notificationTypeLabel(item.type)}</Badge>
+              <Badge tone={notificationTone(item.type)}>
+                {notificationTypeLabel(item.type, language)}
+              </Badge>
               {!item.isRead ? (
                 <span className="size-2 rounded-full bg-rose-600" aria-label={copy.unreadDot} />
               ) : null}

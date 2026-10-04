@@ -52,7 +52,7 @@ describe("read-only role controls", () => {
   });
 
   it("shows retry state without moderation actions", () => {
-    render(
+    renderWithLocale(
       <RetryRequestsPanel
         requests={[{ id: "retry-1", examTitle: "آزمون آزمایشی", status: "pending" }]}
       />,

@@ -30,7 +30,7 @@ export function SummaryCard({
       aria-pressed={active}
       onClick={onClick}
       className={[
-        "flex min-w-0 items-center gap-2 rounded-lg border bg-white px-2 py-2 text-right shadow-sm transition hover:border-brand",
+        "flex min-w-0 items-center gap-2 rounded-lg border bg-white px-2 py-2 text-start shadow-sm transition hover:border-brand",
         active ? "border-brand ring-2 ring-indigo-100" : "border-slate-200",
       ].join(" ")}
     >

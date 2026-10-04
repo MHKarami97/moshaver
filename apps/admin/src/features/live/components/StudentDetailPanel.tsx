@@ -25,13 +25,9 @@ export function StudentDetailPanel({
       ].join(" ")}
     >
       <div className="border-b px-3 py-2">
-        <strong>{language === "fa" ? "کنترل سریع" : "Quick controls"}</strong>
+        <strong>{copy.quickControls}</strong>
 
-        <p className="text-xs text-slate-500">
-          {language === "fa"
-            ? "جزئیات فقط برای مورد انتخاب‌شده"
-            : "Details for the selected record only"}
-        </p>
+        <p className="text-xs text-slate-500">{copy.selectedDetails}</p>
       </div>
 
       {student ? (

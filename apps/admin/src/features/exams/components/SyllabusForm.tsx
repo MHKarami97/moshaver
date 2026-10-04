@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button, Field, Input, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 import type { SyllabusDraft } from "../model/exam.types";
 
 export function SyllabusForm({
@@ -9,6 +11,8 @@ export function SyllabusForm({
   onSubmit: (data: SyllabusDraft) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const [data, setData] = useState<SyllabusDraft>({
     subject: "",
     description: "",
@@ -38,7 +42,7 @@ export function SyllabusForm({
         }).finally(() => setSubmitting(false));
       }}
     >
-      <Field label="درس">
+      <Field label={copy.syllabusSubject}>
         <Input
           required
           autoFocus
@@ -52,7 +56,7 @@ export function SyllabusForm({
         />
       </Field>
 
-      <Field label="مسیر">
+      <Field label={copy.syllabusTrack}>
         <Input
           value={data.track}
           onChange={(event) =>
@@ -64,7 +68,7 @@ export function SyllabusForm({
         />
       </Field>
 
-      <Field label="توضیح">
+      <Field label={copy.syllabusDescription}>
         <Textarea
           required
           value={data.description}
@@ -88,15 +92,15 @@ export function SyllabusForm({
             })
           }
         />{" "}
-        الزامی
+        {copy.syllabusRequired}
       </label>
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="soft" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
 
-        <Button loading={submitting}>افزودن</Button>
+        <Button loading={submitting}>{copy.add}</Button>
       </div>
     </form>
   );

@@ -3,6 +3,8 @@ import { DatePicker, DateTimePicker } from "../../../shared/ui/date-picker";
 import { Button, Field, Input, Select, Textarea } from "../../../shared/ui/ui";
 import { persianDateForIso, replaceIsoDay } from "../lib/exam-formatters";
 import { examDraftError, type ExamDraft } from "../model/exam-model";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 
 export function ExamForm({
   initial,
@@ -13,6 +15,8 @@ export function ExamForm({
   onSubmit: (data: ExamDraft) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const [data, setData] = useState(initial);
 
   const [submitting, setSubmitting] = useState(false);
@@ -43,7 +47,7 @@ export function ExamForm({
       }}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="عنوان">
+        <Field label={copy.title}>
           <Input
             required
             value={data.title}
@@ -56,7 +60,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="تاریخ فارسی">
+        <Field label={copy.persianDate}>
           <Input
             required
             value={data.persianDate}
@@ -69,7 +73,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="تاریخ ISO">
+        <Field label={copy.isoDate}>
           <DatePicker
             required
             value={data.isoDate}
@@ -85,7 +89,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="وضعیت">
+        <Field label={copy.status}>
           <Select
             value={data.status}
             onChange={(event) =>
@@ -95,17 +99,17 @@ export function ExamForm({
               })
             }
           >
-            <option value="upcoming">آینده</option>
+            <option value="upcoming">{copy.upcoming}</option>
 
-            <option value="active">فعال</option>
+            <option value="active">{copy.active}</option>
 
-            <option value="completed">تمام‌شده</option>
+            <option value="completed">{copy.completed}</option>
 
-            <option value="cancelled">لغوشده</option>
+            <option value="cancelled">{copy.cancelled}</option>
           </Select>
         </Field>
 
-        <Field label="شروع">
+        <Field label={copy.startsAt}>
           <DateTimePicker
             value={data.openAt}
             onChange={(openAt) =>
@@ -117,7 +121,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="پایان">
+        <Field label={copy.endsAt}>
           <DateTimePicker
             value={data.closeAt}
             onChange={(closeAt) =>
@@ -129,7 +133,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="مدت (دقیقه)">
+        <Field label={copy.durationMinutes}>
           <Input
             min={1}
             max={600}
@@ -144,7 +148,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="حداکثر تلاش">
+        <Field label={copy.maxAttempts}>
           <Input
             min={1}
             max={100}
@@ -159,7 +163,7 @@ export function ExamForm({
           />
         </Field>
 
-        <Field label="انتشار">
+        <Field label={copy.visibility}>
           <Select
             value={data.published ? "1" : "0"}
             onChange={(event) =>
@@ -169,14 +173,14 @@ export function ExamForm({
               })
             }
           >
-            <option value="0">پیش‌نویس</option>
+            <option value="0">{copy.draft}</option>
 
-            <option value="1">منتشر</option>
+            <option value="1">{copy.published}</option>
           </Select>
         </Field>
       </div>
 
-      <Field label="یادداشت داخلی">
+      <Field label={copy.internalNote}>
         <Textarea
           value={data.note}
           onChange={(event) =>
@@ -188,7 +192,7 @@ export function ExamForm({
         />
       </Field>
 
-      <Field label="دستورالعمل دانش‌آموز">
+      <Field label={copy.studentInstructions}>
         <Textarea
           rows={3}
           value={data.instructions}
@@ -209,10 +213,10 @@ export function ExamForm({
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="soft" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
 
-        <Button loading={submitting}>ذخیره آزمون</Button>
+        <Button loading={submitting}>{copy.saveExam}</Button>
       </div>
     </form>
   );

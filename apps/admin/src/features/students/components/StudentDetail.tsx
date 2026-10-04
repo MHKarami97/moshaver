@@ -1,6 +1,6 @@
 import {
   Activity,
-  ArrowRight,
+  ArrowLeft,
   Check,
   Copy,
   LayoutGrid,
@@ -12,22 +12,24 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { Student } from "../../../shared/types/domain";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 import { Button, Card } from "../../../shared/ui/ui";
+import { studentCopy } from "../model/student-locale";
 import {
   formatStudentLastSeen,
   getStudentStatus,
   getStudentUsername,
-  studentStatusCopy,
+  getStudentStatusCopy,
   type StudentDetailTab,
 } from "./student-ui";
 import { StudentWorkflowActions } from "./StudentWorkflowActions";
 
 const tabOptions = [
-  ["overview", "نمای کلی", LayoutGrid],
-  ["activity", "فعالیت", Activity],
-  ["profile", "پروفایل", Pencil],
-  ["access", "فضای کاری", Workflow],
-  ["security", "امنیت", ShieldCheck],
+  ["overview", "overview", LayoutGrid],
+  ["activity", "activity", Activity],
+  ["profile", "profile", Pencil],
+  ["access", "access", Workflow],
+  ["security", "security", ShieldCheck],
 ] as const;
 
 export function StudentDetail({
@@ -52,9 +54,11 @@ export function StudentDetail({
   onCreate?: () => void;
 }) {
   const [copied, setCopied] = useState<"id" | "username" | "">("");
-  const status = studentStatusCopy[getStudentStatus(student)];
+  const language = useOptionalAdminLanguage();
+  const copy = studentCopy[language];
+  const status = getStudentStatusCopy(getStudentStatus(student), language);
 
-  async function copy(value: string, type: "id" | "username") {
+  async function copyToClipboard(value: string, type: "id" | "username") {
     if (!value || !navigator.clipboard) return;
     try {
       await navigator.clipboard.writeText(value);
@@ -73,8 +77,8 @@ export function StudentDetail({
           onClick={onBack}
           className="mb-3 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand xl:hidden dark:text-slate-300 dark:hover:bg-slate-800"
         >
-          <ArrowRight size={15} />
-          بازگشت به فهرست
+          <ArrowLeft size={15} className="rtl:rotate-180" />
+          {copy.backToList}
         </button>
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-white">
@@ -88,29 +92,29 @@ export function StudentDetail({
               </span>
               {dirty ? (
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-                  تغییر ذخیره‌نشده
+                  {copy.unsavedChanges}
                 </span>
               ) : null}
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              آخرین فعالیت: {formatStudentLastSeen(student.last_seen_at)}
+              {copy.lastActivity}: {formatStudentLastSeen(student.last_seen_at, language)}
             </p>
           </div>
           {onCreate ? (
-            <Button size="sm" className="mr-auto shrink-0" onClick={onCreate}>
+            <Button size="sm" className="ms-auto shrink-0" onClick={onCreate}>
               <UserPlus size={15} />
-              دانش‌آموز جدید
+              {copy.createStudent}
             </Button>
           ) : null}
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => void copy(student.id, "id")}
-            className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2 text-right text-[11px] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+            onClick={() => void copyToClipboard(student.id, "id")}
+            className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2 text-start text-[11px] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
           >
             <span className="min-w-0">
-              <span className="block text-slate-500 dark:text-slate-400">شناسه</span>
+              <span className="block text-slate-500 dark:text-slate-400">{copy.studentId}</span>
               <strong className="block truncate text-slate-700 dark:text-slate-200" dir="ltr">
                 {student.id}
               </strong>
@@ -124,13 +128,13 @@ export function StudentDetail({
           <button
             type="button"
             disabled={!getStudentUsername(student)}
-            onClick={() => void copy(getStudentUsername(student), "username")}
-            className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2 text-right text-[11px] hover:bg-slate-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
+            onClick={() => void copyToClipboard(getStudentUsername(student), "username")}
+            className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-2 text-start text-[11px] hover:bg-slate-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900"
           >
             <span className="min-w-0">
-              <span className="block text-slate-500 dark:text-slate-400">نام کاربری</span>
+              <span className="block text-slate-500 dark:text-slate-400">{copy.username}</span>
               <strong className="block truncate text-slate-700 dark:text-slate-200" dir="ltr">
-                {getStudentUsername(student) || "ثبت نشده"}
+                {getStudentUsername(student) || copy.usernameNotSet}
               </strong>
             </span>
             {copied === "username" ? (
@@ -141,14 +145,14 @@ export function StudentDetail({
           </button>
         </div>
         <span className="sr-only" aria-live="polite">
-          {copied === "id" ? "شناسه کپی شد" : copied === "username" ? "نام کاربری کپی شد" : ""}
+          {copied === "id" ? copy.idCopied : copied === "username" ? copy.usernameCopied : ""}
         </span>
         <StudentWorkflowActions studentId={student.id} capabilities={capabilities} />
       </div>
 
       <nav
         className="z-[1] shrink-0 overflow-x-auto border-b border-slate-200 bg-[rgb(var(--surface-card))] px-2 dark:border-slate-800"
-        aria-label="بخش‌های پرونده دانش‌آموز"
+        aria-label={copy.detailSections}
       >
         <div className="flex min-w-max items-center gap-1">
           {tabOptions
@@ -162,7 +166,7 @@ export function StudentDetail({
                 className={`relative inline-flex h-11 items-center gap-1.5 px-2.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${tab === value ? "text-brand after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand" : "text-slate-500 hover:text-ink dark:text-slate-400"}`}
               >
                 <Icon size={14} />
-                {label}
+                {copy[label]}
               </button>
             ))}
         </div>

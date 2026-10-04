@@ -1,6 +1,8 @@
 import { ChevronDown } from "lucide-react";
 import { Button, Card, Field, Input, Textarea } from "../../../shared/ui/ui";
+import { useLocale } from "../../../shared/ui/locale";
 import type { QuestionDraft } from "../model/question-model";
+import { questionsCopy } from "../questions-locale";
 export function QuestionEditor({
   editingId,
   form,
@@ -24,13 +26,17 @@ export function QuestionEditor({
   onCancel: () => void;
   onSubmit: () => void;
 }) {
+  const { language } = useLocale();
+  const copy = questionsCopy(language);
   return (
     <Card className="overflow-y-auto">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-bold">{editingId ? "ویرایش سؤال" : "سؤال جدید"}</h3>
+        <h3 className="font-bold">
+          {editingId ? copy.editQuestionEditor : copy.newQuestionEditor}
+        </h3>
         {editingId ? (
           <Button className="h-8" variant="ghost" onClick={onCancel}>
-            انصراف
+            {copy.cancel}
           </Button>
         ) : null}
       </div>
@@ -44,7 +50,7 @@ export function QuestionEditor({
           if ((e.ctrlKey || e.metaKey) && e.key === "Enter") e.currentTarget.requestSubmit();
         }}
       >
-        <Field label="صورت سؤال">
+        <Field label={copy.questionText}>
           <Textarea
             className="min-h-28"
             maxLength={2000}
@@ -56,12 +62,12 @@ export function QuestionEditor({
           const key = ["a", "b", "c", "d"][i];
           const correct = form.correctOption === key;
           return (
-            <Field key={key} label={`گزینه ${i + 1}`}>
+            <Field key={key} label={copy.option(i + 1)}>
               <div
                 className={`flex items-center gap-2 rounded-md border p-1 ${correct ? "border-emerald-300 bg-emerald-50" : "border-transparent"}`}
               >
                 <input
-                  aria-label={`انتخاب گزینه ${i + 1} به‌عنوان پاسخ صحیح`}
+                  aria-label={copy.selectCorrectOption(i + 1)}
                   type="radio"
                   name="correctOption"
                   checked={correct}
@@ -82,10 +88,8 @@ export function QuestionEditor({
             </Field>
           );
         })}
-        <p className="text-xs text-slate-500">
-          دایره کنار گزینه را برای تعیین پاسخ صحیح انتخاب کنید.
-        </p>
-        <Field label="توضیح">
+        <p className="text-xs text-slate-500">{copy.selectCorrectHint}</p>
+        <Field label={copy.explanation}>
           <Textarea
             className="min-h-20"
             maxLength={2000}
@@ -95,38 +99,38 @@ export function QuestionEditor({
         </Field>
         <details className="rounded-md border border-slate-200 p-3">
           <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold">
-            اطلاعات تکمیلی و مرور <ChevronDown size={16} />
+            {copy.additionalReview} <ChevronDown size={16} />
           </summary>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
-            <Field label="کتاب">
+            <Field label={copy.book}>
               <Input
                 maxLength={200}
                 value={form.book}
                 onChange={(e) => setForm({ ...form, book: e.target.value })}
               />
             </Field>
-            <Field label="فصل">
+            <Field label={copy.chapter}>
               <Input
                 maxLength={200}
                 value={form.chapter}
                 onChange={(e) => setForm({ ...form, chapter: e.target.value })}
               />
             </Field>
-            <Field label="درس">
+            <Field label={copy.lesson}>
               <Input
                 maxLength={200}
                 value={form.lesson}
                 onChange={(e) => setForm({ ...form, lesson: e.target.value })}
               />
             </Field>
-            <Field label="مبحث">
+            <Field label={copy.topic}>
               <Input
                 maxLength={240}
                 value={form.topic}
                 onChange={(e) => setForm({ ...form, topic: e.target.value })}
               />
             </Field>
-            <Field label="ترتیب">
+            <Field label={copy.sortOrder}>
               <Input
                 type="number"
                 min={1}
@@ -135,7 +139,7 @@ export function QuestionEditor({
               />
             </Field>
           </div>
-          <Field label="راهنمای مرور آینده">
+          <Field label={copy.futureReviewHint}>
             <Textarea
               className="min-h-20"
               maxLength={3000}
@@ -150,9 +154,9 @@ export function QuestionEditor({
           </p>
         ) : null}
         <Button loading={busy} disabled={disabled || busy} type="submit">
-          {editingId ? "ذخیره تغییرات" : "افزودن سؤال"}
+          {editingId ? copy.saveChanges : copy.addQuestion}
         </Button>
-        <p className="text-center text-[11px] text-slate-400">ذخیره سریع: Ctrl/⌘ + Enter</p>
+        <p className="text-center text-[11px] text-slate-400">{copy.quickSave}</p>
       </form>
     </Card>
   );

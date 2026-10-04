@@ -13,6 +13,7 @@ import { Badge, Button, Textarea } from "../../../shared/ui/ui";
 import { useLocale } from "../../../shared/ui/locale";
 import { fa } from "../../../shared/lib/utils";
 import { inboxCreatedAt, issueTypeLabel } from "../lib/notification-utils";
+import { notificationCopy } from "../model/notification-copy";
 import type {
   AdvisorInboxRow,
   RecoveryActionInput,
@@ -38,7 +39,9 @@ export function AdvisorInboxItem({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [response, setResponse] = useState("");
-  const { formatDateTime, formatDate } = useLocale();
+  const { formatDateTime, formatDate, language } = useLocale();
+  const copy = notificationCopy[language];
+  const number = (value: number) => (language === "fa" ? fa(value) : value.toLocaleString("en-US"));
 
   if (row.kind === "issue") {
     const issue = row.value;
@@ -50,14 +53,14 @@ export function AdvisorInboxItem({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="red">
-                <AlertTriangle size={12} className="ml-1" /> مشکل فعالیت
+                <AlertTriangle size={12} className="me-1" /> {copy.activityIssue}
               </Badge>
               <span className="text-[10px] font-semibold text-slate-400">
                 {issueTypeLabel(issue)}
               </span>
             </div>
             <strong className="mt-2 block truncate text-sm text-slate-900 dark:text-white">
-              {issue.title || issue.subject || "فعالیت بدون عنوان"}
+              {issue.title || issue.subject || copy.untitledActivity}
             </strong>
             {issue.subject && issue.title ? (
               <span className="mt-0.5 block text-[10px] text-slate-500">{issue.subject}</span>
@@ -75,7 +78,7 @@ export function AdvisorInboxItem({
         ) : null}
         {issue.advisorNote || issue.advisor_note ? (
           <p className="mt-2 rounded-lg border border-brand/10 bg-brand/5 p-2 text-[11px] leading-5 text-slate-600 dark:text-slate-300">
-            <b className="ml-1 text-brand">آخرین پاسخ مشاور:</b>
+            <b className="me-1 text-brand">{copy.latestAdvisorReply}</b>
             {issue.advisorNote || issue.advisor_note}
           </p>
         ) : null}
@@ -87,7 +90,7 @@ export function AdvisorInboxItem({
             className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand"
           >
             <MessageSquareReply size={13} />
-            {expanded ? "بستن پاسخ" : "رسیدگی و پاسخ"}
+            {expanded ? copy.closeResponse : copy.respond}
           </button>
         ) : null}
 
@@ -97,7 +100,7 @@ export function AdvisorInboxItem({
               rows={3}
               value={response}
               onChange={(event) => setResponse(event.target.value)}
-              placeholder="یادداشت یا پاسخ مشاور… در صورت ثبت، برای دانش‌آموز هم اعلان می‌شود."
+              placeholder={copy.responsePlaceholder}
               className="min-h-20 resize-y dark:border-slate-700 dark:bg-slate-900"
             />
             <div className="flex flex-wrap gap-2">
@@ -114,7 +117,7 @@ export function AdvisorInboxItem({
                   )
                 }
               >
-                پاسخ و باز نگه‌داشتن
+                {copy.replyKeepOpen}
               </Button>
               <Button
                 className="h-9 px-3 text-xs"
@@ -127,7 +130,7 @@ export function AdvisorInboxItem({
                   })
                 }
               >
-                <CheckCircle2 size={14} /> حل شد
+                <CheckCircle2 size={14} /> {copy.resolved}
               </Button>
               <Button
                 className="h-9 px-3 text-xs"
@@ -141,7 +144,7 @@ export function AdvisorInboxItem({
                   })
                 }
               >
-                <XCircle size={14} /> رد گزارش
+                <XCircle size={14} /> {copy.dismissReport}
               </Button>
             </div>
           </div>
@@ -160,11 +163,11 @@ export function AdvisorInboxItem({
         <header className="flex items-start justify-between gap-2">
           <div>
             <Badge tone="blue">
-              <RotateCcw size={12} className="ml-1" /> درخواست ریکاوری
+              <RotateCcw size={12} className="me-1" /> {copy.recoveryRequest}
             </Badge>
             {planDate ? (
               <strong className="mt-2 block text-sm text-slate-900 dark:text-white">
-                برنامه {formatDate(planDate)}
+                {copy.plan} {formatDate(planDate)}
               </strong>
             ) : null}
           </div>
@@ -191,7 +194,7 @@ export function AdvisorInboxItem({
             className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand"
           >
             <MessageSquareReply size={13} />
-            {expanded ? "بستن رسیدگی" : "رسیدگی"}
+            {expanded ? copy.closeHandling : copy.handle}
           </button>
         ) : null}
 
@@ -201,7 +204,7 @@ export function AdvisorInboxItem({
               rows={3}
               value={response}
               onChange={(event) => setResponse(event.target.value)}
-              placeholder="پیام برای دانش‌آموز بعد از تأیید ریکاوری…"
+              placeholder={copy.recoveryMessagePlaceholder}
               className="min-h-20 resize-y dark:border-slate-700 dark:bg-slate-900"
             />
             <div className="flex flex-wrap gap-2">
@@ -216,7 +219,7 @@ export function AdvisorInboxItem({
                   })
                 }
               >
-                <CheckCircle2 size={14} /> حل و اطلاع‌رسانی
+                <CheckCircle2 size={14} /> {copy.resolveAndNotify}
               </Button>
               <Button
                 className="h-9 px-3 text-xs"
@@ -224,13 +227,10 @@ export function AdvisorInboxItem({
                 variant="ghost"
                 onClick={() => void onRecovery({ id: recovery.id, status: "dismissed" })}
               >
-                <XCircle size={14} /> رد درخواست
+                <XCircle size={14} /> {copy.rejectRequest}
               </Button>
             </div>
-            <p className="text-[9px] leading-4 text-slate-400">
-              رد درخواست در API v1 اعلان جداگانه‌ای برای دانش‌آموز ارسال نمی‌کند؛ حل کردن همراه
-              پیام، اطلاع‌رسانی می‌شود.
-            </p>
+            <p className="text-[9px] leading-4 text-slate-400">{copy.rejectionHint}</p>
           </div>
         ) : null}
       </article>
@@ -240,7 +240,7 @@ export function AdvisorInboxItem({
   const value = row.value as Record<string, unknown>;
   const createdAt = inboxCreatedAt(value);
   const title = String(
-    value.title || value.subject || value.examTitle || value.reason || "مورد پیگیری",
+    value.title || value.subject || value.examTitle || value.reason || copy.followUpItem,
   );
   const subtitle = String(value.planDate || value.dueDate || value.due_date || value.start || "");
   const Icon =
@@ -251,7 +251,7 @@ export function AdvisorInboxItem({
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <Badge tone={row.tone}>
-            <Icon size={12} className="ml-1" /> {row.type}
+            <Icon size={12} className="me-1" /> {row.type}
           </Badge>
           <strong className="mt-2 block truncate text-sm text-slate-800 dark:text-slate-100">
             {title}
@@ -266,12 +266,14 @@ export function AdvisorInboxItem({
       </header>
       {row.kind === "missed" && "start" in value && value.start ? (
         <p className="mt-2 text-[10px] text-slate-500">
-          زمان {String(value.start)}
-          {value.end ? ` تا ${String(value.end)}` : ""}
+          {copy.time} {String(value.start)}
+          {value.end ? ` ${copy.until} ${String(value.end)}` : ""}
         </p>
       ) : null}
       {row.kind === "review" && value.intervalDays ? (
-        <p className="mt-2 text-[10px] text-slate-500">فاصله مرور {fa(value.intervalDays)} روز</p>
+        <p className="mt-2 text-[10px] text-slate-500">
+          {copy.reviewInterval} {number(Number(value.intervalDays))} {copy.days}
+        </p>
       ) : null}
     </article>
   );

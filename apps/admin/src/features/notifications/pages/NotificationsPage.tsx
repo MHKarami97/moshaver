@@ -11,6 +11,8 @@ import { useAdminNotifications } from "../hooks/useAdminNotifications";
 import { useAdvisorInbox } from "../hooks/useAdvisorInbox";
 import { useFilteredNotifications } from "../hooks/useFilteredNotifications";
 import { useAuth } from "../../auth";
+import { useLocale } from "../../../shared/ui/locale";
+import { notificationCopy } from "../model/notification-copy";
 
 const notificationTypes = ["all", "message", "exam", "lesson", "announcement"] as const;
 
@@ -35,6 +37,8 @@ export function NotificationsPage() {
   const students = useStudentSelection({ enabled: access.advisorInbox });
   const notifications = useAdminNotifications();
   const modal = useModal();
+  const { language } = useLocale();
+  const copy = notificationCopy[language];
   const [params, setParams] = useSearchParams();
 
   const filter = params.get("filter") === "unread" ? "unread" : "all";
@@ -73,11 +77,11 @@ export function NotificationsPage() {
       <NotificationsToolbar
         onOpenSettings={() =>
           modal.open({
-            title: "اعلان سیستمی و صدا",
+            title: copy.settingsTitle,
             size: "lg",
             // Important: global modal providers may render outside NotificationProvider.
             // Passing the controller avoids a context crash in modal content.
-            content: <NotificationSettings notifications={notifications} />,
+            content: <NotificationSettings notifications={notifications} language={language} />,
           })
         }
       />
