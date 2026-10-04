@@ -230,6 +230,7 @@ export class DashboardService {
         | "inactive_user";
       title: string;
       description: string;
+      descriptionKind: "system" | "user";
       priority: "urgent" | "high" | "normal";
       owner: { id: string; label: string };
       dueAt: string | null;
@@ -263,6 +264,7 @@ export class DashboardService {
           type: "recovery",
           title: "درخواست بازیابی برنامه",
           description: row.message || "درخواست بازیابی نیازمند بررسی است.",
+          descriptionKind: row.message ? "user" : "system",
           priority: "high",
           dueAt: row.planDate || null,
           status: "open",
@@ -283,6 +285,7 @@ export class DashboardService {
           title: "مسئله فعالیت",
           description:
             row.message || "دانش‌آموز برای یک فعالیت مشکل ثبت کرده است.",
+          descriptionKind: row.message ? "user" : "system",
           priority: "high",
           dueAt: null,
           status: "open",
@@ -303,6 +306,7 @@ export class DashboardService {
           title: "درخواست تلاش مجدد آزمون",
           description:
             row.message || "درخواست تلاش مجدد نیازمند تصمیم‌گیری است.",
+          descriptionKind: row.message ? "user" : "system",
           priority: "normal",
           dueAt: null,
           status: "open",
@@ -322,6 +326,7 @@ export class DashboardService {
           type: "unread_chat",
           title: "گفت‌وگوی خوانده‌نشده",
           description: `${Number(row.message || 0).toLocaleString("fa-IR")} پیام منتظر پاسخ یا مشاهده است.`,
+          descriptionKind: "system",
           priority: "normal",
           owner: { id: context.id, label: "شما" },
           dueAt: null,
@@ -341,6 +346,7 @@ export class DashboardService {
           type: "sync_failure",
           title: "همگام‌سازی ناموفق",
           description: `دستگاه ${row.deviceId || "نامشخص"}${row.failureCode ? ` با خطای ${row.failureCode}` : ""} نیازمند بررسی است.`,
+          descriptionKind: "system",
           priority: "urgent",
           dueAt: null,
           status: "open",
@@ -364,6 +370,7 @@ export class DashboardService {
           type: "inactive_user",
           title: "حساب غیرفعال",
           description: `حساب ${row.username || "کاربر"} در وضعیت ${row.message || "غیرفعال"} است.`,
+          descriptionKind: "system",
           priority: "normal",
           owner: { id: context.id, label: "مسئول پلتفرم" },
           dueAt: null,
@@ -376,26 +383,24 @@ export class DashboardService {
     return {
       generatedAt: new Date().toISOString(),
       items: items
-        .sort(
-          (a, b) => {
-            const priorityOrder = rank[a.priority] - rank[b.priority];
-            if (priorityOrder) return priorityOrder;
-            // A concrete due date is more actionable than an undated item of
-            // the same priority. Keep the oldest unresolved items next.
-            const dueOrder =
-              a.dueAt && b.dueAt
-                ? a.dueAt.localeCompare(b.dueAt)
-                : a.dueAt
-                  ? -1
-                  : b.dueAt
-                    ? 1
-                    : 0;
-            return (
-              dueOrder ||
-              String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
-            );
-          },
-        )
+        .sort((a, b) => {
+          const priorityOrder = rank[a.priority] - rank[b.priority];
+          if (priorityOrder) return priorityOrder;
+          // A concrete due date is more actionable than an undated item of
+          // the same priority. Keep the oldest unresolved items next.
+          const dueOrder =
+            a.dueAt && b.dueAt
+              ? a.dueAt.localeCompare(b.dueAt)
+              : a.dueAt
+                ? -1
+                : b.dueAt
+                  ? 1
+                  : 0;
+          return (
+            dueOrder ||
+            String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+          );
+        })
         .slice(0, limit),
     };
   }

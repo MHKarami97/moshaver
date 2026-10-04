@@ -6,6 +6,7 @@ export type AttentionItem = {
     "recovery" | "task_issue" | "retry_request" | "unread_chat" | "sync_failure" | "inactive_user";
   title: string;
   description: string;
+  descriptionKind?: "system" | "user";
   priority: "urgent" | "high" | "normal";
   owner: { id: string; label: string };
   dueAt: string | null;

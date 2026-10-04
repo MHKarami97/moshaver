@@ -48,6 +48,7 @@ describe("DashboardService attentionQueue", () => {
     expect(queue.items[0]).toMatchObject({
       id: "recovery:recovery-1",
       type: "recovery",
+      descriptionKind: "user",
       status: "open",
       student: { id: "student-allowed" },
       deepLink: "/admin/follow-up",

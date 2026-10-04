@@ -72,3 +72,25 @@ export function attentionPriorityLabel(
 export function attentionTypeLabel(type: AttentionItem["type"], language: AdminLanguage) {
   return copy[language].types[type];
 }
+
+export function attentionSystemDescription(type: AttentionItem["type"], language: AdminLanguage) {
+  const descriptions = {
+    fa: {
+      recovery: "یک درخواست بازیابی برنامه نیازمند بررسی است.",
+      task_issue: "یک مسئله فعالیت دانش‌آموز نیازمند بررسی است.",
+      retry_request: "یک درخواست تلاش مجدد آزمون نیازمند تصمیم‌گیری است.",
+      unread_chat: "یک گفت‌وگو نیازمند پاسخ یا مشاهده است.",
+      sync_failure: "یک خطای همگام‌سازی نیازمند بررسی است.",
+      inactive_user: "یک حساب کاربری نیازمند بررسی است.",
+    },
+    en: {
+      recovery: "A plan recovery request needs review.",
+      task_issue: "A student task issue needs review.",
+      retry_request: "An exam retry request needs a decision.",
+      unread_chat: "A conversation needs a response or review.",
+      sync_failure: "A sync failure needs review.",
+      inactive_user: "A user account needs review.",
+    },
+  } as const;
+  return descriptions[language][type];
+}

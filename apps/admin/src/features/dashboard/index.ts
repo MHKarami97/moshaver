@@ -1,4 +1,5 @@
 export { DashboardPage } from "./pages/DashboardPage";
+export { SectionDashboardPage } from "./pages/SectionDashboardPage";
 
 export type {
   AdminDashboardSummary,

@@ -10,14 +10,29 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useCallback, useMemo } from "react";
 import { useAuth } from "../../auth";
-import { Badge, Button, EmptyState, LoadingState } from "../../../shared/ui/ui";
+import { Badge, Button, Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { useLocale } from "../../../shared/ui/locale";
-import type { AttentionStudent, RoleDashboardData } from "../model/dashboard.types";
+import { DashboardWorkspace } from "../../../shared/ui/dashboard-workspace";
+import type { DashboardWorkItem, RoleDashboardData } from "../model/dashboard.types";
 import { dashboardCopy } from "../model/dashboard-copy";
-import { AttentionInbox } from "./AttentionInbox";
+import { DashboardWorkQueue } from "./DashboardWorkQueue";
 import { getRoleConfig } from "../model/role-config";
 import { DashboardQuickActions } from "./DashboardQuickActions";
+import { PlatformHealthPanel } from "./PlatformHealthPanel";
+import { DashboardSchedule } from "./DashboardSchedule";
+import { DashboardPlanHealth } from "./DashboardPlanHealth";
+import {
+  createRoleDashboardView,
+  dashboardSearchForView,
+  dashboardViewFromSearch,
+  hasDashboardViewSearch,
+  useRoleDashboardView,
+  visibleRoleDashboardWidgets,
+} from "../model/dashboard-layout";
+import { quickActionsForRole } from "../model/role-experience";
 
 type Metric = {
   label: string;
@@ -240,23 +255,23 @@ export function RoleDashboard({
   loading,
   error,
   refreshing,
-  attention,
-  attentionLoading,
-  attentionError,
+  workItems,
+  workLoading,
+  workError,
   onRefresh,
   onRetry,
-  onRetryAttention,
+  onRetryWork,
 }: {
   data?: RoleDashboardData;
   loading: boolean;
   error: boolean;
   refreshing: boolean;
-  attention: AttentionStudent[];
-  attentionLoading: boolean;
-  attentionError: boolean;
+  workItems: DashboardWorkItem[];
+  workLoading: boolean;
+  workError: boolean;
   onRefresh: () => void;
   onRetry: () => void;
-  onRetryAttention: () => void;
+  onRetryWork: () => void;
 }) {
   const auth = useAuth();
   const { language, profile } = useLocale();
@@ -297,7 +312,28 @@ export function RoleDashboard({
   };
 
   const role = data?.context; // "PLATFORM_ADMIN" | "TEACHER" | ...
+  const [searchParams, setSearchParams] = useSearchParams();
+  const defaultView = useMemo(() => createRoleDashboardView(role), [role]);
+  const sharedView = useMemo(
+    () =>
+      hasDashboardViewSearch(searchParams)
+        ? dashboardViewFromSearch(defaultView, searchParams)
+        : undefined,
+    [defaultView, searchParams],
+  );
+  const syncViewToUrl = useCallback(
+    (nextView: ReturnType<typeof createRoleDashboardView>) => {
+      setSearchParams((current) => dashboardSearchForView(current, nextView, defaultView), {
+        replace: true,
+      });
+    },
+    [defaultView, setSearchParams],
+  );
   const { tone, icon: Icon, label } = getRoleConfig(role);
+  const { view, setDensity, setWidgetVisible, reset } = useRoleDashboardView(role, {
+    sharedView,
+    onChange: syncViewToUrl,
+  });
 
   if (loading) return <LoadingState label={dashboard.workspaceLoading} />;
   if (error || !data)
@@ -312,93 +348,188 @@ export function RoleDashboard({
         }
       />
     );
+  const metricItems = metrics(data, language);
+  const visibleWidget = (id: string) =>
+    visibleRoleDashboardWidgets(view).some((widget) => widget.id === id);
+  const showPlatformHealth = data.context === "PLATFORM_ADMIN" && visibleWidget("platform-health");
+  const showNextActions =
+    visibleWidget("next-actions") &&
+    quickActionsForRole(auth.activeRole, auth.capabilities, language).length > 0;
+  const supportsSchedule = ["ADVISOR", "TEACHER", "MENTOR"].includes(data.context);
+  const showSchedule = visibleWidget("upcoming-schedule") && supportsSchedule;
+  const supportsPlanHealth = ["ADVISOR", "MENTOR"].includes(data.context);
+  const showPlanHealth = visibleWidget("plan-health") && supportsPlanHealth;
+  const generatedAt = data.generatedAt
+    ? dashboard.refreshedAt +
+      " · " +
+      new Intl.DateTimeFormat(profile.locale, { dateStyle: "medium", timeStyle: "short" }).format(
+        new Date(data.generatedAt),
+      )
+    : undefined;
+
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-10">
-      {/* ============= */}
-      {/* Left column (3/10 on lg) */}
-      {/* ============= */}
-      <div className="flex flex-col gap-6 md:col-span-1 lg:col-span-3">
-        {/* Header */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <Badge tone={tone} title={label}>
-                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                <span className="sr-only">{label}</span>
-              </Badge>
-              <h1 className="truncate text-xl font-black text-ink sm:text-2xl">{roleCopy.title}</h1>
-            </div>
-
-            <Button
-              variant="soft"
-              size="sm"
-              loading={refreshing}
-              onClick={onRefresh}
-              aria-label={dashboard.refreshWorkspace}
-              title={dashboard.refreshWorkspace}
+    <DashboardWorkspace
+      title={roleCopy.title}
+      description={roleCopy.description}
+      freshness={
+        <span className="inline-flex items-center gap-1.5">
+          <Badge tone={tone} title={label}>
+            <Icon className="size-3.5" aria-hidden="true" />
+            <span className="sr-only">{label}</span>
+          </Badge>
+          {generatedAt}
+        </span>
+      }
+      density={view.density}
+      onDensityChange={setDensity}
+      densityLabels={{
+        label: dashboard.dashboardDensity,
+        comfortable: dashboard.comfortableDensity,
+        compact: dashboard.compactDensity,
+      }}
+      preferences={{
+        label: dashboard.dashboardLayout,
+        visibleWidgetsLabel: dashboard.visibleWidgets,
+        resetLabel: dashboard.resetDashboardLayout,
+        widgets: [
+          {
+            id: "next-actions",
+            label: dashboard.nextActionsWidget,
+            visible: visibleWidget("next-actions"),
+          },
+          ...(supportsSchedule
+            ? [
+                {
+                  id: "upcoming-schedule",
+                  label: dashboard.upcomingScheduleWidget,
+                  visible: visibleWidget("upcoming-schedule"),
+                },
+              ]
+            : []),
+          ...(supportsPlanHealth
+            ? [
+                {
+                  id: "plan-health",
+                  label: dashboard.planHealthWidget,
+                  visible: visibleWidget("plan-health"),
+                },
+              ]
+            : []),
+          ...(data.context === "PLATFORM_ADMIN"
+            ? [
+                {
+                  id: "platform-health",
+                  label: dashboard.platformHealthWidget,
+                  visible: visibleWidget("platform-health"),
+                },
+              ]
+            : []),
+        ],
+        onVisibilityChange: setWidgetVisible,
+        onReset: reset,
+      }}
+      actions={
+        <>
+          {auth.capabilities.includes("exams.read") ? (
+            <Link
+              to="/admin/exams"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-[rgb(var(--border-subtle))] px-2.5 text-xs font-semibold text-ink transition hover:border-brand/30 hover:bg-brand/5 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
-              <RefreshCw size={16} />
-            </Button>
-          </div>
-
-          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            {roleCopy.description}
-          </p>
-        </div>
-        {/* Metrics */}
-        <section className="overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
-            {metrics(data, language).map((item) => {
-              const MetricIcon = item.icon;
-              return (
-                <li
-                  key={item.label}
-                  className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/60"
-                >
-                  <MetricIcon
-                    size={16}
-                    strokeWidth={1.75}
-                    className="shrink-0 text-slate-500 transition-colors group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200"
-                    aria-hidden="true"
-                  />
-
-                  <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-300">
-                    {item.label}
-                  </span>
-
-                  {item.hint ? (
-                    <span className="hidden shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400 md:inline">
-                      {item.hint}
-                    </span>
-                  ) : null}
-
-                  <strong className="min-w-[3.5rem] shrink-0 text-end text-base font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-50">
-                    {typeof item.value === "number"
-                      ? item.value.toLocaleString(profile.locale)
-                      : item.value}
-                  </strong>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <DashboardQuickActions />
-      </div>
-
-      {/* ============= */}
-      {/* Right column (7/10 on lg) */}
-      {/* ============= */}
-      <div className="md:col-span-1 lg:col-span-7">
-        {auth.can("student.live.read") ? (
-          <AttentionInbox
-            students={attention}
-            loading={attentionLoading}
-            error={attentionError}
-            onRetry={onRetryAttention}
-          />
-        ) : null}
-      </div>
-    </div>
+              <BookOpenCheck size={15} aria-hidden="true" />
+              {dashboard.openAssessments}
+            </Link>
+          ) : null}
+          <Button
+            variant="soft"
+            size="sm"
+            loading={refreshing}
+            onClick={onRefresh}
+            aria-label={dashboard.refreshWorkspace}
+            title={dashboard.refreshWorkspace}
+          >
+            <RefreshCw size={16} />
+            {dashboard.refresh}
+          </Button>
+        </>
+      }
+      summary={
+        <DashboardMetricGrid
+          items={metricItems}
+          locale={profile.locale}
+          density={view.density}
+          label={dashboard.defaultWorkspaceTitle}
+        />
+      }
+      primary={
+        <DashboardWorkQueue
+          items={workItems}
+          loading={workLoading}
+          error={workError}
+          onRetry={onRetryWork}
+        />
+      }
+      secondary={
+        showPlatformHealth || showSchedule || showPlanHealth || showNextActions ? (
+          <>
+            {showSchedule ? <DashboardSchedule data={data} /> : null}
+            {showPlanHealth ? (
+              <DashboardPlanHealth
+                value={data.todayPlanHealth ?? data.recentProgress}
+                href={auth.capabilities.includes("plans.read") ? "/admin/planner" : undefined}
+              />
+            ) : null}
+            {showPlatformHealth ? <PlatformHealthPanel data={data} /> : null}
+            {showNextActions ? <DashboardQuickActions /> : null}
+          </>
+        ) : undefined
+      }
+    />
   );
 }
+
+function DashboardMetricGrid({
+  items,
+  locale,
+  density,
+  label,
+}: {
+  items: Metric[];
+  locale: string;
+  density: "comfortable" | "compact";
+  label: string;
+}) {
+  return (
+    <section aria-label={label} className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+      {items.map((item) => {
+        const MetricIcon = item.icon;
+        return (
+          <Card key={item.label} className={density === "compact" ? "p-3" : "p-4"}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {item.label}
+                </p>
+                <strong className="mt-2 block text-2xl font-black tabular-nums tracking-tight text-ink">
+                  {typeof item.value === "number" ? item.value.toLocaleString(locale) : item.value}
+                </strong>
+              </div>
+              <span
+                className={`grid size-9 shrink-0 place-items-center rounded-md ${metricToneClass[item.tone]}`}
+              >
+                <MetricIcon size={18} aria-hidden="true" />
+              </span>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{item.hint}</p>
+          </Card>
+        );
+      })}
+    </section>
+  );
+}
+
+const metricToneClass = {
+  green: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  blue: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  red: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+} as const;

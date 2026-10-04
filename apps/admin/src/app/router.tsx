@@ -11,6 +11,9 @@ import { RouteErrorBoundary } from "../shared/errors";
 const DashboardPage = lazy(() =>
   import("../features/dashboard").then((module) => ({ default: module.DashboardPage })),
 );
+const SectionDashboardPage = lazy(() =>
+  import("../features/dashboard").then((module) => ({ default: module.SectionDashboardPage })),
+);
 const StudentsPage = lazy(() =>
   import("../features/students").then((module) => ({ default: module.StudentsPage })),
 );
@@ -202,6 +205,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "management",
+            element: (
+              <RouteScreen>
+                <SectionDashboardPage section="مدیریت" />
+              </RouteScreen>
+            ),
+          },
+          {
             path: "students",
             element: (
               <CapabilityRoute capability="students.read">
@@ -357,7 +368,14 @@ export const router = createBrowserRouter([
             path: "communication",
             element: <Outlet />,
             children: [
-              { index: true, element: <Navigate to="live" replace /> },
+              {
+                index: true,
+                element: (
+                  <RouteScreen>
+                    <SectionDashboardPage section="ارتباط" />
+                  </RouteScreen>
+                ),
+              },
               {
                 path: "live",
                 element: (

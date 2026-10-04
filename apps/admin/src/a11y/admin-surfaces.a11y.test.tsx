@@ -84,12 +84,12 @@ describe("Admin v2 accessibility smoke", () => {
             loading={false}
             error={false}
             refreshing={false}
-            attention={[]}
-            attentionLoading={false}
-            attentionError={false}
+            workItems={[]}
+            workLoading={false}
+            workError={false}
             onRefresh={vi.fn()}
             onRetry={vi.fn()}
-            onRetryAttention={vi.fn()}
+            onRetryWork={vi.fn()}
           />
         </LocaleProvider>
       </MemoryRouter>,

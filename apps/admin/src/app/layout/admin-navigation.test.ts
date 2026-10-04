@@ -31,9 +31,11 @@ describe("admin navigation metadata", () => {
       "subjects",
       "classes",
       "resources",
+      "communication",
       "communication/live",
       "communication/chat",
       "communication/notifications",
+      "management",
       "students",
       "permission-requests",
       "attention",
@@ -54,8 +56,8 @@ describe("admin navigation metadata", () => {
     expect(mainAdminNavigation.map((item) => item.path)).toEqual([
       "",
       "education",
-      "communication/live",
-      "students",
+      "communication",
+      "management",
       "system",
     ]);
     expect(mainAdminNavigation.map((item) => item.title)).toEqual([
@@ -178,7 +180,7 @@ describe("admin navigation metadata", () => {
       "en",
     );
     expect(english.find((group) => group.section === "Management")?.items[0]?.title).toBe(
-      "My students",
+      "Management hub",
     );
     expect(english.find((group) => group.section === "Management")?.sectionKey).toBe("مدیریت");
     expect(localizedAdminCurrentNavigation("/admin/students", "en").description).toBe(

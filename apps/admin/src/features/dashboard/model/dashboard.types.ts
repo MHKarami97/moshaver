@@ -67,6 +67,30 @@ export type AttentionStudent = {
   presence?: AttentionPresence;
 };
 
+/**
+ * Server-authorized work item for the current role/context. The API owns
+ * filtering and deep-link eligibility; the dashboard only presents it.
+ */
+export type DashboardWorkItem = {
+  id: string;
+  type:
+    "recovery" | "task_issue" | "retry_request" | "unread_chat" | "sync_failure" | "inactive_user";
+  priority: "urgent" | "high" | "normal";
+  status: "open";
+  title: string;
+  description: string;
+  descriptionKind?: "system" | "user";
+  deepLink: string;
+  dueAt: string | null;
+  createdAt: string | null;
+  student?: { id: string; name: string };
+};
+
+export type DashboardWorkQueue = {
+  generatedAt: string;
+  items: DashboardWorkItem[];
+};
+
 export type FollowUpMetric = {
   key: "recoveries" | "missed" | "chat" | "attention";
   label: string;
@@ -98,7 +122,7 @@ export type RoleDashboardData = {
   studentsNeedingAttention?: number;
   contentTasks?: { questions?: number; quizzes?: number };
   recentProgress?: { plans?: number; tasks?: number; completed?: number };
-  upcomingGoals?: Array<{ id: string; title: string }>;
+  upcomingGoals?: Array<{ id: string; title: string; subject?: string; startTime?: string }>;
   messages?: number;
   questions?: number;
   quizzes?: number;

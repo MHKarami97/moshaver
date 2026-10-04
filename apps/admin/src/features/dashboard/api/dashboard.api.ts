@@ -3,6 +3,7 @@ import type {
   AttentionReason,
   AttentionStudent,
   RoleDashboardData,
+  DashboardWorkQueue,
 } from "../model/dashboard.types";
 
 type AttentionSignal = {
@@ -67,4 +68,9 @@ export function getAdminAttention(limit = 50) {
   return api
     .get<V2AttentionStudent[]>(`/attention?limit=${safeLimit}`)
     .then((students) => students.map(normalizeAttentionStudent));
+}
+
+export function getDashboardWorkQueue(limit = 20) {
+  const safeLimit = Math.min(100, Math.max(1, limit));
+  return api.get<DashboardWorkQueue>(`/dashboard/attention?limit=${safeLimit}`);
 }

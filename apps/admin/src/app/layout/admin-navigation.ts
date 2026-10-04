@@ -120,6 +120,12 @@ export const adminNavigation = [
     section: "ارتباط",
     items: [
       {
+        path: "communication",
+        title: "مرکز ارتباط",
+        description: "نمای عملیاتی گفتگوها، اعلان‌ها، پایش زنده و کارهای نیازمند پاسخ",
+        icon: MessageSquare,
+      },
+      {
         path: "communication/live",
         title: "فعالیت زنده",
         description: "پایش وضعیت و فعالیت جاری همه دانش‌آموزان",
@@ -144,6 +150,12 @@ export const adminNavigation = [
   {
     section: "مدیریت",
     items: [
+      {
+        path: "management",
+        title: "مرکز مدیریت",
+        description: "نمای عملیاتی افراد، سازمان‌ها، دسترسی‌ها و کارهای باز",
+        icon: UsersRound,
+      },
       {
         path: "students",
         title: "دانش‌آموزان",
@@ -483,7 +495,9 @@ const englishNavigationCopy: Record<string, string> = {
   "فعالیت زنده": "Live activity",
   گفتگو: "Conversations",
   "مرکز اعلان‌ها": "Notifications",
+  "مرکز ارتباط": "Communication hub",
   دانش‌آموزان: "Students",
+  "مرکز مدیریت": "Management hub",
   "درخواست‌های مجوز": "Permission requests",
   "نیازمند توجه": "Needs attention",
   "خانه خانواده": "Family hub",
@@ -575,7 +589,11 @@ const englishNavigationDescriptions: Record<string, string> = {
   "پیام‌های مستقیم و گروهی، حضور و پیگیری گفتگوها":
     "Direct and group messages, presence, and conversation follow-up",
   "ارسال و پیگیری اعلان‌های دانش‌آموزان": "Send and track student notifications",
+  "نمای عملیاتی گفتگوها، اعلان‌ها، پایش زنده و کارهای نیازمند پاسخ":
+    "Operational view of conversations, notifications, live monitoring, and work needing a response",
   "مدیریت حساب، وضعیت و دسترسی دانش‌آموزان": "Manage student accounts, status, and access",
+  "نمای عملیاتی افراد، سازمان‌ها، دسترسی‌ها و کارهای باز":
+    "Operational view of people, organizations, access, and open work",
   "بررسی خروج و مجوزهای دانش‌آموزان سازمان":
     "Review organization student leave and permission requests",
   "صف یکپارچه کارهای عملیاتی، پیگیری‌ها و خطاهای فعال":

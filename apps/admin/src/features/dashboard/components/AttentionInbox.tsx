@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
-import { cn, fa } from "../../../shared/lib/utils";
+import { cn } from "../../../shared/lib/utils";
 import { useLocale } from "../../../shared/ui/locale";
 import { dashboardCopy } from "../model/dashboard-copy";
 import type { AttentionSeverity, AttentionStudent } from "../model/dashboard.types";
@@ -24,6 +24,18 @@ const reasonIcons = {
   weak_exam_performance: CircleGauge,
   no_recent_activity: Clock3,
 } as const;
+
+function reasonLabel(code: string, fallback: string, copy: Record<string, string>) {
+  return (
+    {
+      overdue_reviews: copy.overdueReviews,
+      weak_exam_performance: copy.weakExamPerformance,
+      no_recent_activity: copy.noRecentActivity,
+    }[code] ||
+    fallback ||
+    copy.attentionSignal
+  );
+}
 
 function severityTone(severity: AttentionSeverity) {
   return severity === "red" ? "red" : severity === "yellow" ? "amber" : "green";
@@ -41,7 +53,7 @@ export function AttentionInbox({
   onRetry: () => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const { formatDateTime, language } = useLocale();
+  const { formatDateTime, language, profile } = useLocale();
   const copy = dashboardCopy[language];
 
   const filtered = useMemo(
@@ -59,7 +71,7 @@ export function AttentionInbox({
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-slate-900 dark:text-white">{copy.attentionTitle}</h3>
             <Badge tone={critical ? "red" : warning ? "amber" : "green"}>
-              {fa(students.length)}
+              {students.length.toLocaleString(profile.locale)}
             </Badge>
           </div>
           <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
@@ -76,10 +88,7 @@ export function AttentionInbox({
               value: "all",
               label: (
                 <>
-                  {copy.all}{" "}
-                  {language === "fa"
-                    ? fa(students.length)
-                    : students.length.toLocaleString("en-US")}
+                  {copy.all} {students.length.toLocaleString(profile.locale)}
                 </>
               ),
             },
@@ -87,8 +96,7 @@ export function AttentionInbox({
               value: "red",
               label: (
                 <>
-                  {copy.critical}{" "}
-                  {language === "fa" ? fa(critical) : critical.toLocaleString("en-US")}
+                  {copy.critical} {critical.toLocaleString(profile.locale)}
                 </>
               ),
             },
@@ -96,7 +104,7 @@ export function AttentionInbox({
               value: "yellow",
               label: (
                 <>
-                  {copy.warning} {language === "fa" ? fa(warning) : warning.toLocaleString("en-US")}
+                  {copy.warning} {warning.toLocaleString(profile.locale)}
                 </>
               ),
             },
@@ -162,7 +170,7 @@ export function AttentionInbox({
                       {online
                         ? copy.online
                         : student.lastSeenAt
-                          ? `آخرین فعالیت ${formatDateTime(student.lastSeenAt)}`
+                          ? copy.lastActivity.replace("{date}", formatDateTime(student.lastSeenAt))
                           : copy.noActivity}
                     </span>
                   </div>
@@ -178,9 +186,9 @@ export function AttentionInbox({
                         className="inline-flex items-center gap-1.5 rounded-md bg-[rgb(var(--surface-muted))] px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300"
                       >
                         <Icon size={13} />
-                        {reason.label}
+                        {reasonLabel(reason.code, reason.label, copy)}
                         <b className="tabular-nums">
-                          {fa(reason.value)}
+                          {reason.value.toLocaleString(profile.locale)}
                           {reason.code === "weak_exam_performance" ? "%" : ""}
                         </b>
                       </span>
@@ -189,10 +197,7 @@ export function AttentionInbox({
                   {student.remainingTasks > 0 ? (
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300">
                       <Clock3 size={13} />
-                      {language === "fa"
-                        ? fa(student.remainingTasks)
-                        : student.remainingTasks.toLocaleString("en-US")}{" "}
-                      {copy.remainingTasks}
+                      {student.remainingTasks.toLocaleString(profile.locale)} {copy.remainingTasks}
                     </span>
                   ) : null}
                 </div>
@@ -203,7 +208,10 @@ export function AttentionInbox({
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white transition hover:brightness-90"
                   >
                     {copy.followUp}
-                    <ChevronLeft size={14} />
+                    <ChevronLeft
+                      size={14}
+                      className="rtl:group-hover:-translate-x-0.5 ltr:rotate-180 ltr:group-hover:translate-x-0.5"
+                    />
                   </Link>
                   <Link
                     to={`/admin/students?studentId=${encodeURIComponent(student.id)}`}

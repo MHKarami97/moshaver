@@ -72,6 +72,24 @@ describe("role dashboard workflows", () => {
     expect(actions.some((item) => item.to === "/admin/questions")).toBe(false);
   });
 
+  it("surfaces additional permitted operational tools without exposing unavailable ones", () => {
+    const actions = quickActionsForRole(
+      "ORGANIZATION_ADMIN",
+      ["students.read", "permission_requests.read", "recovery_requests.read", "student.live.read"],
+      "en",
+    );
+
+    expect(actions.map((item) => item.to)).toEqual(
+      expect.arrayContaining([
+        "/admin/permission-requests",
+        "/admin/follow-up",
+        "/admin/communication/live",
+      ]),
+    );
+    expect(actions.map((item) => item.to)).not.toContain("/admin/database");
+    expect(actions.every((item) => item.label && item.description)).toBe(true);
+  });
+
   it("gives every displayed handoff a plain-language outcome", () => {
     const actions = quickActionsForRole("ADVISOR", [
       "students.read",

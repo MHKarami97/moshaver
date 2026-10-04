@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { normalizeAttentionStudent } from "./dashboard.api";
+import { getDashboardWorkQueue, normalizeAttentionStudent } from "./dashboard.api";
+import { api } from "../../../shared/api/api";
+import { beforeEach, vi } from "vitest";
 
 describe("normalizeAttentionStudent", () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it("uses the server-authorized operational queue endpoint", async () => {
+    const get = vi.spyOn(api, "get").mockResolvedValue({ generatedAt: "", items: [] } as never);
+
+    await getDashboardWorkQueue(500);
+
+    expect(get).toHaveBeenCalledWith("/dashboard/attention?limit=100");
+  });
+
   it("maps the nested API v2 attention contract into the dashboard view model", () => {
     const student = normalizeAttentionStudent({
       id: "student-a",

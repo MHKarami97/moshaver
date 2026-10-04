@@ -9,13 +9,13 @@ export function DashboardPage() {
       data={dashboard.summary.data}
       loading={dashboard.summary.isLoading}
       error={dashboard.summary.isError}
-      attention={dashboard.attentionStudents}
-      attentionLoading={dashboard.attention.isLoading}
-      attentionError={dashboard.attention.isError}
+      workItems={dashboard.workItems}
+      workLoading={dashboard.workQueue.isLoading}
+      workError={dashboard.workQueue.isError}
       refreshing={dashboard.refreshing}
       onRefresh={() => void dashboard.refresh()}
       onRetry={() => void dashboard.summary.refetch()}
-      onRetryAttention={() => void dashboard.attention.refetch()}
+      onRetryWork={() => void dashboard.workQueue.refetch()}
     />
   );
 }

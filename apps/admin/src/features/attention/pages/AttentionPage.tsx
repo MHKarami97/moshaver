@@ -15,7 +15,12 @@ import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { useLocale } from "../../../shared/ui/locale";
 import { getAttentionQueue, type AttentionItem } from "../api/attention.api";
 import { useMemo, useState } from "react";
-import { attentionCopy, attentionPriorityLabel, attentionTypeLabel } from "../attention-locale";
+import {
+  attentionCopy,
+  attentionPriorityLabel,
+  attentionSystemDescription,
+  attentionTypeLabel,
+} from "../attention-locale";
 
 const priorityLabels = { urgent: "فوری", high: "بالا", normal: "عادی" } as const;
 const priorityTones = { urgent: "red", high: "amber", normal: "blue" } as const;
@@ -116,12 +121,14 @@ export function AttentionCard({ item }: { item: AttentionItem }) {
             <AlertTriangle size={13} />
             {attentionPriorityLabel(item.priority, language)}
           </Badge>
-          <h2 className="mt-2 font-black text-ink">{item.title}</h2>
+          <h2 className="mt-2 font-black text-ink">{attentionTypeLabel(item.type, language)}</h2>
         </div>
         <Badge tone="neutral">{attentionTypeLabel(item.type, language)}</Badge>
       </div>
       <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        {item.description}
+        {item.descriptionKind === "user"
+          ? item.description
+          : attentionSystemDescription(item.type, language)}
       </p>
       <dl className="mt-4 grid gap-2 border-t border-[rgb(var(--border-subtle))] pt-3 text-xs text-slate-500">
         <div className="flex items-center gap-2">

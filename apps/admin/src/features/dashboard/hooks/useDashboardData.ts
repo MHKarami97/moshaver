@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../auth";
-import { getAdminAttention, getAdminDashboard } from "../api/dashboard.api";
+import { getAdminDashboard, getDashboardWorkQueue } from "../api/dashboard.api";
 
 export function useDashboardData() {
   const auth = useAuth();
@@ -12,24 +12,20 @@ export function useDashboardData() {
     refetchInterval: 30_000,
     staleTime: 10_000,
   });
-  const attention = useQuery({
-    queryKey: ["admin-attention", context, organization],
-    queryFn: () => getAdminAttention(50),
-    enabled: auth.can("student.live.read"),
+  const workQueue = useQuery({
+    queryKey: ["dashboard-work-queue", context, organization],
+    queryFn: () => getDashboardWorkQueue(20),
     refetchInterval: 45_000,
     staleTime: 15_000,
   });
   const refresh = async () => {
-    await Promise.all([
-      summary.refetch(),
-      ...(auth.can("student.live.read") ? [attention.refetch()] : []),
-    ]);
+    await Promise.all([summary.refetch(), workQueue.refetch()]);
   };
   return {
     summary,
-    attention,
-    attentionStudents: attention.data ?? [],
+    workQueue,
+    workItems: workQueue.data?.items ?? [],
     refresh,
-    refreshing: summary.isFetching || attention.isFetching,
+    refreshing: summary.isFetching || workQueue.isFetching,
   };
 }
