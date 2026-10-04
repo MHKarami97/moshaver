@@ -51,6 +51,8 @@ type AuthCopy = {
   demoTitle: string;
   demoInstruction: string;
   demoInstructionSuffix: string;
+  demoPasswordLabel: string;
+  demoPasswordNotice: string;
   demoRoles: Record<DemoRole, { label: string; description: string }>;
   sessionChecking: string;
   nonAdminAccount: string;
@@ -131,6 +133,8 @@ const copy: Record<AuthLanguage, AuthCopy> = {
     demoTitle: "ورود سریع نقش‌های آزمایشی",
     demoInstruction: "ابتدا در Backend v2 دستور",
     demoInstructionSuffix: "را روی پایگاه توسعه اجرا کنید.",
+    demoPasswordLabel: "رمز مشترک همه حساب‌های آزمایشی",
+    demoPasswordNotice: "فقط برای پایگاه توسعه؛ هرگز در محیط واقعی استفاده نکنید.",
     demoRoles: {
       guardian: { label: "سرپرست", description: "مشاهده فرزند، برنامه و گزارش" },
       advisor: { label: "مشاور", description: "برنامه‌ریزی و پیگیری دانش‌آموز" },
@@ -210,6 +214,8 @@ const copy: Record<AuthLanguage, AuthCopy> = {
     demoTitle: "Quick demo role sign in",
     demoInstruction: "First run",
     demoInstructionSuffix: "in the Backend v2 development database.",
+    demoPasswordLabel: "Shared password for every demo account",
+    demoPasswordNotice: "Development database only; never use this in a real environment.",
     demoRoles: {
       guardian: { label: "Guardian", description: "View child, plan, and reports" },
       advisor: { label: "Advisor", description: "Plan and follow up with students" },
