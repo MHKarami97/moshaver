@@ -24,7 +24,7 @@ import { StudentPicker } from "../../../shared/ui/StudentPicker";
 import { DataTransferWorkspace } from "../../../shared/ui/data-transfer";
 import { DatePicker } from "../../../shared/ui/date-picker";
 import { useLocale } from "../../../shared/ui/locale";
-import { plannerCopy } from "../model/planner-copy";
+import { plannerCopy, plannerFilterLabel } from "../model/planner-copy";
 import { useModal } from "../../../shared/ui/modal";
 import { notify } from "../../../shared/ui/notifications";
 import { Badge, Button, Card, EmptyState } from "../../../shared/ui/ui";
@@ -60,7 +60,6 @@ import {
   addMinutes,
   comparePlanTasks,
   errorMessage,
-  filterLabel,
   filterPlans,
   minutesBetween,
   optimisticMove,
@@ -280,7 +279,11 @@ export function PlannerPage() {
       }),
     onSuccess: (result) =>
       notify(
-        `${fa(result.copied)} برنامه برای ${fa(result.targetCount)} دانش‌آموز کپی شد${result.skipped ? `؛ ${fa(result.skipped)} مورد موجود بدون تغییر ماند` : ""}.`,
+        copy.shareSucceeded(
+          result.copied.toLocaleString(profile.locale),
+          result.targetCount.toLocaleString(profile.locale),
+          result.skipped ? result.skipped.toLocaleString(profile.locale) : "",
+        ),
         "success",
       ),
   });
@@ -539,7 +542,7 @@ export function PlannerPage() {
             </Button>
           </div>
           <Button className="h-9 px-3" variant="soft" onClick={() => setDate(todayIso())}>
-            امروز
+            {copy.today}
           </Button>
           <ViewSwitch value={mode} onChange={setMode} />
           <label className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-muted))] px-3">
@@ -585,7 +588,7 @@ export function PlannerPage() {
                 void modal
                   .confirm({
                     title: published ? copy.publishRangeConfirm : copy.unpublishRangeConfirm,
-                    description: `${range.from} تا ${range.to}`,
+                    description: `${range.from} ${copy.dateRangeSeparator} ${range.to}`,
                   })
                   .then((ok) => ok && publishRange.mutate(published));
               }}
@@ -683,7 +686,7 @@ export function PlannerPage() {
               className="flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs text-brand"
               onClick={() => setTaskFilter("all")}
             >
-              {filterLabel(filter)}
+              {plannerFilterLabel(filter, language)}
               <X size={12} />
             </button>
           </div>
@@ -695,27 +698,29 @@ export function PlannerPage() {
           onClick={() => setSummaryOpen((v) => !v)}
         >
           <ChevronsUpDown size={14} />
-          خلاصه بازه
+          {copy.rangeSummary}
         </button>
         {summaryOpen ? (
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <span>
-              <b>{fa(visiblePlans.length)}</b> روز
+              <b>{visiblePlans.length.toLocaleString(profile.locale)}</b>{" "}
+              {copy.daysCount("").trim()}
             </span>
             <span>
-              <b>{fa(totals.tasks)}</b> فعالیت
+              <b>{totals.tasks.toLocaleString(profile.locale)}</b> {copy.activitiesCount("").trim()}
             </span>
             <span>
-              <b>{fa(Math.round((totals.minutes / 60) * 10) / 10)}</b> ساعت
+              <b>{(Math.round((totals.minutes / 60) * 10) / 10).toLocaleString(profile.locale)}</b>{" "}
+              {copy.hoursCount("").trim()}
             </span>
             <span>
-              <b>{fa(totals.tests)}</b> تست
+              <b>{totals.tests.toLocaleString(profile.locale)}</b> {copy.testsCount("").trim()}
             </span>
           </div>
         ) : null}
         {warnings.length && warningsOpen ? (
           <button
-            className="mr-auto flex max-w-full items-center gap-2 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800"
+            className="ms-auto flex max-w-full items-center gap-2 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800"
             onClick={() => setWarningsOpen(false)}
           >
             <AlertTriangle size={14} />
@@ -730,9 +735,9 @@ export function PlannerPage() {
           className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800"
           role="alert"
         >
-          <span>برنامه‌های این بازه دریافت نشدند؛ داده قبلی، در صورت وجود، حفظ شده است.</span>
+          <span>{copy.plansLoadFailed}</span>
           <Button className="h-8" variant="danger" onClick={() => void plans.refetch()}>
-            تلاش دوباره
+            {copy.retry}
           </Button>
         </div>
       ) : null}
@@ -958,7 +963,7 @@ function PlanShareHistory({ onClose }: { onClose: () => void }) {
           </article>
         );
       })}
-      <div className="pt-2 text-left">
+      <div className="pt-2 text-start">
         <Button variant="ghost" onClick={onClose}>
           {copy.close}
         </Button>

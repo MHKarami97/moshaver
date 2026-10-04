@@ -4,6 +4,7 @@ import type { Student } from "../../../shared/types/domain";
 import { notify } from "../../../shared/ui/notifications";
 import { Button, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { StudentAllocationControl } from "../../../shared/ui/student-allocation-control";
+import { useLocale } from "../../../shared/ui/locale";
 import { listClasses } from "../../education/api/classes.api";
 import {
   assignExam,
@@ -29,6 +30,79 @@ export function ExamAssignmentManager({
   };
   students: Student[];
 }) {
+  const { language, profile } = useLocale();
+  const isEnglish = language === "en";
+  const text = isEnglish
+    ? {
+        loading: "Loading assignments…",
+        failed: "Could not load assignments.",
+        retry: "Try again",
+        assigned: "Assigned students",
+        remove: "Remove",
+        noAssigned: "No students have been assigned yet.",
+        classes: "Class audience",
+        classesHint: "Active membership in these classes grants access to the exam.",
+        students: "students",
+        saveClasses: "Save classes",
+        addAudience: "Add exam audience",
+        assign: "Assign",
+        rules: "Target group rules",
+        rulesHint: "Rules are dynamic; every selected condition applies together.",
+        saveRules: "Save rules",
+        grade: "Grade",
+        educationType: "Education type",
+        track: "Track",
+        learnerProfile: "Learner profile",
+        independentType: "Independent learner type",
+        school: "School",
+        independent: "Independent",
+        adult: "Adult",
+        gapYear: "Gap year",
+        homeschool: "Homeschool",
+        other: "Other",
+        assignedSaved: "Exam assignments saved.",
+        removed: "Assignment removed.",
+        classSaved: "Exam class audiences saved.",
+        rulesSaved: "Exam target-group rules saved.",
+        assignFailed: "Could not save assignments.",
+        removeFailed: "Could not remove the assignment.",
+        classFailed: "Could not save class audiences.",
+      }
+    : {
+        loading: "در حال دریافت تخصیص‌ها…",
+        failed: "دریافت تخصیص‌ها ناموفق بود.",
+        retry: "تلاش دوباره",
+        assigned: "دانش‌آموزان تخصیص‌یافته",
+        remove: "حذف",
+        noAssigned: "هنوز دانش‌آموزی تخصیص نیافته است.",
+        classes: "مخاطبان کلاسی",
+        classesHint: "عضویت فعال در این کلاس‌ها دسترسی به آزمون می‌دهد.",
+        students: "دانش‌آموز",
+        saveClasses: "ذخیره کلاس‌ها",
+        addAudience: "افزودن مخاطبان آزمون",
+        assign: "تخصیص",
+        rules: "قواعد گروه هدف",
+        rulesHint: "قواعد پویا هستند؛ همه شروط انتخاب‌شده هم‌زمان اعمال می‌شوند.",
+        saveRules: "ذخیره قواعد",
+        grade: "پایه",
+        educationType: "نوع آموزش",
+        track: "رشته",
+        learnerProfile: "نوع یادگیرنده",
+        independentType: "نوع یادگیرنده مستقل",
+        school: "مدرسه‌ای",
+        independent: "مستقل",
+        adult: "بزرگسال",
+        gapYear: "سال فاصله",
+        homeschool: "آموزش خانگی",
+        other: "سایر",
+        assignedSaved: "تخصیص آزمون ثبت شد.",
+        removed: "تخصیص حذف شد.",
+        classSaved: "گروه‌های کلاسی آزمون ذخیره شد.",
+        rulesSaved: "قواعد گروه هدف آزمون ذخیره شد.",
+        assignFailed: "ثبت تخصیص ناموفق بود.",
+        removeFailed: "حذف تخصیص ناموفق بود.",
+        classFailed: "ذخیره گروه‌های کلاسی ناموفق بود.",
+      };
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string[]>([]);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
@@ -72,48 +146,45 @@ export function ExamAssignmentManager({
   const add = useMutation({
     mutationFn: () => assignExam(examId, selected),
     onSuccess: () => {
-      notify("تخصیص آزمون ثبت شد.");
+      notify(text.assignedSaved);
       setSelected([]);
       refresh();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ثبت تخصیص ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : text.assignFailed, "error"),
   });
   const remove = useMutation({
     mutationFn: (studentId: string) => unassignExam(examId, studentId),
     onSuccess: () => {
-      notify("تخصیص حذف شد.");
+      notify(text.removed);
       refresh();
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "حذف تخصیص ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : text.removeFailed, "error"),
   });
   const saveClasses = useMutation({
     mutationFn: () => setExamClassAssignments(examId, selectedClassIds),
     onSuccess: () => {
-      notify("گروه‌های کلاسی آزمون ذخیره شد.");
+      notify(text.classSaved);
       void queryClient.invalidateQueries({ queryKey: ["exam-class-assignments", examId] });
       void queryClient.invalidateQueries({ queryKey: ["exams"] });
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره گروه‌های کلاسی ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : text.classFailed, "error"),
   });
   const saveRules = useMutation({
     mutationFn: () => setExamAudienceRules(examId, rules),
     onSuccess: () => {
-      notify("قواعد گروه هدف آزمون ذخیره شد.");
+      notify(text.rulesSaved);
       void queryClient.invalidateQueries({ queryKey: ["exams"] });
     },
   });
 
-  if (assignments.isLoading) return <LoadingState label="در حال دریافت تخصیص ها…" />;
+  if (assignments.isLoading) return <LoadingState label={text.loading} />;
   if (assignments.isError)
     return (
       <EmptyState
-        title="دریافت تخصیص ها ناموفق بود."
+        title={text.failed}
         action={
           <Button variant="soft" onClick={() => void assignments.refetch()}>
-            تلاش دوباره
+            {text.retry}
           </Button>
         }
       />
@@ -123,7 +194,7 @@ export function ExamAssignmentManager({
     <div className="grid gap-5">
       <section>
         <h3 className="font-black">
-          دانش آموزان تخصیص یافته ({(assignments.data || []).length.toLocaleString("fa-IR")})
+          {text.assigned} ({(assignments.data || []).length.toLocaleString(profile.locale)})
         </h3>
         <div className="mt-3 grid gap-2">
           {(assignments.data || []).map((item) => (
@@ -143,13 +214,11 @@ export function ExamAssignmentManager({
                 loading={remove.isPending && remove.variables === item.student.id}
                 onClick={() => remove.mutate(item.student.id)}
               >
-                حذف
+                {text.remove}
               </Button>
             </div>
           ))}
-          {!assignments.data?.length ? (
-            <EmptyState title="هنوز دانش آموزی تخصیص نیافته است." />
-          ) : null}
+          {!assignments.data?.length ? <EmptyState title={text.noAssigned} /> : null}
         </div>
       </section>
       <section className="border-t pt-4">
@@ -159,14 +228,14 @@ export function ExamAssignmentManager({
           onChange={setRules}
           onSave={() => saveRules.mutate()}
           saving={saveRules.isPending}
+          text={text}
+          locale={profile.locale}
         />
         {classes.data?.length ? (
           <div className="mb-5 grid gap-2 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
             <div>
-              <h3 className="font-black">مخاطبان کلاسی</h3>
-              <p className="text-xs text-slate-500">
-                عضویت فعال در این کلاس‌ها دسترسی به آزمون می‌دهد.
-              </p>
+              <h3 className="font-black">{text.classes}</h3>
+              <p className="text-xs text-slate-500">{text.classesHint}</p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {classes.data
@@ -191,19 +260,19 @@ export function ExamAssignmentManager({
                     <span>
                       <strong className="block">{item.name}</strong>
                       <small className="text-xs text-slate-500">
-                        {item.enrollmentCount.toLocaleString("fa-IR")} دانش‌آموز
+                        {item.enrollmentCount.toLocaleString(profile.locale)} {text.students}
                       </small>
                     </span>
                   </label>
                 ))}
             </div>
             <Button size="sm" loading={saveClasses.isPending} onClick={() => saveClasses.mutate()}>
-              ذخیره کلاس‌ها
+              {text.saveClasses}
             </Button>
           </div>
         ) : null}
         <StudentAllocationControl
-          label="افزودن مخاطبان آزمون"
+          label={text.addAudience}
           students={candidates}
           selectedIds={selected}
           onChange={setSelected}
@@ -215,7 +284,7 @@ export function ExamAssignmentManager({
           loading={add.isPending}
           onClick={() => add.mutate()}
         >
-          تخصیص {selected.length.toLocaleString("fa-IR")} دانش آموز
+          {text.assign} {selected.length.toLocaleString(profile.locale)} {text.students}
         </Button>
       </section>
     </div>
@@ -228,6 +297,8 @@ function ExamAudienceRulesControl({
   onChange,
   onSave,
   saving,
+  text,
+  locale,
 }: {
   students: Student[];
   value: {
@@ -246,6 +317,8 @@ function ExamAudienceRulesControl({
   }) => void;
   onSave: () => void;
   saving: boolean;
+  text: Record<string, string>;
+  locale: string;
 }) {
   const grades = [
     ...new Set(
@@ -301,35 +374,36 @@ function ExamAudienceRulesControl({
   return (
     <div className="mb-5 grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
       <div>
-        <h3 className="font-black">قواعد گروه هدف</h3>
-        <p className="text-xs text-slate-500">
-          قواعد پویا هستند؛ همه شروط انتخاب‌شده هم‌زمان اعمال می‌شوند.
-        </p>
+        <h3 className="font-black">{text.rules}</h3>
+        <p className="text-xs text-slate-500">{text.rulesHint}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {options(
-          "پایه",
+          text.grade,
           "gradeIds",
           grades,
-          (item) => `پایه ${Number(item).toLocaleString("fa-IR")}`,
+          (item) => `${text.grade} ${Number(item).toLocaleString(locale)}`,
         )}
-        {options("نوع آموزش", "educationTypeIds", types, String)}
-        {options("رشته", "trackIds", tracks, String)}
-        {options("نوع یادگیرنده", "learnerProfiles", ["school", "independent"], (item) =>
-          item === "school" ? "مدرسه‌ای" : "مستقل",
+        {options(text.educationType, "educationTypeIds", types, String)}
+        {options(text.track, "trackIds", tracks, String)}
+        {options(text.learnerProfile, "learnerProfiles", ["school", "independent"], (item) =>
+          item === "school" ? text.school : text.independent,
         )}
         {options(
-          "نوع یادگیرنده مستقل",
+          text.independentType,
           "independentTypes",
           ["adult", "gap_year", "homeschool", "other"],
           (item) =>
-            ({ adult: "بزرگسال", gap_year: "سال فاصله", homeschool: "آموزش خانگی", other: "سایر" })[
-              String(item)
-            ] || String(item),
+            ({
+              adult: text.adult,
+              gap_year: text.gapYear,
+              homeschool: text.homeschool,
+              other: text.other,
+            })[String(item)] || String(item),
         )}
       </div>
       <Button size="sm" loading={saving} onClick={onSave}>
-        ذخیره قواعد
+        {text.saveRules}
       </Button>
     </div>
   );

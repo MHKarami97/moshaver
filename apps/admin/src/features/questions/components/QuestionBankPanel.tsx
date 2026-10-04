@@ -24,8 +24,10 @@ import {
   updateQuestionBankItem,
 } from "../api/question-bank.api";
 import { getQuestionBankExams } from "../api/questions.api";
+import { useQuestionBankCopy } from "../question-bank-copy";
 
 export function QuestionBankPanel() {
+  const copy = useQuestionBankCopy();
   const [query, setQuery] = useState("");
   const modal = useModal();
   const qc = useQueryClient();
@@ -57,8 +59,8 @@ export function QuestionBankPanel() {
   });
   const openEditor = (item?: QuestionBankItem) =>
     modal.open({
-      title: item ? "ویرایش سؤال بانک" : "سؤال جدید در بانک",
-      description: "ویرایش این منبع، نسخه‌های کپی‌شده در آزمون‌ها و آزمونک‌ها را تغییر نمی‌دهد.",
+      title: item ? copy.editTitle : copy.newTitle,
+      description: copy.editDescription,
       size: "xl",
       content: (
         <QuestionBankEditor
@@ -70,12 +72,12 @@ export function QuestionBankPanel() {
         />
       ),
     });
-  if (bank.isLoading) return <LoadingState label="در حال دریافت بانک سؤال…" />;
-  if (bank.isError) return <EmptyState title="دریافت بانک سؤال ناموفق بود." />;
+  if (bank.isLoading) return <LoadingState label={copy.loading} />;
+  if (bank.isError) return <EmptyState title={copy.failed} />;
   const rows = (bank.data || []).filter((item) =>
     `${item.text} ${item.subject} ${item.topic} ${item.tags.join(" ")}`
-      .toLocaleLowerCase("fa")
-      .includes(query.toLocaleLowerCase("fa")),
+      .toLocaleLowerCase(copy.locale)
+      .includes(query.toLocaleLowerCase(copy.locale)),
   );
   return (
     <div className="grid gap-4">
@@ -95,31 +97,28 @@ export function QuestionBankPanel() {
       <Card className="grid gap-3 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-black">بانک سؤال آزمون</h2>
-            <p className="text-xs text-slate-500">
-              منبع‌های مستقل و قابل‌استفادهٔ مجدد برای ساخت آزمون
-            </p>
+            <h2 className="text-sm font-black">{copy.bank}</h2>
+            <p className="text-xs text-slate-500">{copy.description}</p>
           </div>
-          <Badge tone="blue">{rows.length.toLocaleString("fa-IR")}</Badge>
+          <Badge tone="blue">{rows.length.toLocaleString(copy.locale)}</Badge>
           <Button size="sm" onClick={() => openEditor()}>
             <Plus size={15} />
-            سؤال جدید
+            {copy.newQuestion}
           </Button>
           <Button
             size="sm"
             variant="soft"
             onClick={() =>
               modal.open({
-                title: "ساخت آزمون از بانک سؤال",
-                description:
-                  "ابتدا پیش‌نمایش را بررسی کنید؛ افزودن سؤال فقط با تأیید صریح انجام می‌شود.",
+                title: copy.buildTitle,
+                description: copy.buildDescription,
                 size: "lg",
                 content: <BankGenerator exams={exams.data || []} onClose={modal.close} />,
               })
             }
           >
             <WandSparkles size={15} />
-            ساخت آزمون
+            {copy.buildExam}
           </Button>
         </div>
         <label className="flex items-center gap-2 rounded-lg border px-3">
@@ -127,7 +126,7 @@ export function QuestionBankPanel() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="جست‌وجو در سؤال، درس، مبحث یا برچسب"
+            placeholder={copy.search}
           />
         </label>
         <div className="grid gap-2">
@@ -139,8 +138,12 @@ export function QuestionBankPanel() {
               <div>
                 <strong className="block text-sm">{item.text}</strong>
                 <span className="mt-1 flex flex-wrap gap-1">
-                  <Badge tone="blue">{item.subject || "بدون درس"}</Badge>
-                  <Badge tone="neutral">{item.difficulty || "medium"}</Badge>
+                  <Badge tone="blue">{item.subject || copy.noSubject}</Badge>
+                  <Badge tone="neutral">
+                    {item.difficulty
+                      ? copy[item.difficulty as "easy" | "medium" | "hard"] || item.difficulty
+                      : copy.medium}
+                  </Badge>
                   {item.tags.slice(0, 2).map((tag) => (
                     <Badge key={tag} tone="neutral">
                       {tag}
@@ -151,7 +154,7 @@ export function QuestionBankPanel() {
               <div className="flex gap-1">
                 <Button size="sm" variant="ghost" onClick={() => openEditor(item)}>
                   <Pencil size={15} />
-                  ویرایش
+                  {copy.edit}
                 </Button>
                 <Button
                   size="sm"
@@ -161,22 +164,22 @@ export function QuestionBankPanel() {
                   onClick={() =>
                     void modal
                       .confirm({
-                        title: "بایگانی سؤال بانک؟",
-                        description: "نسخه‌های اضافه‌شده به آزمون یا آزمونک بدون تغییر می‌مانند.",
+                        title: copy.archiveTitle,
+                        description: copy.archiveDescription,
                         tone: "danger",
-                        confirmLabel: "بایگانی",
+                        confirmLabel: copy.archive,
                         confirmationText: item.text,
                       })
                       .then((ok) => ok && archive.mutate(item.id))
                   }
                 >
                   <Archive size={15} />
-                  بایگانی
+                  {copy.archive}
                 </Button>
               </div>
             </article>
           ))}
-          {!rows.length ? <EmptyState title="سؤال منبعی با این جست‌وجو پیدا نشد." /> : null}
+          {!rows.length ? <EmptyState title={copy.none} /> : null}
         </div>
       </Card>
     </div>
@@ -196,6 +199,7 @@ function QuestionBankEditor({
   onSave: (draft: QuestionBankDraft) => void;
   onCancel: () => void;
 }) {
+  const copy = useQuestionBankCopy();
   const [draft, setDraft] = useState<QuestionBankDraft>({
     organizationId:
       item?.organization?.id || (organizations.length === 1 ? organizations[0].id : ""),
@@ -220,7 +224,8 @@ function QuestionBankEditor({
     !!draft.text.trim() &&
     draft.options.length === 4 &&
     draft.options.every((option) => option.trim()) &&
-    new Set(draft.options.map((option) => option.trim().toLocaleLowerCase("fa"))).size === 4 &&
+    new Set(draft.options.map((option) => option.trim().toLocaleLowerCase(copy.locale))).size ===
+      4 &&
     draft.options.includes(draft.correctAnswer);
   return (
     <div className="grid gap-3">
@@ -229,7 +234,7 @@ function QuestionBankEditor({
         value={draft.organizationId}
         onChange={(e) => set("organizationId", e.target.value)}
       >
-        <option value="">سازمان را انتخاب کنید</option>
+        <option value="">{copy.organization}</option>
         {organizations.map((organization) => (
           <option key={organization.id} value={organization.id}>
             {organization.name}
@@ -240,7 +245,7 @@ function QuestionBankEditor({
         className="min-h-24 rounded-lg border p-3 text-sm"
         value={draft.text}
         onChange={(e) => set("text", e.target.value)}
-        placeholder="متن سؤال"
+        placeholder={copy.question}
       />{" "}
       <div className="grid gap-2 sm:grid-cols-2">
         {draft.options.map((option, index) => (
@@ -249,7 +254,7 @@ function QuestionBankEditor({
               type="radio"
               checked={draft.correctAnswer === option && !!option}
               onChange={() => set("correctAnswer", option)}
-              aria-label={`پاسخ صحیح گزینه ${index + 1}`}
+              aria-label={copy.correctOption(index + 1)}
             />
             <Input
               value={option}
@@ -260,7 +265,7 @@ function QuestionBankEditor({
                 set("options", options);
                 if (wasCorrect) set("correctAnswer", e.target.value);
               }}
-              placeholder={`گزینه ${index + 1}`}
+              placeholder={copy.option(index + 1)}
             />
           </label>
         ))}
@@ -269,36 +274,36 @@ function QuestionBankEditor({
         <Input
           value={draft.subject}
           onChange={(e) => set("subject", e.target.value)}
-          placeholder="درس"
+          placeholder={copy.subject}
         />
         <Input
           value={draft.topic}
           onChange={(e) => set("topic", e.target.value)}
-          placeholder="مبحث"
+          placeholder={copy.topic}
         />
         <select
           className="h-10 rounded-lg border px-3 text-sm"
           value={draft.difficulty}
           onChange={(e) => set("difficulty", e.target.value)}
         >
-          <option value="easy">آسان</option>
-          <option value="medium">متوسط</option>
-          <option value="hard">سخت</option>
+          <option value="easy">{copy.easy}</option>
+          <option value="medium">{copy.medium}</option>
+          <option value="hard">{copy.hard}</option>
         </select>
         <Input
           value={draft.grade}
           onChange={(e) => set("grade", e.target.value)}
-          placeholder="پایه"
+          placeholder={copy.grade}
         />
         <Input
           value={draft.chapter}
           onChange={(e) => set("chapter", e.target.value)}
-          placeholder="فصل"
+          placeholder={copy.chapter}
         />
         <Input
           value={draft.lesson}
           onChange={(e) => set("lesson", e.target.value)}
-          placeholder="درس‌نامه"
+          placeholder={copy.lesson}
         />
       </div>
       <Input
@@ -312,21 +317,21 @@ function QuestionBankEditor({
               .filter(Boolean),
           )
         }
-        placeholder="برچسب‌ها، با ویرگول جدا کنید"
+        placeholder={copy.tags}
       />
       <textarea
         className="min-h-16 rounded-lg border p-3 text-sm"
         value={draft.explanation}
         onChange={(e) => set("explanation", e.target.value)}
-        placeholder="توضیح پاسخ (اختیاری)"
+        placeholder={copy.explanation}
       />
       <div className="flex gap-2">
         <Button loading={saving} disabled={!valid} onClick={() => onSave(draft)}>
           <Save size={15} />
-          ذخیره سؤال
+          {copy.save}
         </Button>
         <Button variant="ghost" onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
       </div>
     </div>
@@ -340,6 +345,7 @@ function BankGenerator({
   exams: Array<{ id: string; title: string }>;
   onClose: () => void;
 }) {
+  const copy = useQuestionBankCopy();
   const [examId, setExamId] = useState("");
   const [easy, setEasy] = useState(0);
   const [medium, setMedium] = useState(0);
@@ -352,17 +358,14 @@ function BankGenerator({
     onSuccess: (result) => {
       if (result.preview) {
         setPreview(result.selected || []);
-        if (!result.selected?.length) notify("سؤال منطبق با ترکیب انتخاب‌شده پیدا نشد.", "warning");
+        if (!result.selected?.length) notify(copy.noMatches, "warning");
       } else {
-        notify(
-          `${(result.created || 0).toLocaleString("fa-IR")} سؤال به آزمون افزوده شد.${result.skipped ? ` ${result.skipped.toLocaleString("fa-IR")} سؤال تکراری رد شد.` : ""}`,
-        );
+        notify(copy.added(result.created || 0, result.skipped || 0, copy.locale));
         setPreview([]);
         onClose();
       }
     },
-    onError: (error) =>
-      notify(error instanceof Error ? error.message : "ساخت آزمون از بانک ناموفق بود.", "error"),
+    onError: (error) => notify(error instanceof Error ? error.message : copy.failedBuild, "error"),
   });
   const total = easy + medium + hard;
   return (
@@ -372,7 +375,7 @@ function BankGenerator({
         value={examId}
         onChange={(event) => setExamId(event.target.value)}
       >
-        <option value="">آزمون هدف را انتخاب کنید</option>
+        <option value="">{copy.selectExam}</option>
         {exams.map((exam) => (
           <option key={exam.id} value={exam.id}>
             {exam.title}
@@ -381,7 +384,7 @@ function BankGenerator({
       </select>
       <div className="grid grid-cols-3 gap-2">
         <label className="grid gap-1 text-xs">
-          آسان
+          {copy.easy}
           <Input
             type="number"
             min={0}
@@ -390,7 +393,7 @@ function BankGenerator({
           />
         </label>
         <label className="grid gap-1 text-xs">
-          متوسط
+          {copy.medium}
           <Input
             type="number"
             min={0}
@@ -399,7 +402,7 @@ function BankGenerator({
           />
         </label>
         <label className="grid gap-1 text-xs">
-          سخت
+          {copy.hard}
           <Input
             type="number"
             min={0}
@@ -424,15 +427,15 @@ function BankGenerator({
           disabled={!examId || total < 1}
           onClick={() => request.mutate(false)}
         >
-          پیش‌نمایش {total.toLocaleString("fa-IR")} سؤال
+          {copy.preview(total, copy.locale)}
         </Button>
         {preview.length ? (
           <Button variant="soft" loading={request.isPending} onClick={() => request.mutate(true)}>
-            تأیید و افزودن
+            {copy.confirmAdd}
           </Button>
         ) : null}
         <Button variant="ghost" onClick={onClose}>
-          انصراف
+          {copy.cancel}
         </Button>
       </div>
     </div>

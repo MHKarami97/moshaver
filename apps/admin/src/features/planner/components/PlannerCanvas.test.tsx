@@ -17,7 +17,9 @@ const plan: Plan = {
   id: "monday-plan",
   planDate: "2026-09-28",
   published: false,
-  tasks: [{ id: "task-1", type: "study", title: "فیزیک", start: "09:00", end: "10:30", duration: 90 }],
+  tasks: [
+    { id: "task-1", type: "study", title: "فیزیک", start: "09:00", end: "10:30", duration: 90 },
+  ],
 };
 
 function canvas(
@@ -49,13 +51,18 @@ function canvas(
 }
 
 describe("PlannerCanvas rendered drag scheduling", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    localStorage.removeItem("moshaver-admin-location");
+  });
   it("moves a rendered Day task to a time band and preserves duration", () => {
     const onMoveTask = vi.fn();
     const view = canvas("day", onMoveTask);
     const transfer = dataTransfer();
     fireEvent.dragStart(view.getByText("فیزیک").closest("button")!, { dataTransfer: transfer });
-    const target = view.container.querySelector('[data-planner-drop-date="2026-09-28"][data-planner-drop-time="11:00"]');
+    const target = view.container.querySelector(
+      '[data-planner-drop-date="2026-09-28"][data-planner-drop-time="11:00"]',
+    );
     expect(target).not.toBeNull();
     fireEvent.drop(target!, { dataTransfer: transfer });
     expect(onMoveTask).toHaveBeenCalledWith("task-1", "2026-09-28", "11:00", "12:30");
@@ -68,7 +75,12 @@ describe("PlannerCanvas rendered drag scheduling", () => {
     fireEvent.dragStart(view.getByText("فیزیک").closest("button")!, { dataTransfer: transfer });
     const targets = [...view.container.querySelectorAll('[data-planner-drop-time="14:00"]')];
     expect(targets).toHaveLength(7);
-    fireEvent.drop(view.container.querySelector('[data-planner-drop-date="2026-09-30"][data-planner-drop-time="14:00"]')!, { dataTransfer: transfer });
+    fireEvent.drop(
+      view.container.querySelector(
+        '[data-planner-drop-date="2026-09-30"][data-planner-drop-time="14:00"]',
+      )!,
+      { dataTransfer: transfer },
+    );
     expect(onMoveTask).toHaveBeenCalledWith("task-1", "2026-09-30", "14:00", "15:30");
   });
 
@@ -83,7 +95,11 @@ describe("PlannerCanvas rendered drag scheduling", () => {
   it("creates an activity at the clicked shared-timeline time band", () => {
     const onQuickAdd = vi.fn();
     const view = canvas("week", vi.fn(), { onQuickAdd });
-    fireEvent.click(view.container.querySelector('[data-planner-drop-date="2026-09-30"][data-planner-drop-time="14:00"]')!);
+    fireEvent.click(
+      view.container.querySelector(
+        '[data-planner-drop-date="2026-09-30"][data-planner-drop-time="14:00"]',
+      )!,
+    );
     expect(onQuickAdd).toHaveBeenCalledWith("2026-09-30", "14:00");
     expect(view.getByLabelText("خط‌کش زمان مشترک")).toBeTruthy();
   });
@@ -98,20 +114,40 @@ describe("PlannerCanvas rendered drag scheduling", () => {
   it("renders Saturday as the first week column beside the right-side ruler", () => {
     const view = canvas("week");
     const ruler = view.getByLabelText("خط‌کش زمان مشترک");
-    expect(ruler.previousElementSibling?.querySelector('[data-planner-drop-date="2026-09-28"]')).toBeTruthy();
+    expect(
+      ruler.previousElementSibling?.querySelector('[data-planner-drop-date="2026-09-28"]'),
+    ).toBeTruthy();
+  });
+
+  it("moves the shared ruler to the LTR start edge while preserving the week order", () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    const view = canvas("week");
+    const ruler = view.getByLabelText("Shared time ruler");
+    expect(
+      ruler.parentElement?.children[1]?.querySelector('[data-planner-drop-date="2026-10-04"]'),
+    ).toBeTruthy();
+    expect(view.container.querySelector('[dir="ltr"] .border-e')).toBeTruthy();
   });
 
   it("uses compact and detailed task presentations based on duration", () => {
     const view = canvas("day", vi.fn(), {
-      plans: [{
-        ...plan,
-        tasks: [
-          { id: "short", type: "study", title: "مرور کوتاه", start: "08:00", end: "08:30" },
-          { id: "long", type: "study", title: "مطالعه عمیق", start: "09:00", end: "13:00" },
-        ],
-      }],
+      plans: [
+        {
+          ...plan,
+          tasks: [
+            { id: "short", type: "study", title: "مرور کوتاه", start: "08:00", end: "08:30" },
+            { id: "long", type: "study", title: "مطالعه عمیق", start: "09:00", end: "13:00" },
+          ],
+        },
+      ],
     });
-    expect(view.container.querySelector('[data-planner-task-id="short"]')).toHaveAttribute("data-task-presentation", "compact");
-    expect(view.container.querySelector('[data-planner-task-id="long"]')).toHaveAttribute("data-task-presentation", "detail");
+    expect(view.container.querySelector('[data-planner-task-id="short"]')).toHaveAttribute(
+      "data-task-presentation",
+      "compact",
+    );
+    expect(view.container.querySelector('[data-planner-task-id="long"]')).toHaveAttribute(
+      "data-task-presentation",
+      "detail",
+    );
   });
 });

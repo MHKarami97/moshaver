@@ -1,5 +1,7 @@
 import { Activity, BarChart3, BookOpenCheck, CalendarDays, RefreshCw } from "lucide-react";
 import { Button } from "../../../shared/ui/ui";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
+import { studentCopy } from "../model/student-locale";
 
 const icons = [BookOpenCheck, Activity, CalendarDays, BarChart3];
 
@@ -18,22 +20,25 @@ export function StudentInsights({
   values: InsightValue[];
   onRetry?: () => void;
 }) {
+  const language = useOptionalAdminLanguage() ?? "fa";
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
   const hasError = values.some((item) => item.error);
   return (
     <section className="grid gap-3" aria-labelledby="student-activity-heading">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="student-activity-heading" className="text-sm font-black text-ink">
-            فعالیت و داده‌های آموزشی
+            {copy.studentActivityHeading}
           </h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            این داده‌ها فقط هنگام باز شدن این بخش دریافت می‌شوند.
+            {copy.studentActivityDescription}
           </p>
         </div>
         {hasError && onRetry ? (
           <Button variant="ghost" className="h-8 px-2.5 text-xs" onClick={onRetry}>
             <RefreshCw size={14} />
-            تلاش دوباره
+            {copy.retry}
           </Button>
         ) : null}
       </div>
@@ -56,15 +61,15 @@ export function StudentInsights({
               {item.loading ? (
                 <div
                   className="mt-3 h-7 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-800"
-                  aria-label="در حال دریافت"
+                  aria-label={copy.loading}
                 />
               ) : item.error ? (
                 <strong className="mt-2 block text-base text-rose-700 dark:text-rose-300">
-                  دریافت ناموفق
+                  {copy.loadFailed}
                 </strong>
               ) : (
                 <strong className="mt-2 block text-2xl tracking-tight text-ink">
-                  {item.value.toLocaleString("fa-IR")}
+                  {item.value.toLocaleString(locale)}
                 </strong>
               )}
               {item.hint ? (

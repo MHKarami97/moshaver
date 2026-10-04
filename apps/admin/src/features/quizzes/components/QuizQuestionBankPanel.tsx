@@ -134,8 +134,7 @@ export function QuizQuestionBankPanel({
   const openEditor = (item?: QuestionBankItem) =>
     modal.open({
       title: item ? copy.editBankQuestion : copy.newBankQuestion,
-      description:
-        "این بانک از بانک آزمون جدا است؛ نسخه‌های افزوده‌شده به آزمونک‌ها مستقل می‌مانند.",
+      description: copy.bankDescription,
       size: "xl",
       content: (
         <QuizBankEditor
@@ -249,8 +248,8 @@ export function QuizQuestionBankPanel({
                       onClick={() =>
                         void modal
                           .confirm({
-                            title: "بایگانی سؤال بانک آزمونک؟",
-                            description: "سؤال‌های کپی‌شده در آزمونک‌ها تغییر نمی‌کنند.",
+                            title: copy.archiveQuestionTitle,
+                            description: copy.archiveQuestionDescription,
                             tone: "danger",
                             confirmLabel: "بایگانی",
                           })
@@ -270,10 +269,7 @@ export function QuizQuestionBankPanel({
         <Card className="grid content-start gap-3 p-3">
           <div>
             <h2 className="text-sm font-black">{copy.copyFromExam}</h2>
-            <p className="text-xs text-slate-500">
-              هر تعداد سؤال را انتخاب کنید؛ کپی‌ها مستقل‌اند و در به‌روزرسانی‌های بعدی تکراری ساخته
-              نمی‌شوند.
-            </p>
+            <p className="text-xs text-slate-500">{copy.examBankDescription}</p>
           </div>
           <div className="grid max-h-[32rem] gap-2 overflow-auto">
             {(examBank.data || []).map((item) => (
@@ -305,9 +301,9 @@ export function QuizQuestionBankPanel({
                 </span>
               </label>
             ))}
-            {examBank.isLoading ? <LoadingState label="در حال دریافت بانک آزمون…" /> : null}
+            {examBank.isLoading ? <LoadingState label={copy.loadingExamBank} /> : null}
             {!examBank.isLoading && !(examBank.data || []).length ? (
-              <EmptyState title="سؤالی در بانک آزمون موجود نیست." />
+              <EmptyState title={copy.noExamBankQuestion} />
             ) : null}
           </div>
           {canManage ? (

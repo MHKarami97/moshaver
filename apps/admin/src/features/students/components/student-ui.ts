@@ -41,16 +41,17 @@ export function getStudentProfileCompleteness(student: Student) {
   return Math.round((completed / values.length) * 100);
 }
 
-export function getMissingStudentProfileFields(student: Student) {
+export function getMissingStudentProfileFields(student: Student, language: AdminLanguage = "fa") {
+  const copy = studentCopy[language];
   const fields = [
-    ["نام", student.name],
-    ["نام کاربری", getStudentUsername(student)],
-    ["پایه", student.grade],
-    ["رشته", student.major],
-    ["رشته هدف", student.targetField || student.target_major],
-    ["دانشگاه هدف", student.targetUniversity || student.target_city],
-    ["رتبه هدف", student.targetRank || student.rank_goal],
-    ["ظرفیت روزانه", student.dailyCapacity || student.daily_capacity],
+    [copy.name, student.name],
+    [copy.username, getStudentUsername(student)],
+    [copy.grade, student.grade],
+    [copy.track, student.major],
+    [copy.targetField, student.targetField || student.target_major],
+    [copy.targetUniversity, student.targetUniversity || student.target_city],
+    [copy.targetRank, student.targetRank || student.rank_goal],
+    [copy.dailyCapacity, student.dailyCapacity || student.daily_capacity],
   ] as const;
   return fields.filter(([, value]) => !String(value ?? "").trim()).map(([label]) => label);
 }

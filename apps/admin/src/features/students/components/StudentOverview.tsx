@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import type { Student } from "../../../shared/types/domain";
 import { Button } from "../../../shared/ui/ui";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
+import { studentCopy } from "../model/student-locale";
 import { countData } from "../model/student-form";
 import {
   formatStudentLastSeen,
@@ -31,23 +33,30 @@ export function StudentOverview({
   onRetry?: () => void;
   onEdit?: () => void;
 }) {
+  const language = useOptionalAdminLanguage() ?? "fa";
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
   const completeness = getStudentProfileCompleteness(student);
-  const missing = getMissingStudentProfileFields(student);
+  const missing = getMissingStudentProfileFields(student, language);
   const facts = [
     [
-      "پایه / رشته",
-      [student.grade, student.major].filter(Boolean).join(" / ") || "ثبت نشده",
+      copy.gradeAndTrack,
+      [student.grade, student.major].filter(Boolean).join(" / ") || copy.usernameNotSet,
       GraduationCap,
     ],
     [
-      "هدف",
+      copy.goal,
       [student.targetField || student.target_major, student.targetUniversity || student.target_city]
         .filter(Boolean)
-        .join(" · ") || "ثبت نشده",
+        .join(" · ") || copy.usernameNotSet,
       Target,
     ],
-    ["ظرفیت روزانه", student.dailyCapacity || student.daily_capacity || "ثبت نشده", CalendarClock],
-    ["نام کاربری", getStudentUsername(student) || "ثبت نشده", UserRound],
+    [
+      copy.dailyCapacity,
+      student.dailyCapacity || student.daily_capacity || copy.usernameNotSet,
+      CalendarClock,
+    ],
+    [copy.username, getStudentUsername(student) || copy.usernameNotSet, UserRound],
   ] as const;
   const recentReports = countData(overview?.recentReports);
 
@@ -56,15 +65,15 @@ export function StudentOverview({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="student-overview-heading" className="text-sm font-black text-ink">
-            نمای کلی دانش‌آموز
+            {copy.overviewTitle}
           </h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            اطلاعات سریع برای تصمیم‌گیری؛ ویرایش فقط در تب پروفایل انجام می‌شود.
+            {copy.overviewDescription}
           </p>
         </div>
         {onEdit ? (
           <Button variant="soft" className="h-9" onClick={onEdit}>
-            ویرایش پروفایل
+            {copy.editProfile}
           </Button>
         ) : null}
       </div>
@@ -93,19 +102,23 @@ export function StudentOverview({
       <div className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
         <div className="flex items-center justify-between gap-3">
           <span>
-            <strong className="block text-sm text-ink">وضعیت پرونده</strong>
+            <strong className="block text-sm text-ink">{copy.recordStatus}</strong>
             <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
               {missing.length
-                ? `${missing.length.toLocaleString("fa-IR")} مورد هنوز تکمیل نشده`
-                : "پرونده کامل است"}
+                ? `${missing.length.toLocaleString(locale)} ${copy.fieldsRemaining}`
+                : copy.profileComplete}
             </span>
           </span>
-          <strong className="text-xl text-brand">٪{completeness.toLocaleString("fa-IR")}</strong>
+          <strong className="text-xl text-brand">
+            {language === "fa" ? "٪" : ""}
+            {completeness.toLocaleString(locale)}
+            {language === "en" ? "%" : ""}
+          </strong>
         </div>
         <div
           className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
           role="progressbar"
-          aria-label="تکمیل پرونده"
+          aria-label={copy.profileCompletion}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={completeness}
@@ -129,7 +142,7 @@ export function StudentOverview({
         ) : (
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
             <CheckCircle2 size={14} />
-            تمام اطلاعات اصلی ثبت شده است.
+            {copy.profileFieldsComplete}
           </div>
         )}
       </div>
@@ -137,15 +150,15 @@ export function StudentOverview({
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            آخرین فعالیت
+            {copy.lastActivity}
           </span>
           <strong className="mt-1 block text-sm text-ink">
-            {formatStudentLastSeen(student.last_seen_at)}
+            {formatStudentLastSeen(student.last_seen_at, language)}
           </strong>
         </div>
         <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            گزارش‌های اخیر
+            {copy.recentReports}
           </span>
           {loading ? (
             <div className="mt-2 h-5 w-12 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
@@ -153,17 +166,17 @@ export function StudentOverview({
             <div className="mt-1 flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 dark:text-rose-300">
                 <AlertTriangle size={13} />
-                دریافت ناموفق
+                {copy.loadFailed}
               </span>
               {onRetry ? (
                 <button type="button" className="text-xs font-bold text-brand" onClick={onRetry}>
-                  تلاش دوباره
+                  {copy.retry}
                 </button>
               ) : null}
             </div>
           ) : (
             <strong className="mt-1 block text-lg text-ink">
-              {recentReports.toLocaleString("fa-IR")}
+              {recentReports.toLocaleString(locale)}
             </strong>
           )}
         </div>

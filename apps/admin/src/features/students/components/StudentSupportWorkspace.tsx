@@ -3,18 +3,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, BrainCircuit, Lightbulb, RefreshCw } from "lucide-react";
 import { useAuth } from "../../auth";
 import { Button, Card, EmptyState, Field, Input, Textarea } from "../../../shared/ui/ui";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 import {
   createStudentRecommendation,
   getStudentAnalytics,
   getStudentMistakes,
   getStudentRecommendations,
 } from "../api/students.api";
+import { studentCopy } from "../model/student-locale";
 
-const number = (value: number | null | undefined, suffix = "") =>
-  value == null ? "—" : `${value.toLocaleString("fa-IR")}${suffix}`;
+const number = (value: number | null | undefined, suffix = "", locale = "fa-IR") =>
+  value == null ? "—" : `${value.toLocaleString(locale)}${suffix}`;
 
 export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
   const auth = useAuth();
+  const language = useOptionalAdminLanguage() ?? "fa";
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
   const qc = useQueryClient();
   const [draft, setDraft] = useState({ title: "", reason: "", type: "FOLLOW_UP" });
   const analytics = useQuery({
@@ -57,16 +62,16 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="support-heading" className="text-sm font-black text-ink">
-            مرکز تحلیل و پیگیری
+            {copy.studentSupportTitle}
           </h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            تحلیل عملکرد، خطاهای نیازمند مرور و پیشنهادهای تیم آموزشی
+            {copy.studentSupportDescription}
           </p>
         </div>
         {failed ? (
           <Button variant="ghost" className="h-8 px-2.5 text-xs" onClick={retry}>
             <RefreshCw size={14} />
-            تلاش دوباره
+            {copy.retry}
           </Button>
         ) : null}
       </div>
@@ -77,15 +82,24 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
           role="alert"
           className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"
         >
-          تحلیل عملکرد دریافت نشد.
+          {copy.analyticsUnavailable}
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            ["تکمیل برنامه", number(analytics.data?.planCompletion, "٪")],
-            ["زمان مطالعه", number(analytics.data?.studyDurationMinutes, " دقیقه")],
-            ["میانگین آزمون", number(analytics.data?.examPerformance)],
-            ["دقت پاسخ", number(analytics.data?.questionAccuracy, "٪")],
+            [
+              copy.planCompletion,
+              number(analytics.data?.planCompletion, language === "fa" ? "٪" : "%", locale),
+            ],
+            [
+              copy.studyTime,
+              number(analytics.data?.studyDurationMinutes, ` ${copy.minutes}`, locale),
+            ],
+            [copy.examAverage, number(analytics.data?.examPerformance, "", locale)],
+            [
+              copy.answerAccuracy,
+              number(analytics.data?.questionAccuracy, language === "fa" ? "٪" : "%", locale),
+            ],
           ].map(([label, value]) => (
             <div
               key={label}
@@ -102,16 +116,16 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
           <Card className="p-3">
             <div className="mb-3 flex items-center gap-2">
               <AlertTriangle size={17} className="text-amber-600" />
-              <h4 className="font-bold">خطاهای نیازمند مرور</h4>
+              <h4 className="font-bold">{copy.mistakesTitle}</h4>
             </div>
             {mistakes.isLoading ? (
               <div className="h-20 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
             ) : mistakes.isError ? (
               <p role="alert" className="text-sm text-rose-700">
-                دریافت خطاها ناموفق بود.
+                {copy.mistakesUnavailable}
               </p>
             ) : !mistakes.data?.length ? (
-              <EmptyState title="خطای ثبت‌شده‌ای وجود ندارد." />
+              <EmptyState title={copy.noMistakes} />
             ) : (
               <div className="grid gap-2">
                 {mistakes.data.map((item) => (
@@ -120,14 +134,14 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
                     className="rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800"
                   >
                     <div className="flex justify-between gap-2">
-                      <strong>سؤال {item.questionId}</strong>
+                      <strong>
+                        {copy.question} <bdi>{item.questionId}</bdi>
+                      </strong>
                       <span className={item.resolved ? "text-emerald-600" : "text-amber-700"}>
-                        {item.resolved ? "مرور شده" : "باز"}
+                        {item.resolved ? copy.reviewed : copy.open}
                       </span>
                     </div>
-                    <p className="mt-1 text-slate-500">
-                      {item.reason || "دلیل هنوز ثبت نشده است."}
-                    </p>
+                    <p className="mt-1 text-slate-500">{item.reason || copy.noReason}</p>
                   </div>
                 ))}
               </div>
@@ -138,16 +152,16 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
           <Card className="p-3">
             <div className="mb-3 flex items-center gap-2">
               <Lightbulb size={17} className="text-brand" />
-              <h4 className="font-bold">پیشنهادهای آموزشی</h4>
+              <h4 className="font-bold">{copy.recommendationsTitle}</h4>
             </div>
             {recommendations.isLoading ? (
               <div className="h-20 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
             ) : recommendations.isError ? (
               <p role="alert" className="text-sm text-rose-700">
-                دریافت پیشنهادها ناموفق بود.
+                {copy.recommendationsUnavailable}
               </p>
             ) : !recommendations.data?.length ? (
-              <EmptyState title="هنوز پیشنهادی ثبت نشده است." />
+              <EmptyState title={copy.noRecommendations} />
             ) : (
               <div className="grid gap-2">
                 {recommendations.data.map((item) => (
@@ -174,9 +188,9 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
               >
                 <div className="flex items-center gap-2">
                   <BrainCircuit size={16} />
-                  <strong className="text-sm">پیشنهاد جدید</strong>
+                  <strong className="text-sm">{copy.newRecommendation}</strong>
                 </div>
-                <Field label="عنوان">
+                <Field label={copy.recommendationTitle}>
                   <Input
                     required
                     maxLength={240}
@@ -184,7 +198,7 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
                     onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   />
                 </Field>
-                <Field label="دلیل">
+                <Field label={copy.recommendationReason}>
                   <Textarea
                     required
                     maxLength={1000}
@@ -195,14 +209,14 @@ export function StudentSupportWorkspace({ studentId }: { studentId: string }) {
                 </Field>
                 {create.isError ? (
                   <p role="alert" className="text-sm text-rose-700">
-                    ثبت پیشنهاد ناموفق بود.
+                    {copy.recommendationCreateFailed}
                   </p>
                 ) : null}
                 <Button
                   loading={create.isPending}
                   disabled={!draft.title.trim() || !draft.reason.trim()}
                 >
-                  ثبت پیشنهاد
+                  {copy.createRecommendation}
                 </Button>
               </form>
             ) : null}

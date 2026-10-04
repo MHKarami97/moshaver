@@ -3,7 +3,9 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Field, Input } from "../../../shared/ui/ui";
 import { api } from "../../../shared/api/api";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 import type { StudentForm } from "../model/student-form";
+import { studentCopy } from "../model/student-locale";
 
 export type StudentEditorMode = "empty" | "create" | "edit";
 export type StudentEditorFeedback = { tone: "success" | "error" | "info"; message: string } | null;
@@ -36,19 +38,30 @@ function formCompleteness(form: StudentForm, includePassword: boolean) {
   return Math.round((values.filter((value) => value.trim()).length / values.length) * 100);
 }
 
-function Progress({ value }: { value: number }) {
+function Progress({
+  value,
+  label,
+  language,
+}: {
+  value: number;
+  label: string;
+  language: "fa" | "en";
+}) {
+  const locale = language === "en" ? "en-US" : "fa-IR";
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-        <span>تکمیل اطلاعات</span>
+        <span>{label}</span>
         <strong className="text-slate-700 dark:text-slate-200">
-          ٪{value.toLocaleString("fa-IR")}
+          {language === "fa" ? "٪" : ""}
+          {value.toLocaleString(locale)}
+          {language === "en" ? "%" : ""}
         </strong>
       </div>
       <div
         className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
         role="progressbar"
-        aria-label="تکمیل اطلاعات"
+        aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
@@ -85,6 +98,8 @@ export function StudentEditor({
   saveDirty: boolean;
   usernameError?: string;
 }) {
+  const language = useOptionalAdminLanguage() ?? "fa";
+  const copy = studentCopy[language];
   const catalog = useQuery({
     queryKey: ["education-catalog", "signup-options"],
     queryFn: () => api.get<SignupOptions>("/education-catalog/signup-options"),
@@ -121,47 +136,47 @@ export function StudentEditor({
               <span className="grid size-9 place-items-center rounded-lg bg-brand text-white">
                 <UserPlus size={17} />
               </span>
-              <h3 className="font-black text-ink">ساخت دانش‌آموز جدید</h3>
+              <h3 className="font-black text-ink">{copy.createStudent}</h3>
             </div>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              اطلاعات ضروری را وارد کنید؛ سایر اطلاعات را می‌توان بعداً تکمیل کرد.
+              {copy.createDescription}
             </p>
           </div>
           {onCancelCreate ? (
             <Button variant="ghost" className="h-9 px-2.5" onClick={onCancelCreate}>
               <X size={15} />
-              انصراف
+              {copy.cancel}
             </Button>
           ) : null}
         </div>
       ) : (
         <div>
-          <h3 className="text-sm font-black text-ink">ویرایش پروفایل</h3>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            تغییرات پروفایل مستقل از تنظیمات امنیتی ذخیره می‌شوند.
-          </p>
+          <h3 className="text-sm font-black text-ink">{copy.editProfile}</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{copy.editDescription}</p>
         </div>
       )}
 
-      <Progress value={completion} />
+      <Progress value={completion} label={copy.profileCompletion} language={language} />
 
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
         <div>
-          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">اطلاعات حساب</h4>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+            {copy.accountInformation}
+          </h4>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            مشخصات اصلی حساب دانش‌آموز
+            {copy.accountInformationDescription}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="نام">
+          <Field label={copy.name}>
             <Input
               autoFocus={mode === "create"}
               value={form.name}
               onChange={(event) => setField("name", event.target.value)}
-              placeholder="نام و نام خانوادگی"
+              placeholder={copy.namePlaceholder}
             />
           </Field>
-          <Field label="نام کاربری" error={usernameError}>
+          <Field label={copy.username} error={usernameError}>
             <Input
               dir="ltr"
               autoComplete="off"
@@ -174,11 +189,9 @@ export function StudentEditor({
         </div>
         {mode === "create" ? (
           <Field
-            label="رمز عبور"
+            label={copy.password}
             error={
-              form.password && form.password.length < 12
-                ? "رمز عبور باید حداقل ۱۲ نویسه باشد."
-                : undefined
+              form.password && form.password.length < 12 ? copy.passwordMinimumCreate : undefined
             }
           >
             <Input
@@ -187,7 +200,7 @@ export function StudentEditor({
               type="password"
               value={form.password}
               onChange={(event) => setField("password", event.target.value)}
-              placeholder="حداقل ۱۲ نویسه"
+              placeholder={copy.passwordMinimumCreate}
             />
           </Field>
         ) : null}
@@ -195,16 +208,18 @@ export function StudentEditor({
 
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
         <div>
-          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">وضعیت تحصیلی</h4>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+            {copy.educationStatus}
+          </h4>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            مسیر یادگیری، گروه‌بندی و گزارش‌ها را مشخص می‌کند.
+            {copy.educationStatusDescription}
           </p>
         </div>
         <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
           {(
             [
-              ["school", "دانش‌آموز مدرسه"],
-              ["independent", "یادگیرنده مستقل"],
+              ["school", copy.schoolStudent],
+              ["independent", copy.independentLearner],
             ] as const
           ).map(([value, label]) => (
             <button
@@ -219,31 +234,31 @@ export function StudentEditor({
         </div>
         {form.learnerProfile === "independent" ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="نوع یادگیرنده">
+            <Field label={copy.learnerType}>
               <select
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                 value={form.independentType}
                 onChange={(event) => setField("independentType", event.target.value)}
               >
-                <option value="">انتخاب نوع</option>
-                <option value="adult">بزرگسال</option>
-                <option value="gap_year">پشت‌کنکوری / سال فاصله</option>
-                <option value="homeschool">آموزش خانگی</option>
-                <option value="other">سایر</option>
+                <option value="">{copy.selectLearnerType}</option>
+                <option value="adult">{copy.adult}</option>
+                <option value="gap_year">{copy.gapYear}</option>
+                <option value="homeschool">{copy.homeschool}</option>
+                <option value="other">{copy.other}</option>
               </select>
             </Field>
-            <Field label="سطح یا مسیر یادگیری (اختیاری)">
+            <Field label={copy.learningLevel}>
               <Input
                 value={form.learningLevel}
                 onChange={(event) => setField("learningLevel", event.target.value)}
-                placeholder="مثلاً آمادگی کنکور یا زبان عمومی"
+                placeholder={copy.learningLevelPlaceholder}
               />
             </Field>
           </div>
         ) : null}
         {form.learnerProfile === "school" ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="پایه">
+            <Field label={copy.grade}>
               <select
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                 value={form.gradeId}
@@ -261,7 +276,7 @@ export function StudentEditor({
                 }}
                 disabled={catalog.isLoading}
               >
-                <option value="">انتخاب پایه</option>
+                <option value="">{copy.selectGrade}</option>
                 {catalog.data?.grades.map((grade) => (
                   <option key={grade.id} value={grade.id}>
                     {grade.fa}
@@ -269,7 +284,7 @@ export function StudentEditor({
                 ))}
               </select>
             </Field>
-            <Field label="نوع آموزش">
+            <Field label={copy.educationType}>
               <select
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                 value={form.educationTypeId}
@@ -279,7 +294,7 @@ export function StudentEditor({
                   setField("trackId", "");
                 }}
               >
-                <option value="">انتخاب نوع آموزش</option>
+                <option value="">{copy.selectEducationType}</option>
                 {educationTypes.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.fa}
@@ -288,14 +303,14 @@ export function StudentEditor({
               </select>
             </Field>
             {structure?.track_required ? (
-              <Field label="رشته">
+              <Field label={copy.track}>
                 <select
                   className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
                   value={form.trackId}
                   disabled={!form.educationTypeId || catalog.isLoading}
                   onChange={(event) => setField("trackId", event.target.value)}
                 >
-                  <option value="">انتخاب رشته</option>
+                  <option value="">{copy.selectTrack}</option>
                   {tracks.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.fa}
@@ -308,49 +323,51 @@ export function StudentEditor({
         ) : null}
         {catalog.isError ? (
           <p role="alert" className="text-xs text-rose-700">
-            دریافت پایه‌ها و رشته‌ها انجام نشد.
+            {copy.educationLoadFailed}
           </p>
         ) : null}
       </section>
 
       <section className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
         <div>
-          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">هدف و ظرفیت</h4>
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+            {copy.goalAndCapacity}
+          </h4>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            هدف دانشگاهی و ظرفیت برنامه‌ریزی روزانه
+            {copy.goalAndCapacityDescription}
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="دانشگاه هدف">
+          <Field label={copy.targetUniversity}>
             <Input
               value={form.targetUniversity}
               onChange={(event) => setField("targetUniversity", event.target.value)}
-              placeholder="دانشگاه هدف"
+              placeholder={copy.targetUniversity}
             />
           </Field>
-          <Field label="رشته هدف">
+          <Field label={copy.targetField}>
             <Input
               value={form.targetField}
               onChange={(event) => setField("targetField", event.target.value)}
-              placeholder="رشته هدف"
+              placeholder={copy.targetField}
             />
           </Field>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="رتبه هدف">
+          <Field label={copy.targetRank}>
             <Input
               dir="ltr"
               inputMode="numeric"
               value={form.targetRank}
               onChange={(event) => setField("targetRank", event.target.value)}
-              placeholder="مثلاً 1500"
+              placeholder={copy.targetRankPlaceholder}
             />
           </Field>
-          <Field label="ظرفیت روزانه">
+          <Field label={copy.dailyCapacity}>
             <Input
               value={form.dailyCapacity}
               onChange={(event) => setField("dailyCapacity", event.target.value)}
-              placeholder="مثلاً 6 ساعت"
+              placeholder={copy.dailyCapacityPlaceholder}
             />
           </Field>
         </div>
@@ -359,16 +376,16 @@ export function StudentEditor({
       <div className="sticky bottom-2 z-10 grid gap-2 rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur sm:grid-cols-[minmax(0,1fr)_auto] dark:border-slate-800 dark:bg-slate-950/95">
         <Button
           loading={busy}
-          loadingLabel={mode === "create" ? "در حال ساخت..." : "در حال ذخیره..."}
+          loadingLabel={mode === "create" ? copy.creating : copy.saving}
           disabled={saveDisabled}
           onClick={onSave}
         >
           <Save size={16} />
-          {mode === "create" ? "ساخت دانش‌آموز" : "ذخیره تغییرات"}
+          {mode === "create" ? copy.saveStudent : copy.saveChanges}
         </Button>
         <Button variant="soft" disabled={!dirty || busy} onClick={onReset}>
           <RotateCcw size={16} />
-          بازنشانی
+          {copy.reset}
         </Button>
       </div>
     </section>

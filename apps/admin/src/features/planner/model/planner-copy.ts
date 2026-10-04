@@ -26,8 +26,18 @@ const copy = {
     noStudent: "دانش‌آموزی انتخاب نشده است",
     activity: "فعالیت",
     activities: "فعالیت",
+    minutes: "دقیقه",
     planStatus: "وضعیت برنامه",
     filter: "فیلتر",
+    today: "امروز",
+    rangeSummary: "خلاصه بازه",
+    daysCount: (count: string) => `${count} روز`,
+    activitiesCount: (count: string) => `${count} فعالیت`,
+    hoursCount: (count: string) => `${count} ساعت`,
+    testsCount: (count: string) => `${count} تست`,
+    plansLoadFailed: "برنامه‌های این بازه دریافت نشدند؛ داده قبلی، در صورت وجود، حفظ شده است.",
+    shareSucceeded: (copied: string, students: string, skipped: string) =>
+      `${copied} برنامه برای ${students} دانش‌آموز کپی شد${skipped ? `؛ ${skipped} مورد موجود بدون تغییر ماند` : ""}.`,
     all: "همه",
     published: "منتشر",
     draft: "پیش‌نویس",
@@ -228,8 +238,19 @@ const copy = {
     noStudent: "No student selected",
     activity: "activity",
     activities: "activities",
+    minutes: "minutes",
     planStatus: "Plan status",
     filter: "Filter",
+    today: "Today",
+    rangeSummary: "Range summary",
+    daysCount: (count: string) => `${count} days`,
+    activitiesCount: (count: string) => `${count} activities`,
+    hoursCount: (count: string) => `${count} hours`,
+    testsCount: (count: string) => `${count} tests`,
+    plansLoadFailed:
+      "Plans for this range could not be loaded. Existing data is still shown when available.",
+    shareSucceeded: (copied: string, students: string, skipped: string) =>
+      `${copied} plans copied for ${students} students${skipped ? `; ${skipped} existing plans were left unchanged` : ""}.`,
     all: "All",
     published: "Published",
     draft: "Draft",
@@ -413,6 +434,27 @@ export function plannerCopy(language: AdminLanguage) {
 
 export function plannerModeLabel(mode: "day" | "week" | "month" | "list", language: AdminLanguage) {
   return plannerCopy(language)[mode];
+}
+
+export function plannerFilterLabel(
+  filter: "all" | "published" | "draft" | "incomplete",
+  language: AdminLanguage,
+) {
+  const labels = {
+    fa: {
+      all: "همه برنامه‌ها",
+      published: "فقط منتشرشده",
+      draft: "فقط پیش‌نویس",
+      incomplete: "فعالیت‌های انجام‌نشده",
+    },
+    en: {
+      all: "All plans",
+      published: "Published only",
+      draft: "Drafts only",
+      incomplete: "Incomplete activities",
+    },
+  } as const;
+  return labels[language][filter];
 }
 
 const taskTypes = {

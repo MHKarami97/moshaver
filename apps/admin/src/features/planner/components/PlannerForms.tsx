@@ -393,7 +393,7 @@ export function TaskDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-auto rounded-t-2xl bg-white p-5 shadow-2xl md:bottom-0 md:right-auto md:top-0 md:w-[460px] md:rounded-none"
+        className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-auto rounded-t-2xl bg-white p-5 shadow-2xl md:inset-x-auto md:bottom-0 md:end-0 md:top-0 md:w-[460px] md:rounded-none"
       >
         <header className="mb-4 flex items-center justify-between">
           <div>

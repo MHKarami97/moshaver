@@ -3,10 +3,9 @@ import { Calendar, CalendarDays, Command, Plus } from "lucide-react";
 import type { Plan, PlanTask } from "../../../shared/types/domain";
 import { todayIso } from "../../../shared/lib/utils";
 import type { PlannerMode, TaskFilter } from "../model/planner.types";
-import { filterLabel } from "../lib/planner-model";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
 import { useLocale } from "../../../shared/ui/locale";
-import { plannerCopy, plannerModeLabel } from "../model/planner-copy";
+import { plannerCopy, plannerFilterLabel, plannerModeLabel } from "../model/planner-copy";
 
 export function ViewSwitch({
   value,
@@ -44,10 +43,10 @@ export function FilterMenu({
       {(["all", "published", "draft", "incomplete"] as TaskFilter[]).map((item) => (
         <button
           key={item}
-          className={`mt-1 block w-full rounded-md px-3 py-2 text-right text-sm ${value === item ? "bg-indigo-50 text-brand" : "hover:bg-slate-50"}`}
+          className={`mt-1 block w-full rounded-md px-3 py-2 text-start text-sm ${value === item ? "bg-indigo-50 text-brand" : "hover:bg-slate-50"}`}
           onClick={() => onChange(item)}
         >
-          {filterLabel(item)}
+          {plannerFilterLabel(item, language)}
         </button>
       ))}
     </div>
@@ -67,33 +66,33 @@ export function MoreMenu({
   const { language } = useLocale();
   const copy = plannerCopy(language);
   return (
-    <div className="absolute left-0 top-11 z-40 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+    <div className="absolute start-0 top-11 z-40 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
       <button
-        className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
+        className="block w-full rounded-md px-3 py-2 text-start text-sm hover:bg-slate-50"
         onClick={onPlan}
       >
         {copy.planSettings}
       </button>
       <button
-        className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
+        className="block w-full rounded-md px-3 py-2 text-start text-sm hover:bg-slate-50"
         onClick={() => onPublish(true)}
       >
         {copy.publishRange}
       </button>
       <button
-        className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
+        className="block w-full rounded-md px-3 py-2 text-start text-sm hover:bg-slate-50"
         onClick={() => onPublish(false)}
       >
         {copy.unpublishRange}
       </button>
       <button
-        className="block w-full rounded-md px-3 py-2 text-right text-sm hover:bg-slate-50"
+        className="block w-full rounded-md px-3 py-2 text-start text-sm hover:bg-slate-50"
         onClick={onTransfer}
       >
         {copy.importExportJson}
       </button>
       <button
-        className="mt-1 block w-full border-t px-3 py-2 text-right text-xs text-slate-400"
+        className="mt-1 block w-full border-t px-3 py-2 text-start text-xs text-slate-400"
         onClick={onClose}
       >
         {copy.close}
@@ -175,14 +174,14 @@ export function CommandPalette({
               {tasks.map(({ plan, task }) => (
                 <button
                   key={task.id}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-right hover:bg-slate-50"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start hover:bg-slate-50"
                   onClick={() => onTask(plan, task)}
                 >
                   <span className="font-mono text-xs text-slate-400">{task.start}</span>
                   <strong className="truncate text-sm">
                     {task.title || task.subject || task.type}
                   </strong>
-                  <small className="mr-auto text-slate-400">{plan.planDate}</small>
+                  <small className="ms-auto text-slate-400">{plan.planDate}</small>
                 </button>
               ))}
               {!tasks.length ? (

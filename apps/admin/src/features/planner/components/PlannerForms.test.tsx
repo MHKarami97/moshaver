@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PlanForm } from "./PlannerForms";
+import { PlanForm, TaskDrawer } from "./PlannerForms";
 import { LocaleProvider } from "../../../shared/ui/locale";
 
 afterEach(() => {
@@ -68,5 +68,18 @@ describe("PlanForm empty-day setup", () => {
     await user.click(screen.getByRole("button", { name: "Start study day" }));
     expect(screen.getByDisplayValue("Today's study plan")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+  });
+
+  it("docks the task drawer at the logical end in English", () => {
+    localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <TaskDrawer title="Edit activity" onClose={vi.fn()}>
+          <p>Task form</p>
+        </TaskDrawer>
+      </LocaleProvider>,
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("md:end-0");
+    expect(screen.getByRole("dialog")).not.toHaveClass("md:right-auto");
   });
 });

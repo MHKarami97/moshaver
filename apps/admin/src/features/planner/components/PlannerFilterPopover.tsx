@@ -4,9 +4,8 @@ import { Button, Badge } from "../../../shared/ui/ui";
 import { ViewportPopover } from "../../../shared/ui/popover";
 
 import type { TaskFilter } from "../model/planner.types";
-import { filterLabel } from "../lib/planner-model";
 import { useLocale } from "../../../shared/ui/locale";
-import { plannerCopy } from "../model/planner-copy";
+import { plannerCopy, plannerFilterLabel } from "../model/planner-copy";
 
 export function PlannerFilterPopover({
   value,
@@ -53,7 +52,7 @@ export function PlannerFilterPopover({
               rounded-xl
               px-3
               py-2
-              text-right
+              text-start
               text-sm
               transition
 
@@ -72,7 +71,7 @@ export function PlannerFilterPopover({
             `}
             onClick={() => onChange(item)}
           >
-            {filterLabel(item)}
+            {plannerFilterLabel(item, language)}
           </button>
         ))}
       </div>

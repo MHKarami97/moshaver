@@ -64,6 +64,12 @@ const copy = {
     optionalExplanation: "توضیح پاسخ (اختیاری)",
     saveQuestion: "ذخیره سؤال",
     correctOption: (n: number) => `پاسخ صحیح گزینه ${n}`,
+    archiveQuestionTitle: "بایگانی سؤال بانک آزمونک؟",
+    archiveQuestionDescription: "سؤال‌های کپی‌شده در آزمونک‌ها تغییر نمی‌کنند.",
+    examBankDescription:
+      "هر تعداد سؤال را انتخاب کنید؛ کپی‌ها مستقل‌اند و در به‌روزرسانی‌های بعدی تکراری ساخته نمی‌شوند.",
+    loadingExamBank: "در حال دریافت بانک آزمون…",
+    noExamBankQuestion: "سؤالی در بانک آزمون موجود نیست.",
   },
   en: {
     language: "en",
@@ -129,6 +135,12 @@ const copy = {
     optionalExplanation: "Answer explanation (optional)",
     saveQuestion: "Save question",
     correctOption: (n: number) => `Correct answer: option ${n}`,
+    archiveQuestionTitle: "Archive quiz-bank question?",
+    archiveQuestionDescription: "Copies already added to quizzes stay unchanged.",
+    examBankDescription:
+      "Select any questions. Copies remain independent, and later imports do not create duplicates.",
+    loadingExamBank: "Loading exam question bank…",
+    noExamBankQuestion: "There are no questions in the exam bank.",
   },
 } as const;
 

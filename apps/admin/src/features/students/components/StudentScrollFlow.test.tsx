@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Student } from "../../../shared/types/domain";
+import { LocaleProvider } from "../../../shared/ui/locale";
 import { StudentDetail } from "./StudentDetail";
 import { StudentList } from "./StudentList";
 import { StudentOverview } from "./StudentOverview";
@@ -125,5 +126,18 @@ describe("student collection scroll flow", () => {
     render(<StudentOverview student={student} onRetry={vi.fn()} onEdit={undefined} />);
 
     expect(screen.queryByRole("button", { name: "ویرایش پروفایل" })).not.toBeInTheDocument();
+  });
+
+  it("uses English labels and numeric formatting for the profile overview", () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <StudentOverview student={{ ...student, targetRank: "1500" }} onRetry={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Student overview" })).toBeInTheDocument();
+    expect(screen.getByText("Record status")).toBeInTheDocument();
+    expect(screen.getByLabelText("Profile completion")).toBeInTheDocument();
   });
 });

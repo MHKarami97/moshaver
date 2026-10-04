@@ -52,8 +52,9 @@ export type CanvasProps = {
   onMoveTask: (taskId: string, planDate: string, start: string, end: string) => void;
 };
 export function PlannerCanvas(props: CanvasProps) {
-  const { formatDate, language } = useLocale();
+  const { formatDate, language, profile } = useLocale();
   const copy = plannerCopy(language);
+  const isRtl = profile.direction === "rtl";
   const [zoom, setZoom] = useState<"4h" | "2h" | "1h" | "30m">("1h");
   const activeDrag = useRef("");
   const activeDrop = useRef<{ day: string; start: string } | null>(null);
@@ -75,7 +76,7 @@ export function PlannerCanvas(props: CanvasProps) {
             day ? (
               <button
                 key={day}
-                className={`min-h-24 bg-white p-2 text-right hover:bg-indigo-50 ${day === todayIso() ? "ring-2 ring-inset ring-brand" : ""}`}
+                className={`min-h-24 bg-white p-2 text-start hover:bg-indigo-50 ${day === todayIso() ? "ring-2 ring-inset ring-brand" : ""}`}
                 onClick={() => props.onSelectDay(day)}
                 onDragOver={(event) => !props.readOnly && event.preventDefault()}
                 onDrop={(event) => {
@@ -140,13 +141,29 @@ export function PlannerCanvas(props: CanvasProps) {
   return (
     <div className="h-full overflow-hidden">
       <div
-        dir="ltr"
+        dir={profile.direction}
         className={
           props.mode === "day"
-            ? "grid min-h-full grid-cols-[minmax(0,1fr)_42px]"
-            : "grid min-h-full grid-cols-[repeat(7,minmax(0,1fr))_42px]"
+            ? isRtl
+              ? "grid min-h-full grid-cols-[minmax(0,1fr)_42px]"
+              : "grid min-h-full grid-cols-[42px_minmax(0,1fr)]"
+            : isRtl
+              ? "grid min-h-full grid-cols-[repeat(7,minmax(0,1fr))_42px]"
+              : "grid min-h-full grid-cols-[42px_repeat(7,minmax(0,1fr))]"
         }
       >
+        {!isRtl ? (
+          <SharedTimeRuler
+            language={language}
+            slots={timelineSlots}
+            height={timelineHeight}
+            slotHeight={slotHeight}
+            zoom={zoom}
+            onZoom={setZoom}
+            onCreate={(start) => props.onQuickAdd(props.date, start)}
+            disabled={props.readOnly}
+          />
+        ) : null}
         {days.map((day) => (
           <DayColumn
             key={day}
@@ -164,16 +181,18 @@ export function PlannerCanvas(props: CanvasProps) {
             language={language}
           />
         ))}
-        <SharedTimeRuler
-          language={language}
-          slots={timelineSlots}
-          height={timelineHeight}
-          slotHeight={slotHeight}
-          zoom={zoom}
-          onZoom={setZoom}
-          onCreate={(start) => props.onQuickAdd(props.date, start)}
-          disabled={props.readOnly}
-        />
+        {isRtl ? (
+          <SharedTimeRuler
+            language={language}
+            slots={timelineSlots}
+            height={timelineHeight}
+            slotHeight={slotHeight}
+            zoom={zoom}
+            onZoom={setZoom}
+            onCreate={(start) => props.onQuickAdd(props.date, start)}
+            disabled={props.readOnly}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -224,14 +243,14 @@ function DayColumn({
     <section
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => drop(e)}
-      className="min-w-0 border-l border-slate-200 bg-slate-50/40 xl:min-h-full"
-      dir="rtl"
+      className="min-w-0 border-s border-slate-200 bg-slate-50/40 xl:min-h-full"
+      dir={language === "fa" ? "rtl" : "ltr"}
     >
       <header
         className={`sticky top-0 z-10 border-b border-slate-200 px-1.5 py-1 ${day === todayIso() ? "bg-indigo-50" : "bg-white"}`}
       >
         <div className="flex items-start gap-1">
-          <button className="min-w-0 flex-1 text-right" onClick={() => actions.onSelectDay(day)}>
+          <button className="min-w-0 flex-1 text-start" onClick={() => actions.onSelectDay(day)}>
             <strong className="block truncate text-xs">
               {formatDate(day, {
                 weekday: "short",
@@ -278,7 +297,7 @@ function DayColumn({
           className="relative overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
           style={{ height: timelineHeight }}
         >
-          <div dir="rtl" className="relative">
+          <div dir={language === "fa" ? "rtl" : "ltr"} className="relative">
             {timelineSlots.slice(0, -1).map((start, index) => (
               <button
                 type="button"
@@ -286,7 +305,7 @@ function DayColumn({
                 data-planner-drop-date={day}
                 data-planner-drop-time={start}
                 aria-label={copy.createActivityAt.replace("{time}", start)}
-                className="after:pointer-events-none after:absolute after:right-0 after:top-0 after:w-3 after:border-t-2 after:border-dashed after:border-indigo-300/70 absolute inset-x-0 border-t border-dashed border-slate-300/90 text-transparent hover:bg-indigo-50/70 dark:border-slate-600 dark:after:border-indigo-500/70 dark:hover:bg-indigo-950/30"
+                className="after:pointer-events-none after:absolute after:end-0 after:top-0 after:w-3 after:border-t-2 after:border-dashed after:border-indigo-300/70 absolute inset-x-0 border-t border-dashed border-slate-300/90 text-transparent hover:bg-indigo-50/70 dark:border-slate-600 dark:after:border-indigo-500/70 dark:hover:bg-indigo-950/30"
                 style={{ top: index * slotHeight, height: slotHeight }}
                 disabled={actions.readOnly}
                 onClick={() => actions.onQuickAdd(day, start)}
@@ -344,7 +363,7 @@ function DayColumn({
                     top: Math.max(0, top),
                     height,
                     width: `calc(${100 / overlaps.length}% - 4px)`,
-                    right: `calc(${(lane * 100) / overlaps.length}% + 2px)`,
+                    insetInlineStart: `calc(${(lane * 100) / overlaps.length}% + 2px)`,
                   }}
                 >
                   <CompactTask
@@ -380,7 +399,7 @@ function DayColumn({
           </div>
           {!plan?.tasks.length ? (
             <div
-              dir="rtl"
+              dir={language === "fa" ? "rtl" : "ltr"}
               className="pointer-events-none absolute inset-0 z-[5] grid place-items-center bg-indigo-50/90 p-3 text-center backdrop-blur-[1px] dark:bg-indigo-950/80"
             >
               <div className="grid max-w-52 gap-2">
@@ -442,7 +461,7 @@ function SharedTimeRuler({
   return (
     <aside
       aria-label={copy.sharedTimeRuler}
-      className="sticky top-0 z-20 border-r border-slate-200 bg-slate-50/95 dark:border-slate-700 dark:bg-slate-800/95"
+      className="sticky top-0 z-20 border-e border-slate-200 bg-slate-50/95 dark:border-slate-700 dark:bg-slate-800/95"
     >
       <div className="flex h-[53px] flex-col items-center justify-center gap-0.5 border-b border-slate-200 dark:border-slate-700">
         <button
@@ -542,7 +561,7 @@ function CompactTask({
       onDragEnd={() => onDragFinish?.()}
       onClick={() => !readOnly && onEdit(plan, task)}
       className={[
-        `group relative h-full min-w-0 overflow-hidden border text-right ${presentation === "tiny" ? "rounded-sm px-0.5 py-0" : zoom === "4h" ? "rounded-md p-1" : zoom === "30m" ? "rounded-xl p-2.5 shadow-sm" : "rounded-lg p-2"}`,
+        `group relative h-full min-w-0 overflow-hidden border text-start ${presentation === "tiny" ? "rounded-sm px-0.5 py-0" : zoom === "4h" ? "rounded-md p-1" : zoom === "30m" ? "rounded-xl p-2.5 shadow-sm" : "rounded-lg p-2"}`,
         "transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-md",
         "focus:outline-none focus:ring-2 focus:ring-brand/40",
@@ -661,7 +680,7 @@ function CompactTask({
           </span>
 
           <span className="text-[9px] text-slate-400">
-            {task.duration ? `${task.duration} دقیقه` : ""}
+            {task.duration ? `${task.duration} ${copy.minutes}` : ""}
           </span>
         </div>
       ) : null}
@@ -671,7 +690,7 @@ function CompactTask({
         <div
           className="
           absolute
-          left-1
+          start-1
           top-1
           flex
           gap-1
@@ -717,7 +736,7 @@ function CompactTask({
           >
             <button
               type="button"
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs hover:bg-slate-100"
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-start text-xs hover:bg-slate-100"
               onClick={(event) => {
                 event.stopPropagation();
                 onDuplicate(plan, task);
@@ -728,7 +747,7 @@ function CompactTask({
             </button>
             <button
               type="button"
-              className="flex w-full items-center gap-2 rounded px-2 py-2 text-right text-xs text-rose-700 hover:bg-rose-50"
+              className="flex w-full items-center gap-2 rounded px-2 py-2 text-start text-xs text-rose-700 hover:bg-rose-50"
               onClick={(event) => {
                 event.stopPropagation();
                 onDelete(task);
@@ -815,7 +834,7 @@ function VirtualList({
               onMove(data.id, plan.planDate, targetStart, addMinutes(targetStart, duration));
             }}
             onClick={() => onEdit?.(plan, task)}
-            className="absolute right-0 grid w-full grid-cols-[80px_72px_minmax(0,1fr)] items-center gap-2 border-b border-slate-100 px-3 text-right hover:bg-slate-50 sm:grid-cols-[110px_90px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4"
+            className="absolute start-0 grid w-full grid-cols-[80px_72px_minmax(0,1fr)] items-center gap-2 border-b border-slate-100 px-3 text-start hover:bg-slate-50 sm:grid-cols-[110px_90px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4"
             style={{ height: row, top: (start + index) * row }}
           >
             <span className="text-xs text-slate-500">{plan.planDate}</span>
