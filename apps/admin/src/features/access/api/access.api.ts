@@ -16,6 +16,10 @@ export type PortalOrganization = {
   type: string;
   status: string;
   disabledFeatures?: string[];
+  studentSignupManagedByOrganization?: boolean;
+  studentSignupEnabled?: boolean;
+  studentSignupLimit?: number;
+  studentSignupCount?: number;
 };
 export const organizationFeatures = [
   ["PLANNER", "برنامه‌ریز"],
@@ -81,7 +85,7 @@ export const transferPlatformOwnership = (targetUserId: string) =>
     { targetUserId },
   );
 export const listOrganizations = () => api.get<PortalOrganization[]>("/organizations");
-export const createOrganization = (body: { name: string; type: string }) =>
+export const createOrganization = (body: { name: string; type: string; studentSignupManagedByOrganization?: boolean; studentSignupEnabled?: boolean; studentSignupLimit?: number }) =>
   api.post<PortalOrganization>("/organizations", body);
 export const updateOrganization = (
   id: string,
@@ -92,6 +96,9 @@ export const setOrganizationEnabled = (id: string, enabled: boolean) =>
 export const setOrganizationFeatures = (id: string, enabledFeatures: OrganizationFeatureCode[]) =>
   api.patch<PortalOrganization>(`/organizations/${id}/features`, { enabledFeatures });
 export const archiveOrganization = (id: string) => api.delete(`/organizations/${id}`);
+export const getPlatformStudentSignupPolicy = () => api.get<{ enabled: boolean }>("/onboarding/student-signup-policy");
+export const setPlatformStudentSignupPolicy = (enabled: boolean) => api.patch<{ enabled: boolean }>("/onboarding/student-signup-policy", { enabled });
+export const setOrganizationStudentSignupPolicy = (id: string, body: { managedByOrganization?: boolean; enabled?: boolean; limit?: number }) => api.patch(`/onboarding/organizations/${id}/student-signup-policy`, body);
 export const listOrganizationMembers = (id: string) =>
   api.get<OrganizationMember[]>(`/organizations/${id}/members`);
 export const addOrganizationMember = (

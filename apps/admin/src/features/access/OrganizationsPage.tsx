@@ -38,6 +38,9 @@ import {
   setOrganizationEnabled,
   organizationFeatures,
   setOrganizationFeatures,
+  getPlatformStudentSignupPolicy,
+  setPlatformStudentSignupPolicy,
+  setOrganizationStudentSignupPolicy,
   transferPlatformOwnership,
   updateOrganization,
   updateUser,
@@ -69,8 +72,11 @@ export function OrganizationsPage() {
     [creating, setCreating] = useState(false),
     [selectedId, setSelectedId] = useState(auth.context?.activeOrganization?.id ?? "");
   const refresh = () => qc.invalidateQueries({ queryKey: ["organizations"] });
+  const signupPolicy = useQuery({ queryKey: ["platform-student-signup-policy"], queryFn: getPlatformStudentSignupPolicy, enabled: canManage });
+  const setPlatformSignup = useMutation({ mutationFn: setPlatformStudentSignupPolicy, onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["platform-student-signup-policy"] }); notify(language === "fa" ? "تنظیم سراسری ثبت‌نام ذخیره شد." : "Global signup setting saved."); } });
+  const setOrganizationSignup = useMutation({ mutationFn: ({ id, body }: { id: string; body: { managedByOrganization?: boolean; enabled?: boolean; limit?: number } }) => setOrganizationStudentSignupPolicy(id, body), onSuccess: refresh });
   const create = useMutation({
-    mutationFn: (body: { name: string; type: string }) => createOrganization(body),
+    mutationFn: (body: { name: string; type: string; studentSignupManagedByOrganization?: boolean; studentSignupEnabled?: boolean; studentSignupLimit?: number }) => createOrganization(body),
     onSuccess: async () => {
       setDraft({ name: "", type: "SCHOOL" });
       setCreating(false);
@@ -166,6 +172,7 @@ export function OrganizationsPage() {
   return (
     <div className="grid gap-5">
       <AccessFlowGuidance scope="organizations" canManage={canManage} />
+      {canManage ? <Card className="p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-black">{language === "fa" ? "ثبت‌نام مستقیم دانش‌آموز" : "Student self-signup"}</h2><p className="mt-1 text-xs text-slate-500">{language === "fa" ? "کنترل سراسری؛ هر سازمان نیز باید ظرفیت و دسترسی خودش را فعال کند." : "Global gate; each organization must also enable its own capacity."}</p></div><button type="button" role="switch" aria-checked={Boolean(signupPolicy.data?.enabled)} disabled={signupPolicy.isLoading || setPlatformSignup.isPending} onClick={() => setPlatformSignup.mutate(!signupPolicy.data?.enabled)} className={`relative h-6 w-11 rounded-full ${signupPolicy.data?.enabled ? "bg-brand" : "bg-slate-300"}`}><span className={`absolute top-1 size-4 rounded-full bg-white shadow ${signupPolicy.data?.enabled ? "start-1" : "end-1"}`} /></button></div></Card> : null}
       <section className="w-full" aria-label={copy.organizationListTools}>
         <ManagementSummaryBar
           action={
@@ -442,6 +449,7 @@ export function OrganizationsPage() {
                 </div>
               </Card>
             ) : null}
+            {selected && canManage && selected.status !== "ARCHIVED" ? <Card className="mb-4 p-4"><StudentSignupSettings organization={selected} pending={setOrganizationSignup.isPending} onSave={(body) => setOrganizationSignup.mutate({ id: selected.id, body })} /></Card> : null}
             {selected &&
             auth.can("organization.members.manage") &&
             selected.status !== "ARCHIVED" ? (
@@ -493,13 +501,16 @@ function OrganizationEditor({
   onSubmit,
 }: {
   organization?: PortalOrganization;
-  onSubmit: (value: { name: string; type: string }) => Promise<void>;
+  onSubmit: (value: { name: string; type: string; studentSignupManagedByOrganization?: boolean; studentSignupEnabled?: boolean; studentSignupLimit?: number }) => Promise<void>;
 }) {
   const modal = useModal();
   const { language } = useLocale();
   const copy = accessCopy[language];
   const [name, setName] = useState(organization?.name ?? "");
   const [type, setType] = useState(organization?.type ?? "SCHOOL");
+  const [managedByOrganization, setManagedByOrganization] = useState(organization?.studentSignupManagedByOrganization ?? false);
+  const [studentSignupEnabled, setStudentSignupEnabled] = useState(organization?.studentSignupEnabled ?? false);
+  const [studentSignupLimit, setStudentSignupLimit] = useState(organization?.studentSignupLimit ?? 0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   return (
@@ -509,7 +520,7 @@ function OrganizationEditor({
         event.preventDefault();
         setSubmitting(true);
         setError("");
-        void onSubmit({ name, type })
+        void onSubmit({ name, type, studentSignupManagedByOrganization: managedByOrganization, studentSignupEnabled, studentSignupLimit })
           .catch((reason) => setError(errorText(reason, copy.organizationSaveFailed)))
           .finally(() => setSubmitting(false));
       }}
@@ -524,6 +535,7 @@ function OrganizationEditor({
         />
       </Field>
       <OrganizationTypeField value={type} onChange={setType} />
+      {!organization ? <StudentSignupFields managedByOrganization={managedByOrganization} enabled={studentSignupEnabled} limit={studentSignupLimit} onManagedChange={setManagedByOrganization} onEnabledChange={setStudentSignupEnabled} onLimitChange={setStudentSignupLimit} /> : null}
       {error ? (
         <p role="alert" className="text-sm text-rose-700">
           {error}
@@ -601,6 +613,21 @@ function OrganizationFeatureSettings({
       })}
     </div>
   );
+}
+
+function StudentSignupFields({ managedByOrganization, enabled, limit, onManagedChange, onEnabledChange, onLimitChange }: { managedByOrganization: boolean; enabled: boolean; limit: number; onManagedChange(value: boolean): void; onEnabledChange(value: boolean): void; onLimitChange(value: number): void }) {
+  const { language } = useLocale();
+  const fa = language === "fa";
+  return <fieldset className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"><legend className="px-1 text-sm font-bold">{fa ? "ثبت‌نام دانش‌آموز" : "Student signup"}</legend><label className="flex items-center justify-between gap-3 text-sm"><span><b>{fa ? "واگذاری به مدیر سازمان" : "Delegate to organization admin"}</b><small className="block text-slate-500">{fa ? "مدیر سازمان می‌تواند ظرفیت و دسترسی را تغییر دهد." : "The organization admin can manage availability and capacity."}</small></span><input type="checkbox" checked={managedByOrganization} onChange={(event) => onManagedChange(event.target.checked)} /></label><label className="flex items-center justify-between gap-3 text-sm"><span>{fa ? "فعال‌سازی ثبت‌نام مستقیم" : "Enable direct signup"}</span><input type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} /></label><Field label={fa ? "ظرفیت ثبت‌نام مستقیم" : "Direct-signup capacity"}><Input type="number" min={0} max={100000} value={limit} onChange={(event) => onLimitChange(Math.max(0, Number(event.target.value) || 0))} /></Field></fieldset>;
+}
+
+function StudentSignupSettings({ organization, pending, onSave }: { organization: PortalOrganization; pending: boolean; onSave(body: { managedByOrganization?: boolean; enabled?: boolean; limit?: number }): void }) {
+  const { language } = useLocale();
+  const fa = language === "fa";
+  const [managed, setManaged] = useState(Boolean(organization.studentSignupManagedByOrganization));
+  const [enabled, setEnabled] = useState(Boolean(organization.studentSignupEnabled));
+  const [limit, setLimit] = useState(organization.studentSignupLimit ?? 0);
+  return <form className="grid gap-3" onSubmit={(event) => { event.preventDefault(); onSave({ managedByOrganization: managed, enabled, limit }); }}><div><h2 className="font-black">{fa ? "دسترسی ثبت‌نام دانش‌آموز" : "Student signup access"}</h2><p className="mt-1 text-xs text-slate-500">{fa ? `${organization.studentSignupCount ?? 0} از ${organization.studentSignupLimit ?? 0} ظرفیت استفاده شده است.` : `${organization.studentSignupCount ?? 0} of ${organization.studentSignupLimit ?? 0} places used.`}</p></div><StudentSignupFields managedByOrganization={managed} enabled={enabled} limit={limit} onManagedChange={setManaged} onEnabledChange={setEnabled} onLimitChange={setLimit} /><div className="flex justify-end"><Button size="sm" loading={pending}>{fa ? "ذخیره تنظیمات ثبت‌نام" : "Save signup settings"}</Button></div></form>;
 }
 function StatusPill({ status }: { status: string }) {
   const { language } = useLocale();

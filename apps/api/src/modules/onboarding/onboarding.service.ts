@@ -82,6 +82,11 @@ export class OnboardingService {
     return this.publicSignupOptions();
   }
 
+  async getPlatformSignupPolicy(user: AuthenticatedUser) {
+    if (!(user.roles?.includes("PLATFORM_ADMIN") || user.role === "PLATFORM_ADMIN")) throw new ApiException(403, "FORBIDDEN", "فقط مدیر پلتفرم می‌تواند تنظیمات سراسری ثبت‌نام را ببیند.");
+    return this.platformSignupPolicy(this.dataSource.manager);
+  }
+
   async setOrganizationSignupPolicy(user: AuthenticatedUser, organizationId: string, dto: SetOrganizationStudentSignupDto) {
     const platform = Boolean(user.roles?.includes("PLATFORM_ADMIN") || user.role === "PLATFORM_ADMIN");
     if (!platform && !user.organizationIds?.includes(organizationId)) throw new ApiException(403, "ORGANIZATION_FORBIDDEN", "به این سازمان دسترسی ندارید.");
