@@ -3,15 +3,23 @@ import { Bell, BookOpen, CalendarDays, CheckCircle2, Clock3, GraduationCap, User
 import { Link } from 'react-router-dom';
 import type { StudentTask, ExamSummary } from '@moshaver/student-core';
 import type { StudentNotification } from '../../services/student-store';
+import { DailyCheckInIcon } from '../icons/moshaver-icons';
+import type { PortalAccess } from '../../app/portal-access';
 import { Badge, Card } from '../ui';
 
 export function StudentProfileCard({ name, grade, major }: { name?: string; grade?: string; major?: string }) {
   return <Card className="profile-card"><span className="profile-card__avatar"><UserRound /></span><div><span>دانش‌آموز</span><h2>{name || 'دانش‌آموز مشاور'}</h2><p>{[grade, major].filter(Boolean).join(' · ') || 'پرونده آموزشی'}</p></div><Link to="/more" aria-label="مشاهده پروفایل"><UserRound size={20} /></Link></Card>;
 }
 
-export function QuickActions() {
-  const actions = [{ to: '/plan', label: 'برنامه', icon: <CalendarDays /> }, { to: '/exam', label: 'آزمون‌ها', icon: <GraduationCap /> }, { to: '/learning', label: 'گزارش', icon: <BookOpen /> }, { to: '/notifications', label: 'اعلان‌ها', icon: <Bell /> }];
-  return <nav className="quick-actions" aria-label="دسترسی سریع">{actions.map((item) => <Link key={item.to} to={item.to}><span>{item.icon}</span><em>{item.label}</em></Link>)}</nav>;
+export function QuickActions({ access }: { access?: PortalAccess | null }) {
+  const actions = [
+    { visible: !access || access.canReadPlans, to: '/plan', label: 'برنامه', icon: <CalendarDays /> },
+    { visible: !access || access.canReadExams, to: '/exam', label: 'آزمون‌ها', icon: <GraduationCap /> },
+    { visible: !access || access.canReadLearning, to: '/learning', label: 'یادگیری', icon: <BookOpen /> },
+    { visible: !access || access.canMutateStudentWork, to: '/more/report', label: 'گزارش روزانه', icon: <DailyCheckInIcon /> },
+    { to: '/notifications', label: 'اعلان‌ها', icon: <Bell /> },
+  ].filter((item) => item.visible !== false);
+  return <nav className="quick-actions" aria-label="دسترسی سریع">{actions.map((item) => <Link key={item.to} to={item.to} aria-label={item.label}><span aria-hidden="true">{item.icon}</span><em>{item.label}</em></Link>)}</nav>;
 }
 
 export function DateMarker({ value }: { value: string }) {

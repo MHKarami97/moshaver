@@ -132,6 +132,11 @@ export class DashboardService {
             ov,
           ),
         },
+        todayPlanHealth: await this.planHealthForOrganizations(ov),
+        weeklyPlanHealth: await this.weeklyPlanHealthForOrganizations(ov),
+        studentHealthSummary: await this.organizationStudentHealthSummary(ov),
+        studentHealth: await this.organizationStudentHealth(ov),
+        advisorCoverage: await this.organizationAdvisorCoverage(ov),
         notices: [],
       };
     }
@@ -173,6 +178,136 @@ export class DashboardService {
       return rows.map((r: { id: string }) => r.id);
     }
     return [];
+  }
+  /**
+   * Organization-admin visibility is deliberately derived from active
+   * organization memberships. The client only receives a small actionable
+   * roster, never an unscoped student feed.
+   */
+  private async planHealthForOrganizations(organizationIds: string[]) {
+    const marks = organizationIds.map(() => "?").join(",");
+    const rows = await this.db.query(
+      `SELECT COUNT(DISTINCT p.id) plans, COUNT(t.id) tasks,
+        SUM(CASE WHEN t.completedAt IS NOT NULL THEN 1 ELSE 0 END) completed
+       FROM plans p
+       JOIN students s ON s.id=p.studentId
+       LEFT JOIN tasks t ON t.planId=p.id
+       WHERE EXISTS(SELECT 1 FROM organization_memberships m WHERE m.userId=s.userId AND m.organizationId IN (${marks}) AND m.status='ACTIVE')
+         AND p.date=date('now') AND p.status='PUBLISHED'`,
+      organizationIds,
+    );
+    const row = rows[0] || {};
+    return {
+      plans: Number(row.plans || 0),
+      tasks: Number(row.tasks || 0),
+      completed: Number(row.completed || 0),
+    };
+  }
+  private async weeklyPlanHealthForOrganizations(organizationIds: string[]) {
+    const marks = organizationIds.map(() => "?").join(",");
+    const rows = await this.db.query(
+      `SELECT COUNT(DISTINCT p.id) plans, COUNT(t.id) tasks,
+        SUM(CASE WHEN t.completedAt IS NOT NULL THEN 1 ELSE 0 END) completed
+       FROM plans p
+       JOIN students s ON s.id=p.studentId
+       LEFT JOIN tasks t ON t.planId=p.id
+       WHERE EXISTS(SELECT 1 FROM organization_memberships m WHERE m.userId=s.userId AND m.organizationId IN (${marks}) AND m.status='ACTIVE')
+         AND p.date BETWEEN date('now','-6 day') AND date('now')
+         AND p.status='PUBLISHED'`,
+      organizationIds,
+    );
+    const row = rows[0] || {};
+    return {
+      plans: Number(row.plans || 0),
+      tasks: Number(row.tasks || 0),
+      completed: Number(row.completed || 0),
+    };
+  }
+  private async organizationStudentHealth(organizationIds: string[]) {
+    const marks = organizationIds.map(() => "?").join(",");
+    const rows = await this.db.query(
+      `SELECT s.id, s.name,
+        (SELECT MAX(ss.lastHeartbeatAt) FROM study_sessions ss WHERE ss.studentId=s.id) lastActiveAt,
+        COUNT(DISTINCT p.id) plansToday,
+        COUNT(t.id) tasksToday,
+        SUM(CASE WHEN t.completedAt IS NOT NULL THEN 1 ELSE 0 END) completedToday,
+        CASE WHEN EXISTS(SELECT 1 FROM user_relationships ur WHERE ur.toStudentId=s.id AND ur.organizationId IN (${marks}) AND ur.type='ADVISOR_OF' AND ur.status='ACTIVE') THEN 1 ELSE 0 END advisorAssigned,
+        CASE WHEN EXISTS(SELECT 1 FROM daily_reports dr WHERE dr.studentId=s.id AND dr.planDate=date('now')) THEN 1 ELSE 0 END reportSubmitted,
+        COALESCE((SELECT sp.syncStatus FROM student_presence sp WHERE sp.studentId=s.id), 'offline') syncStatus,
+        (SELECT COUNT(*) FROM task_issues ti WHERE ti.studentId=s.id AND ti.status='OPEN') openIssues,
+        (SELECT COUNT(*) FROM recovery_requests rr WHERE rr.studentId=s.id AND rr.status='pending') pendingRecoveries
+       FROM students s
+       LEFT JOIN plans p ON p.studentId=s.id AND p.date=date('now') AND p.status='PUBLISHED'
+       LEFT JOIN tasks t ON t.planId=p.id
+       WHERE EXISTS(SELECT 1 FROM organization_memberships m WHERE m.userId=s.userId AND m.organizationId IN (${marks}) AND m.status='ACTIVE')
+       GROUP BY s.id, s.name
+       HAVING COUNT(DISTINCT p.id)=0
+          OR (COUNT(t.id)>0 AND SUM(CASE WHEN t.completedAt IS NOT NULL THEN 1 ELSE 0 END)=0)
+          OR (SELECT COUNT(*) FROM task_issues ti WHERE ti.studentId=s.id AND ti.status='OPEN')>0
+          OR (SELECT COUNT(*) FROM recovery_requests rr WHERE rr.studentId=s.id AND rr.status='pending')>0
+          OR COALESCE((SELECT sp.syncStatus FROM student_presence sp WHERE sp.studentId=s.id), 'offline')='failed'
+          OR NOT EXISTS(SELECT 1 FROM daily_reports dr WHERE dr.studentId=s.id AND dr.planDate=date('now'))
+          OR NOT EXISTS(SELECT 1 FROM user_relationships ur WHERE ur.toStudentId=s.id AND ur.organizationId IN (${marks}) AND ur.type='ADVISOR_OF' AND ur.status='ACTIVE')
+       ORDER BY CASE
+         WHEN (SELECT COUNT(*) FROM recovery_requests rr WHERE rr.studentId=s.id AND rr.status='pending')>0 THEN 0
+         WHEN (SELECT COUNT(*) FROM task_issues ti WHERE ti.studentId=s.id AND ti.status='OPEN')>0 THEN 1
+         WHEN COALESCE((SELECT sp.syncStatus FROM student_presence sp WHERE sp.studentId=s.id), 'offline')='failed' THEN 2
+         WHEN COUNT(DISTINCT p.id)=0 THEN 3
+         WHEN COUNT(t.id)>0 AND SUM(CASE WHEN t.completedAt IS NOT NULL THEN 1 ELSE 0 END)=0 THEN 4
+         WHEN NOT EXISTS(SELECT 1 FROM daily_reports dr WHERE dr.studentId=s.id AND dr.planDate=date('now')) THEN 5
+         ELSE 6 END,
+         (SELECT MAX(ss.lastHeartbeatAt) FROM study_sessions ss WHERE ss.studentId=s.id) ASC
+       LIMIT 6`,
+      [...organizationIds, ...organizationIds, ...organizationIds],
+    );
+    return rows.map((row: Record<string, unknown>) => ({
+      id: String(row.id),
+      name: String(row.name || "دانش‌آموز"),
+      plansToday: Number(row.plansToday || 0),
+      tasksToday: Number(row.tasksToday || 0),
+      completedToday: Number(row.completedToday || 0),
+      lastActiveAt: row.lastActiveAt ? String(row.lastActiveAt) : null,
+      reportSubmitted: Boolean(row.reportSubmitted),
+      syncStatus: String(row.syncStatus || "offline"),
+      openIssues: Number(row.openIssues || 0),
+      pendingRecoveries: Number(row.pendingRecoveries || 0),
+      advisorAssigned: Boolean(row.advisorAssigned),
+    }));
+  }
+  private async organizationStudentHealthSummary(organizationIds: string[]) {
+    const marks = organizationIds.map(() => "?").join(",");
+    const scope = `FROM students s WHERE EXISTS(SELECT 1 FROM organization_memberships m WHERE m.userId=s.userId AND m.organizationId IN (${marks}) AND m.status='ACTIVE')`;
+    const scalar = async (condition: string, args = organizationIds) =>
+      Number((await this.db.query(`SELECT COUNT(DISTINCT s.id) n ${scope} AND (${condition})`, args))[0]?.n || 0);
+    return {
+      noPlan: await scalar("NOT EXISTS(SELECT 1 FROM plans p WHERE p.studentId=s.id AND p.date=date('now') AND p.status='PUBLISHED')"),
+      noReport: await scalar("NOT EXISTS(SELECT 1 FROM daily_reports dr WHERE dr.studentId=s.id AND dr.planDate=date('now'))"),
+      syncFailed: await scalar("EXISTS(SELECT 1 FROM student_presence sp WHERE sp.studentId=s.id AND sp.syncStatus='failed')"),
+      openIssues: await scalar("EXISTS(SELECT 1 FROM task_issues ti WHERE ti.studentId=s.id AND ti.status='OPEN')"),
+      noAdvisor: await scalar(`NOT EXISTS(SELECT 1 FROM user_relationships ur WHERE ur.toStudentId=s.id AND ur.organizationId IN (${marks}) AND ur.type='ADVISOR_OF' AND ur.status='ACTIVE')`, [...organizationIds, ...organizationIds]),
+    };
+  }
+  private async organizationAdvisorCoverage(organizationIds: string[]) {
+    const marks = organizationIds.map(() => "?").join(",");
+    const rows = await this.db.query(
+      `SELECT u.id,
+        COALESCE(NULLIF(TRIM(u.firstName || ' ' || u.lastName), ''), u.username) name,
+        COUNT(DISTINCT ur.toStudentId) assignedStudents
+       FROM user_relationships ur
+       JOIN users u ON u.id=ur.fromUserId
+       JOIN organization_memberships m ON m.userId=u.id AND m.organizationId=ur.organizationId
+       WHERE ur.organizationId IN (${marks}) AND ur.type='ADVISOR_OF'
+         AND ur.status='ACTIVE' AND m.status='ACTIVE' AND u.status='ACTIVE'
+       GROUP BY u.id, u.firstName, u.lastName, u.username
+       ORDER BY assignedStudents DESC, name COLLATE NOCASE ASC
+       LIMIT 6`,
+      organizationIds,
+    );
+    return rows.map((row: Record<string, unknown>) => ({
+      id: String(row.id),
+      name: String(row.name || "مشاور"),
+      assignedStudents: Number(row.assignedStudents || 0),
+    }));
   }
   async attentionQueue(user: AuthenticatedUser, requestedLimit?: number) {
     const context: UserContext = {

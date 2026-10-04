@@ -1,14 +1,21 @@
 import { Transform, Type } from "class-transformer";
-import { IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from "class-validator";
+import { IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from "class-validator";
 import { normalizeNationalCode } from "./national-code";
 
 export class StudentSignupDto {
+  @IsUUID() organizationId!: string;
   @Transform(({ value }) => normalizeNationalCode(String(value ?? ""))) @IsString() @Matches(/^\d{10}$/) nationalCode!: string;
   @IsString() @MinLength(12) @MaxLength(300) password!: string;
   @IsString() @MinLength(2) @MaxLength(160) name!: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(12) grade!: number;
   @IsString() @MaxLength(40) educationTypeId!: string;
   @IsOptional() @IsString() @MaxLength(80) trackId?: string;
+}
+export class SetPlatformStudentSignupDto { @IsBoolean() enabled!: boolean; }
+export class SetOrganizationStudentSignupDto {
+  @IsOptional() @IsBoolean() managedByOrganization?: boolean;
+  @IsOptional() @IsBoolean() enabled?: boolean;
+  @IsOptional() @IsInt() @Min(0) @Max(100_000) limit?: number;
 }
 export class AssignStudentOnboardingDto {
   @IsOptional() @IsIn(["AUTO", "MANUAL"]) mode?: "AUTO" | "MANUAL";

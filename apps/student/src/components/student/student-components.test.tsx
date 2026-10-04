@@ -6,6 +6,7 @@ import { StudentAppShell } from "../layout/StudentAppShell";
 import {
   ExamCard,
   NotificationCard,
+  QuickActions,
   ScheduleCard,
   StudentProfileCard,
 } from "./index";
@@ -114,6 +115,27 @@ describe("student design system", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the daily report reachable from the Home quick-action rail", () => {
+    render(
+      <MemoryRouter>
+        <QuickActions />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("link", { name: "گزارش روزانه" })).toHaveAttribute(
+      "href",
+      "/more/report",
+    );
+  });
+
+  it("does not offer student-only check-in to read-only guardian access", () => {
+    render(
+      <MemoryRouter>
+        <QuickActions access={{ ...studentAccess, mode: "guardian", canMutateStudentWork: false }} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole("link", { name: "گزارش روزانه" })).not.toBeInTheDocument();
+  });
+
   it("hides navigation destinations that are absent from active capabilities", () => {
     render(
       <MemoryRouter>
@@ -140,6 +162,23 @@ describe("student design system", () => {
       screen.queryByRole("link", { name: /گفتگو/ }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByRole("link")).toHaveLength(3);
+  });
+
+  it("does not reserve an activity island after a quiet, completed sync", () => {
+    render(
+      <MemoryRouter>
+        <StudentAppShell
+          access={studentAccess}
+          unread={0}
+          syncLabel="همگام شد"
+          theme="system"
+          onThemeChange={vi.fn()}
+        >
+          <p>محتوا</p>
+        </StudentAppShell>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByLabelText("فعالیت‌های در حال اجرا")).not.toBeInTheDocument();
   });
 
   it("opens the active task from the island with a deep link", async () => {

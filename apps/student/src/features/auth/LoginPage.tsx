@@ -1,6 +1,7 @@
 import { GraduationCap, LoaderCircle, LockKeyhole, LogIn, ShieldCheck, UserRound, WifiOff } from 'lucide-react';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { useStudentStore } from '../../services/student-store';
+import { apiClient } from '../../services/api-client';
 import { PasswordInput } from './PasswordInput';
 import { SignupForm } from './SignupForm';
 
@@ -10,6 +11,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [validationError, setValidationError] = useState('');
   const [online, setOnline] = useState(() => navigator.onLine);
+  const [signupOptions, setSignupOptions] = useState<{ enabled: boolean; organizations: Array<{ id: string; name: string; remaining: number }> }>({ enabled: false, organizations: [] });
   const login = useStudentStore((state) => state.login);
   const loadStatus = useStudentStore((state) => state.loadStatus);
   const apiError = useStudentStore((state) => state.error);
@@ -28,6 +30,16 @@ export function LoginPage() {
       window.removeEventListener('offline', disconnected);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient.request<{ enabled: boolean; organizations: Array<{ id: string; name: string; remaining: number }> }>('GET', '/onboarding/student-signup-options')
+      .then((value) => { if (!cancelled) setSignupOptions(value); })
+      .catch(() => { if (!cancelled) setSignupOptions({ enabled: false, organizations: [] }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const selfSignupAvailable = signupOptions.enabled && signupOptions.organizations.length > 0;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,9 +78,10 @@ export function LoginPage() {
 
       <div className="student-login__account-tabs" role="tablist" aria-label="ورود یا ساخت حساب">
         <button type="button" role="tab" aria-selected={mode === 'login'} onClick={() => setMode('login')}>ورود</button>
-        <button type="button" role="tab" aria-selected={mode === 'signup'} onClick={() => setMode('signup')}>ساخت حساب</button>
+        {selfSignupAvailable ? <button type="button" role="tab" aria-selected={mode === 'signup'} onClick={() => setMode('signup')}>ساخت حساب</button> : null}
       </div>
-      {mode === 'signup' ? <SignupForm onLogin={() => setMode('login')} /> : <form className="student-login__card" onSubmit={submit} aria-busy={isLoading} noValidate>
+      {!selfSignupAvailable ? <p className="student-login__account-help">برای ساخت حساب، مشخصات خود را به سازمان آموزشی بدهید. پس از تأیید، نام کاربری و رمز ورود برای شما صادر می‌شود.</p> : null}
+      {mode === 'signup' && selfSignupAvailable ? <SignupForm organizations={signupOptions.organizations} onLogin={() => setMode('login')} /> : <form className="student-login__card" onSubmit={submit} aria-busy={isLoading} noValidate>
         <header>
           <span><LogIn aria-hidden="true" /></span>
           <div>

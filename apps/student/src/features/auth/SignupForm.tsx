@@ -26,8 +26,9 @@ import { FieldSelect } from "./components/FieldSelect";
 import { NationalCodeField } from "./components/NationalCodeField";
 
 type Step = 1 | 2 | 3;
+type SignupOrganization = { id: string; name: string; remaining: number };
 
-export function SignupForm({ onLogin }: { onLogin(): void }) {
+export function SignupForm({ onLogin, organizations }: { onLogin(): void; organizations: SignupOrganization[] }) {
   const {
     options,
     status: optionsStatus,
@@ -40,6 +41,7 @@ export function SignupForm({ onLogin }: { onLogin(): void }) {
   const [status, setStatus] = useState<"ready" | "saving" | "done">("ready");
   const [error, setError] = useState("");
   const [step, setStep] = useState<Step>(1);
+  const [organizationId, setOrganizationId] = useState(() => organizations.length === 1 ? organizations[0].id : "");
   /** Prevents re-triggering auto-advance for the same section. */
   const advancedRef = useRef<Step | null>(null);
 
@@ -92,8 +94,8 @@ export function SignupForm({ onLogin }: { onLogin(): void }) {
     () =>
       form.firstName.trim().length >= 1 &&
       form.lastName.trim().length >= 1 &&
-      nationalCodeValid,
-    [form.firstName, form.lastName, nationalCodeValid],
+      nationalCodeValid && Boolean(organizationId),
+    [form.firstName, form.lastName, nationalCodeValid, organizationId],
   );
 
   const educationValid = useMemo(
@@ -202,6 +204,7 @@ export function SignupForm({ onLogin }: { onLogin(): void }) {
         "/onboarding/student-signup",
         {
           name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+          organizationId,
           nationalCode: form.nationalCode,
           password: form.password,
           grade: Number(form.grade),
@@ -340,6 +343,13 @@ export function SignupForm({ onLogin }: { onLogin(): void }) {
             touched={Boolean(touched.nationalCode)}
             nextId="signup-grade-select"
           />
+          <label className="student-signup__organization" htmlFor="signup-organization">
+            سازمان آموزشی
+            <select id="signup-organization" value={organizationId} onChange={(event) => setOrganizationId(event.target.value)} disabled={organizations.length === 1}>
+              {organizations.length > 1 ? <option value="">سازمان خود را انتخاب کنید</option> : null}
+              {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+            </select>
+          </label>
         </>
       ) : null}
 

@@ -60,3 +60,66 @@ describe("DashboardService attentionQueue", () => {
     );
   });
 });
+
+describe("DashboardService organization dashboard", () => {
+  it("derives student health only from the active organization scope", async () => {
+    const db = {
+      query: jest.fn(async (sql: string, args: unknown[] = []) => {
+        if (sql.includes("lastActiveAt")) {
+          expect(args).toEqual(["org-allowed", "org-allowed", "org-allowed"]);
+          return [
+            {
+              id: "student-1",
+              name: "دانش‌آموز مجاز",
+              plansToday: 0,
+              tasksToday: 0,
+              completedToday: 0,
+              reportSubmitted: 0,
+              syncStatus: "failed",
+              openIssues: 1,
+              pendingRecoveries: 0,
+            },
+          ];
+        }
+        if (sql.includes("COUNT(DISTINCT s.id)")) {
+          expect(args.every((value) => value === "org-allowed")).toBe(true);
+          return [{ n: 2 }];
+        }
+        if (sql.includes("COUNT(DISTINCT p.id) plans")) {
+          expect(args).toEqual(["org-allowed"]);
+          return [{ plans: 2, tasks: 4, completed: 1 }];
+        }
+        if (sql.includes("GROUP BY u.id")) {
+          expect(args).toEqual(["org-allowed"]);
+          return [];
+        }
+        if (sql.includes("chat_messages")) return [{ n: 0 }];
+        expect(args).toEqual(["org-allowed"]);
+        return [{ n: 1 }];
+      }),
+    };
+    const service = new DashboardService(db as never, {} as never);
+    const data = await service.get({
+      id: "org-admin-1",
+      username: "org-admin",
+      role: "ORGANIZATION_ADMIN",
+      roles: ["ORGANIZATION_ADMIN"],
+      organizationIds: ["org-allowed"],
+      sessionId: "session-1",
+    });
+
+    expect(data).toMatchObject({
+      context: "ORGANIZATION_ADMIN",
+      todayPlanHealth: { plans: 2, tasks: 4, completed: 1 },
+      studentHealthSummary: { noPlan: 2, noReport: 2, syncFailed: 2, openIssues: 2, noAdvisor: 2 },
+      studentHealth: [
+        expect.objectContaining({
+          id: "student-1",
+          syncStatus: "failed",
+          openIssues: 1,
+        }),
+      ],
+      advisorCoverage: [],
+    });
+  });
+});

@@ -185,11 +185,11 @@ export function roleDashboardMetrics(
     case "ORGANIZATION_ADMIN":
       return [
         {
-          label: copy.activeMembers,
-          value: n(data.members),
-          hint: copy.activeMembersHint,
-          icon: UsersRound,
-          tone: "green",
+          label: copy.noPlanMetric,
+          value: n(data.studentHealthSummary?.noPlan),
+          hint: copy.noPlanMetricHint,
+          icon: CalendarDays,
+          tone: "amber",
         },
         {
           label: copy.studentsMetric,
@@ -199,16 +199,16 @@ export function roleDashboardMetrics(
           tone: "blue",
         },
         {
-          label: copy.staffMetric,
-          value: n(data.staff),
-          hint: copy.staffHint,
+          label: copy.noAdvisorMetric,
+          value: n(data.studentHealthSummary?.noAdvisor),
+          hint: copy.noAdvisorMetricHint,
           icon: ShieldCheck,
           tone: "amber",
         },
         {
-          label: copy.inactiveUsers,
-          value: n(data.inactiveUsers),
-          hint: copy.inactiveUsersHint,
+          label: copy.noReportMetric,
+          value: n(data.studentHealthSummary?.noReport),
+          hint: copy.noReportMetricHint,
           icon: Activity,
           tone: "red",
         },
@@ -357,8 +357,12 @@ export function RoleDashboard({
     quickActionsForRole(auth.activeRole, auth.capabilities, language).length > 0;
   const supportsSchedule = ["ADVISOR", "TEACHER", "MENTOR"].includes(data.context);
   const showSchedule = visibleWidget("upcoming-schedule") && supportsSchedule;
-  const supportsPlanHealth = ["ADVISOR", "MENTOR"].includes(data.context);
+  const supportsPlanHealth = ["ADVISOR", "MENTOR", "ORGANIZATION_ADMIN"].includes(data.context);
   const showPlanHealth = visibleWidget("plan-health") && supportsPlanHealth;
+  const showStudentHealth =
+    data.context === "ORGANIZATION_ADMIN" && visibleWidget("student-health");
+  const showWeeklyPlanHealth =
+    data.context === "ORGANIZATION_ADMIN" && visibleWidget("weekly-plan-health");
   const generatedAt = data.generatedAt
     ? dashboard.refreshedAt +
       " · " +
@@ -424,6 +428,20 @@ export function RoleDashboard({
                 },
               ]
             : []),
+          ...(data.context === "ORGANIZATION_ADMIN"
+            ? [
+                {
+                  id: "student-health",
+                  label: dashboard.studentHealthWidget,
+                  visible: visibleWidget("student-health"),
+                },
+                {
+                  id: "weekly-plan-health",
+                  label: dashboard.weeklyPlanHealthWidget,
+                  visible: visibleWidget("weekly-plan-health"),
+                },
+              ]
+            : []),
         ],
         onVisibilityChange: setWidgetVisible,
         onReset: reset,
@@ -469,7 +487,7 @@ export function RoleDashboard({
         />
       }
       secondary={
-        showPlatformHealth || showSchedule || showPlanHealth || showNextActions ? (
+        showPlatformHealth || showSchedule || showPlanHealth || showStudentHealth || showWeeklyPlanHealth || showNextActions ? (
           <>
             {showSchedule ? <DashboardSchedule data={data} /> : null}
             {showPlanHealth ? (
@@ -479,11 +497,68 @@ export function RoleDashboard({
               />
             ) : null}
             {showPlatformHealth ? <PlatformHealthPanel data={data} /> : null}
+            {showStudentHealth ? <OrganizationStudentHealth data={data} /> : null}
+            {showWeeklyPlanHealth ? (
+              <DashboardPlanHealth
+                value={data.weeklyPlanHealth}
+                href={auth.capabilities.includes("plans.read") ? "/admin/planner" : undefined}
+                title={dashboard.weeklyPlanHealthTitle}
+                description={dashboard.weeklyPlanHealthDescription}
+              />
+            ) : null}
             {showNextActions ? <DashboardQuickActions /> : null}
           </>
         ) : undefined
       }
     />
+  );
+}
+
+function OrganizationStudentHealth({ data }: { data: RoleDashboardData }) {
+  const { language, profile } = useLocale();
+  const auth = useAuth();
+  const copy = dashboardCopy[language];
+  const students = data.studentHealth || [];
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-black text-ink">{copy.studentHealthTitle}</h2>
+          <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{copy.studentHealthDescription}</p>
+        </div>
+        <span className="flex shrink-0 items-center gap-3 text-xs font-bold text-brand">
+          {auth.capabilities.includes("organization.members.manage") ? <Link to="/admin/organizations" className="hover:underline">{copy.openPeopleAccess}</Link> : null}
+          <Link to="/admin/students" className="hover:underline">{copy.openStudents}</Link>
+        </span>
+      </div>
+      {students.length ? (
+        <ul className="mt-3 divide-y divide-[rgb(var(--border-subtle))]" aria-label={copy.studentHealthTitle}>
+          {students.map((student) => {
+            const reasons = [
+              student.plansToday === 0 ? copy.noPlanToday : student.completedToday === 0 && student.tasksToday > 0 ? copy.noCompletionToday : null,
+              !student.reportSubmitted ? copy.noReportToday : null,
+              student.syncStatus === "failed" ? copy.syncFailed : null,
+              student.openIssues ? copy.openStudentIssue : null,
+              student.pendingRecoveries ? copy.pendingRecovery : null,
+              !student.advisorAssigned ? copy.noAdvisor : null,
+            ].filter(Boolean);
+            return <li key={student.id} className="flex items-center justify-between gap-3 py-2.5">
+              <div className="min-w-0"><Link to={`/admin/students?studentId=${encodeURIComponent(student.id)}&tab=activity`} className="block truncate text-xs font-bold text-ink hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">{student.name}</Link><span className="mt-0.5 block truncate text-[11px] text-amber-700 dark:text-amber-300">{reasons.join(" · ")}</span></div>
+              <span className="shrink-0 text-xs font-bold tabular-nums text-slate-500">{student.completedToday.toLocaleString(profile.locale)}/{student.tasksToday.toLocaleString(profile.locale)}</span>
+            </li>;
+          })}
+        </ul>
+      ) : <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">{copy.noStudentHealth}</p>}
+      <section className="mt-4 border-t border-[rgb(var(--border-subtle))] pt-3" aria-labelledby="advisor-coverage-title">
+        <h3 id="advisor-coverage-title" className="text-xs font-black text-ink">{copy.advisorCoverageTitle}</h3>
+        <p className="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">{copy.advisorCoverageDescription}</p>
+        {data.advisorCoverage?.length ? (
+          <ul className="mt-2 flex gap-2 overflow-x-auto pb-1" aria-label={copy.advisorCoverageTitle}>
+            {data.advisorCoverage.map((advisor) => <li key={advisor.id} className="min-w-28 rounded-md bg-[rgb(var(--surface-muted))] px-2.5 py-2"><strong className="block truncate text-xs text-ink">{advisor.name}</strong><span className="mt-0.5 block text-[11px] text-slate-500">{copy.assignedStudentsCount.replace("{count}", advisor.assignedStudents.toLocaleString(profile.locale))}</span></li>)}
+          </ul>
+        ) : <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{copy.noAdvisorCoverage}</p>}
+      </section>
+    </Card>
   );
 }
 

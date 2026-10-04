@@ -44,6 +44,11 @@ describe("role dashboard layout", () => {
     expect(
       createRoleDashboardView("TEACHER").widgets.some((widget) => widget.id === "plan-health"),
     ).toBe(false);
+    expect(
+      createRoleDashboardView("ORGANIZATION_ADMIN").widgets.some(
+        (widget) => widget.id === "plan-health",
+      ),
+    ).toBe(true);
   });
 
   it("uses URL layout state as an allowlisted portable override", () => {

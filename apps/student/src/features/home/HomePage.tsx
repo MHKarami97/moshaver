@@ -1,4 +1,4 @@
-import { CalendarClock, Play, TrendingUp } from 'lucide-react';
+import { CalendarClock, CheckCircle2, ListChecks, Play, Sparkles, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { taskStatus } from '@moshaver/student-core';
 import { useStudentStore, useTodaySummary } from '../../services/student-store';
@@ -22,13 +22,22 @@ export function HomePage() {
   const now = new Date().toTimeString().slice(0, 5);
   const urgentExam = exams.find((exam) => ['active', 'available', 'upcoming'].includes(exam.delivery?.state || ''));
   const recent = notifications.find((item) => !item.readAt) || notifications[0];
+  const remaining = Math.max(0, metrics.totalTasks - metrics.doneTasks - metrics.partialTasks);
 
   return <div className="page-stack">
     <StudentProfileCard name={student?.name} grade={student?.grade} major={student?.major} />
-    <QuickActions />
+    {plan.motivationText ? <aside className="home-guidance" aria-label="یادداشت برنامه امروز"><Sparkles aria-hidden="true" /><p>{plan.motivationText}</p></aside> : null}
+    <QuickActions access={access} />
     {access?.mode === 'guardian' ? <p className="guardian-note">نمای خانواده فقط خواندنی است؛ ثبت فعالیت با حساب دانش‌آموز انجام می‌شود.</p> : null}
     {status === 'loading' && !plan.tasks.length ? <LoadingState label="در حال دریافت برنامه امروز" /> : null}
     {status === 'error' ? <ErrorState message={error || undefined} onRetry={() => void load()} /> : null}
+    {plan.tasks.length ? <section className="home-pulse" aria-label="خلاصه امروز">
+      <div className="home-pulse__intro"><span>نمای سریع امروز</span><strong>{completion.toLocaleString('fa-IR')}٪ مسیر انجام شده</strong></div>
+      <div className="home-pulse__rail">
+        <div className="home-pulse__item"><CheckCircle2 aria-hidden="true" /><span>ثبت‌شده<strong>{(metrics.doneTasks + metrics.partialTasks).toLocaleString('fa-IR')}</strong></span></div>
+        <div className="home-pulse__item"><ListChecks aria-hidden="true" /><span>باقی‌مانده<strong>{remaining.toLocaleString('fa-IR')}</strong></span></div>
+      </div>
+    </section> : null}
     <section className="today-section" aria-labelledby="today-title">
       <header className="section-heading"><div><span>آنچه امروز مهم است</span><h2 id="today-title">برنامه امروز</h2></div><DateMarker value={plan.isoDate} /></header>
       {featured ? <div className="next-task"><span className="next-task__label">{current ? 'الان' : 'بعدی'}</span><ScheduleCard task={featured} status={current ? 'active' : 'next'} action={access?.canMutateStudentWork ? <Button onClick={() => void start(featured.id)}><Play size={17} />{current ? 'ادامه مطالعه' : 'شروع فعالیت'}</Button> : undefined} /></div> : status !== 'loading' ? <EmptyState title="برای امروز برنامه‌ای ثبت نشده است" description="اگر مشاور برنامه‌ای منتشر کند، فعالیت بعدی همین‌جا دیده می‌شود." /> : null}

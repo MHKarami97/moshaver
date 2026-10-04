@@ -69,6 +69,7 @@ export function ActivityIsland({ syncLabel }: { syncLabel: string }) {
     audioActive &&
     location.pathname !== "/more/audio" &&
     !(location.pathname === "/more" && location.hash === "#relaxation-title");
+  const showSync = !["آنلاین", "همگام شد"].includes(syncLabel);
 
   const activities = useMemo<CompactActivity[]>(
     () =>
@@ -112,7 +113,7 @@ export function ActivityIsland({ syncLabel }: { syncLabel: string }) {
                   : undefined,
             }
           : null,
-        syncLabel !== "آنلاین"
+        showSync
           ? { kind: "sync", label: "وضعیت داده‌ها", title: syncLabel }
           : null,
       ].filter((item): item is CompactActivity => Boolean(item)),
@@ -127,6 +128,7 @@ export function ActivityIsland({ syncLabel }: { syncLabel: string }) {
       selectedTrack,
       session,
       showAudio,
+      showSync,
       syncLabel,
       task?.subject,
       task?.title,
@@ -182,6 +184,10 @@ export function ActivityIsland({ syncLabel }: { syncLabel: string }) {
   const primary = activities[0];
   const primaryHasControl =
     primary?.kind === "study" || primary?.kind === "audio";
+
+  // A quiet state should stay quiet: no fixed island or inaccessible disabled
+  // control when there is nothing a student can inspect or resume.
+  if (!activities.length) return null;
 
   return (
     <aside
@@ -400,7 +406,7 @@ export function ActivityIsland({ syncLabel }: { syncLabel: string }) {
                 }
               />
             ) : null}
-            {syncLabel !== "آنلاین" ? (
+            {showSync ? (
               <Session
                 kind="sync"
                 icon={<Cloud />}

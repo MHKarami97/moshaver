@@ -30,9 +30,13 @@ export function dashboardPlanHealth(value?: {
 export function DashboardPlanHealth({
   value,
   href,
+  title,
+  description,
 }: {
   value?: { plans?: number; tasks?: number; completed?: number };
   href?: string;
+  title?: string;
+  description?: string;
 }) {
   const { language, profile } = useLocale();
   const copy = dashboardCopy[language];
@@ -46,10 +50,10 @@ export function DashboardPlanHealth({
         </span>
         <div className="min-w-0 flex-1">
           <h2 id="dashboard-plan-health-title" className="text-sm font-bold text-ink">
-            {copy.planHealthTitle}
+            {title || copy.planHealthTitle}
           </h2>
           <p className="mt-0.5 text-xs leading-5 text-slate-500 dark:text-slate-400">
-            {copy.planHealthDescription}
+            {description || copy.planHealthDescription}
           </p>
         </div>
       </header>

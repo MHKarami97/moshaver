@@ -35,7 +35,7 @@ function storageAdapter() {
 
 export function createRoleDashboardView(role?: string | null) {
   const supportsSchedule = ["ADVISOR", "TEACHER", "MENTOR"].includes(role || "");
-  const supportsPlanHealth = ["ADVISOR", "MENTOR"].includes(role || "");
+  const supportsPlanHealth = ["ADVISOR", "MENTOR", "ORGANIZATION_ADMIN"].includes(role || "");
   return createDashboardView({
     id: `${DASHBOARD_VIEW_ID}:${role || "default"}`,
     density: "comfortable",
@@ -49,6 +49,12 @@ export function createRoleDashboardView(role?: string | null) {
       ...(supportsPlanHealth ? [{ id: "plan-health", zone: "secondary" as const, order: 4 }] : []),
       ...(role === "PLATFORM_ADMIN"
         ? [{ id: "platform-health", zone: "secondary" as const, order: 5 }]
+        : []),
+      ...(role === "ORGANIZATION_ADMIN"
+        ? [
+            { id: "student-health", zone: "secondary" as const, order: 5 },
+            { id: "weekly-plan-health", zone: "secondary" as const, order: 6 },
+          ]
         : []),
     ],
   });

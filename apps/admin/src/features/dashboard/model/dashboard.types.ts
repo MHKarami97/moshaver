@@ -110,6 +110,7 @@ export type RoleDashboardData = {
   recoveryRequests?: number;
   retryRequests?: number;
   todayPlanHealth?: { plans?: number; tasks?: number; completed?: number };
+  weeklyPlanHealth?: { plans?: number; tasks?: number; completed?: number };
   upcomingExams?: Array<{ id: string; title: string; subject?: string; startTime?: string }>;
   subjects?: number | Array<{ id: string; name: string }>;
   recentExamResults?: Array<{
@@ -137,6 +138,21 @@ export type RoleDashboardData = {
   activeUsers?: number;
   inactiveUsers?: number;
   analytics?: { plans?: number };
+  studentHealthSummary?: { noPlan?: number; noReport?: number; syncFailed?: number; openIssues?: number; noAdvisor?: number };
+  studentHealth?: Array<{
+    id: string;
+    name: string;
+    plansToday: number;
+    tasksToday: number;
+    completedToday: number;
+    lastActiveAt: string | null;
+    reportSubmitted: boolean;
+    syncStatus: string;
+    openIssues: number;
+    pendingRecoveries: number;
+    advisorAssigned: boolean;
+  }>;
+  advisorCoverage?: Array<{ id: string; name: string; assignedStudents: number }>;
   notices?: unknown[];
   users?: number;
   systemHealth?: { database?: string; sqlite?: boolean };

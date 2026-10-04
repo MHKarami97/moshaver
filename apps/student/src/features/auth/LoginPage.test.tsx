@@ -11,6 +11,7 @@ describe('Student login page', () => {
     login.mockReset();
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     useStudentStore.setState({ authStatus: 'anonymous', loadStatus: 'idle', error: null, login } as never);
+    vi.spyOn(apiClient, 'request').mockResolvedValue({ enabled: false, organizations: [] } as never);
   });
 
   afterEach(() => {
@@ -57,13 +58,14 @@ describe('Student login page', () => {
   });
 
   it('creates a student account with national code and a valid catalog selection', async () => {
-    const request = vi.spyOn(apiClient, 'request')
+    const request = vi.mocked(apiClient.request)
+      .mockResolvedValueOnce({ enabled: true, organizations: [{ id: 'organization-1', name: 'دبیرستان نمونه', remaining: 10 }] } as never)
       .mockResolvedValueOnce({ schoolYear: '1405-1406', grades: [{ id: 12, fa: 'پایه دوازدهم', level_id: 'upper_secondary' }], educationTypes: [{ id: 'theoretical', fa: 'شاخه نظری', levels: ['upper_secondary'] }], theoreticalTracks: [{ id: 'experimental_sciences', fa: 'علوم تجربی' }], vocationalFields: [], gradeStructure: [{ grades: [12], education_type_ids: ['theoretical'], track_required: true }] } as never)
       .mockResolvedValueOnce([] as never)
       .mockResolvedValueOnce([] as never)
       .mockResolvedValueOnce({ id: 'student-1' } as never);
     render(<LoginPage />);
-    fireEvent.click(screen.getByRole('tab', { name: 'ساخت حساب' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'ساخت حساب' }));
     await screen.findByText('سال تحصیلی 1405-1406');
     fireEvent.change(screen.getByLabelText('نام'), { target: { value: 'دانش آموز' } });
     fireEvent.change(screen.getByLabelText('نام خانوادگی'), { target: { value: 'نمونه' } });
@@ -77,16 +79,17 @@ describe('Student login page', () => {
     fireEvent.change(screen.getByLabelText('تکرار رمز عبور'), { target: { value: 'Student-pass-2026!' } });
     fireEvent.click(screen.getByRole('button', { name: 'ساخت حساب' }));
     expect(await screen.findByText('حساب ساخته شد')).toBeInTheDocument();
-    expect(request).toHaveBeenLastCalledWith('POST', '/onboarding/student-signup', expect.objectContaining({ name: 'دانش آموز نمونه', nationalCode: '9000000017', grade: 12, educationTypeId: 'theoretical', trackId: 'experimental_sciences' }), { skipSyncQueue: true });
+    expect(request).toHaveBeenLastCalledWith('POST', '/onboarding/student-signup', expect.objectContaining({ organizationId: 'organization-1', name: 'دانش آموز نمونه', nationalCode: '9000000017', grade: 12, educationTypeId: 'theoretical', trackId: 'experimental_sciences' }), { skipSyncQueue: true });
   });
 
   it('converts Persian national-code digits immediately and requires English keyboard characters for passwords', async () => {
-    const request = vi.spyOn(apiClient, 'request')
+    const request = vi.mocked(apiClient.request)
+      .mockResolvedValueOnce({ enabled: true, organizations: [{ id: 'organization-1', name: 'دبیرستان نمونه', remaining: 10 }] } as never)
       .mockResolvedValueOnce({ schoolYear: '1405-1406', grades: [{ id: 12, fa: 'پایه دوازدهم', level_id: 'upper_secondary' }], educationTypes: [{ id: 'theoretical', fa: 'شاخه نظری', levels: ['upper_secondary'] }], theoreticalTracks: [{ id: 'experimental_sciences', fa: 'علوم تجربی' }], vocationalFields: [], gradeStructure: [{ grades: [12], education_type_ids: ['theoretical'], track_required: true }] } as never)
       .mockResolvedValueOnce([] as never)
       .mockResolvedValueOnce([] as never);
     render(<LoginPage />);
-    fireEvent.click(screen.getByRole('tab', { name: 'ساخت حساب' }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'ساخت حساب' }));
     await screen.findByText('سال تحصیلی 1405-1406');
 
     fireEvent.change(screen.getByLabelText('کد ملی'), { target: { value: '۹۰۰۰۰۰۰۰۱۷' } });
@@ -102,6 +105,6 @@ describe('Student login page', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('زبان صفحه‌کلید را به انگلیسی تغییر دهید');
     expect(screen.getByRole('button', { name: 'ساخت حساب' })).toBeDisabled();
-    expect(request).toHaveBeenCalledTimes(3);
+    expect(request).toHaveBeenCalledTimes(4);
   });
 });
