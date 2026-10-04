@@ -158,5 +158,6 @@ export type RoleDashboardData = {
   systemHealth?: { database?: string; sqlite?: boolean };
   releaseStatus?: { version?: string; environment?: string };
   auditSummary?: { events24h?: number; lockedLogins?: number };
+  signupOverview?: { enabledOrganizations?: number; remainingCapacity?: number; pendingAssignments?: number };
   children?: number;
 };

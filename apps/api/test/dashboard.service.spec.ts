@@ -123,3 +123,27 @@ describe("DashboardService organization dashboard", () => {
     });
   });
 });
+
+describe("DashboardService platform enrollment overview", () => {
+  it("reports only actionable direct-signup capacity and pending assignment work", async () => {
+    const db = {
+      query: jest.fn(async (sql: string) => {
+        if (sql.includes("COUNT(*)n FROM organizations")) return [{ n: 4 }];
+        if (sql.includes("SUM(studentSignupLimit-studentSignupCount)")) return [{ n: 27 }];
+        if (sql.includes("onboardingStatus='PENDING_ASSIGNMENT'")) return [{ n: 3 }];
+        if (sql.includes("COUNT(*)n FROM users")) return [{ n: 19 }];
+        if (sql.includes("chat_messages")) return [{ n: 0 }];
+        return [{ n: 0 }];
+      }),
+    };
+    const service = new DashboardService(db as never, {} as never);
+    const data = await service.get({
+      id: "platform-1", username: "platform", role: "PLATFORM_ADMIN", roles: ["PLATFORM_ADMIN"], sessionId: "session-1",
+    });
+
+    expect(data).toMatchObject({
+      context: "PLATFORM_ADMIN",
+      signupOverview: { enabledOrganizations: 4, remainingCapacity: 27, pendingAssignments: 3 },
+    });
+  });
+});

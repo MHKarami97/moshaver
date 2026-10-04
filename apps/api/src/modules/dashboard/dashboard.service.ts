@@ -145,6 +145,11 @@ export class DashboardService {
         ...common,
         organizations: await scalar(`SELECT COUNT(*)n FROM organizations`),
         users: await scalar(`SELECT COUNT(*)n FROM users`),
+        signupOverview: {
+          enabledOrganizations: await scalar(`SELECT COUNT(*)n FROM organizations WHERE status='ACTIVE' AND studentSignupEnabled=1 AND studentSignupLimit>studentSignupCount`),
+          remainingCapacity: await scalar(`SELECT COALESCE(SUM(studentSignupLimit-studentSignupCount),0)n FROM organizations WHERE status='ACTIVE' AND studentSignupEnabled=1 AND studentSignupLimit>studentSignupCount`),
+          pendingAssignments: await scalar(`SELECT COUNT(*)n FROM students WHERE onboardingStatus='PENDING_ASSIGNMENT'`),
+        },
         systemHealth: { database: "ok", sqlite: true },
         releaseStatus: {
           version: process.env.APP_VERSION || "2.0.0",

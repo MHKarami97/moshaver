@@ -243,6 +243,27 @@ export function roleDashboardMetrics(
           icon: Activity,
           tone: "red",
         },
+        {
+          label: copy.signupOrganizationsMetric,
+          value: n(data.signupOverview?.enabledOrganizations),
+          hint: copy.signupOrganizationsHint,
+          icon: Building2,
+          tone: "green",
+        },
+        {
+          label: copy.signupCapacityMetric,
+          value: n(data.signupOverview?.remainingCapacity),
+          hint: copy.signupCapacityHint,
+          icon: UsersRound,
+          tone: "blue",
+        },
+        {
+          label: copy.pendingAssignmentsMetric,
+          value: n(data.signupOverview?.pendingAssignments),
+          hint: copy.pendingAssignmentsHint,
+          icon: Activity,
+          tone: "amber",
+        },
       ];
     default:
       return common;
