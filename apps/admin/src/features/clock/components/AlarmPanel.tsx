@@ -33,7 +33,7 @@ export function AlarmPanel() {
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
             <BellRing className="animate-pulse" size={18} />
             <strong className="text-xs">{active.label}</strong>
-            <span dir="ltr" className="mr-auto font-mono text-sm font-black">
+            <span dir="ltr" className="ms-auto font-mono text-sm font-black">
               {String(active.hour).padStart(2, "0")}:{String(active.minute).padStart(2, "0")}
             </span>
           </div>
@@ -122,7 +122,7 @@ export function AlarmPanel() {
           {copy.noAlarms}
         </div>
       ) : (
-        <div className="max-h-56 space-y-2 overflow-y-auto pr-0.5">
+        <div className="max-h-56 space-y-2 overflow-y-auto pe-0.5">
           {alarms.map((alarm) => (
             <div
               key={alarm.id}

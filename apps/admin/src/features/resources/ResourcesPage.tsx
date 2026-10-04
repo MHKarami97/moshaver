@@ -580,7 +580,7 @@ export function ResourcesPage() {
             پاک‌سازی
           </Button>
         </div>
-        <div className="grid max-h-64 gap-1 overflow-auto pr-0.5">
+        <div className="grid max-h-64 gap-1 overflow-auto pe-0.5">
           {visibleStudents.map((student) => (
             <label
               key={student.id}
@@ -1011,7 +1011,7 @@ function ResourceListItem({
       <button
         type="button"
         onClick={onSelect}
-        className={`grid min-h-36 content-start gap-2 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${frame}`}
+        className={`grid min-h-36 content-start gap-2 rounded-xl border p-3 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${frame}`}
         aria-label={copy.editResourceLabel(item.title)}
         title={copy.editResourceLabel(item.title)}
       >
@@ -1044,7 +1044,7 @@ function ResourceListItem({
     <button
       type="button"
       onClick={onSelect}
-      className={`grid w-full gap-3 rounded-xl border p-3 text-right transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand md:grid-cols-[2.75rem_minmax(10rem,1fr)_minmax(12rem,1.5fr)_auto] md:items-center ${frame}`}
+      className={`grid w-full gap-3 rounded-xl border p-3 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand md:grid-cols-[2.75rem_minmax(10rem,1fr)_minmax(12rem,1.5fr)_auto] md:items-center ${frame}`}
       aria-label={copy.editResourceLabel(item.title)}
       title={copy.editResourceLabel(item.title)}
     >

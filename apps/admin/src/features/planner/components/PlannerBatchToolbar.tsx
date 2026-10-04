@@ -49,7 +49,7 @@ export function PlannerBatchToolbar({
 
       <button
         onClick={onClear}
-        className="ml-auto grid size-7 place-items-center rounded-lg"
+        className="ms-auto grid size-7 place-items-center rounded-lg"
         aria-label={copy.clearSelection}
       >
         <X size={15} />

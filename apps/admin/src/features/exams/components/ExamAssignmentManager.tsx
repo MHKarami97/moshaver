@@ -204,7 +204,7 @@ export function ExamAssignmentManager({
             >
               <span>
                 <strong>{item.student.name}</strong>
-                <small className="mr-2 text-slate-500">
+                <small className="ms-2 text-slate-500">
                   {[item.student.grade, item.student.major].filter(Boolean).join(" • ")}
                 </small>
               </span>

@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronLeft,
+  ChevronDown,
   Download,
   FileJson,
   FileSpreadsheet,
@@ -80,7 +80,7 @@ export function DataTransferWorkspace(props: Props) {
     return <QuestionBankDataTransfer {...props} />;
   }
   const modal = useModal(),
-    { formatDate } = useLocale(),
+    { formatDate, profile } = useLocale(),
     fileRef = useRef<HTMLInputElement>(null);
   const canImport = props.canImport !== false;
   const canCommit = props.canCommit !== false;
@@ -232,7 +232,9 @@ export function DataTransferWorkspace(props: Props) {
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className="border-b border-slate-200 bg-gradient-to-l from-indigo-50 via-white to-white p-4 sm:p-5">
+      <div
+        className={`border-b border-slate-200 p-4 sm:p-5 ${profile.direction === "rtl" ? "bg-gradient-to-l from-indigo-50 via-white to-white" : "bg-gradient-to-r from-indigo-50 via-white to-white"}`}
+      >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-brand text-white">
@@ -320,7 +322,7 @@ export function DataTransferWorkspace(props: Props) {
                   className="flex items-center gap-2 text-sm font-semibold text-brand"
                   onClick={() => setAdvanced((value) => !value)}
                 >
-                  <ChevronLeft size={16} className={`transition ${advanced ? "-rotate-90" : ""}`} />
+                  <ChevronDown size={16} className={`transition ${advanced ? "rotate-180" : ""}`} />
                   ورود دستی JSON
                 </button>
                 {advanced ? (
@@ -676,9 +678,9 @@ function IssueList({
     >
       <summary className="cursor-pointer font-bold">
         {tone === "red" ? (
-          <XCircle className="ml-2 inline" size={16} />
+          <XCircle className="me-2 inline" size={16} />
         ) : (
-          <AlertTriangle className="ml-2 inline" size={16} />
+          <AlertTriangle className="me-2 inline" size={16} />
         )}{" "}
         {title} ({fa(items.length)})
       </summary>

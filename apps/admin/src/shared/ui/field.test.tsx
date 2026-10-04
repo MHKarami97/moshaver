@@ -15,6 +15,8 @@ describe("Field", () => {
     const describedBy = input.getAttribute("aria-describedby")?.split(" ") || [];
     expect(describedBy).toHaveLength(2);
     expect(describedBy.every((id) => document.getElementById(id))).toBe(true);
+    expect(screen.getByText("*", { selector: "span" })).toHaveClass("ms-1");
+    expect(screen.getByText("*", { selector: "span" })).not.toHaveClass("mr-1");
   });
 
   it("targets a control-provided id instead of the generated id", () => {

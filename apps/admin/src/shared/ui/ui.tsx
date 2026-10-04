@@ -588,7 +588,7 @@ export function Field({
     <>
       {label}
       {required ? (
-        <span className="mr-1 text-rosewood" aria-hidden="true">
+        <span className="ms-1 text-rosewood" aria-hidden="true">
           *
         </span>
       ) : null}

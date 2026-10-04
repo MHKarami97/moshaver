@@ -243,7 +243,7 @@ export function OrganizationWorkspace({
     <div className="grid gap-4">
       {/* ── Hero / Overview ─────────────────────────────────────────── */}
       <Card className="overflow-hidden p-0">
-        <div className="relative bg-gradient-to-l from-brand/10 via-brand/5 to-transparent p-5">
+        <div className="relative bg-gradient-to-b from-brand/10 via-brand/5 to-transparent p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="grid size-12 place-items-center rounded-2xl bg-brand/15 text-brand shadow-sm">
@@ -411,7 +411,7 @@ export function OrganizationWorkspace({
                               roleCodes: [event.target.value as RoleCode],
                             })
                           }
-                          className="h-9 appearance-none rounded-lg border border-slate-200 bg-white pr-3 pl-7 text-xs outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900"
+                          className="h-9 appearance-none rounded-lg border border-slate-200 bg-white pe-7 ps-3 text-xs outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900"
                         >
                           {roles.map((item) => (
                             <option key={item.value} value={item.value}>
@@ -421,7 +421,7 @@ export function OrganizationWorkspace({
                         </select>
                         <ChevronDown
                           size={12}
-                          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400"
+                          className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-slate-400"
                         />
                       </div>
 

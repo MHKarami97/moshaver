@@ -49,21 +49,11 @@ function LoginPageContent() {
       dir={direction}
       className="scroll-reveal relative h-dvh overflow-x-hidden overflow-y-auto bg-paper px-4 py-6 sm:px-6 lg:grid lg:place-items-center lg:px-8"
     >
-      <div
-        className={[
-          "pointer-events-none absolute -top-24 size-80 rounded-full bg-brand/10 blur-3xl",
-          direction === "rtl" ? "-right-24" : "-left-24",
-        ].join(" ")}
-      />
-      <div
-        className={[
-          "pointer-events-none absolute -bottom-32 size-96 rounded-full bg-saffron/10 blur-3xl",
-          direction === "rtl" ? "-left-20" : "-right-20",
-        ].join(" ")}
-      />
+      <div className="pointer-events-none absolute -top-24 -start-24 size-80 rounded-full bg-brand/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -end-20 size-96 rounded-full bg-saffron/10 blur-3xl" />
       <div className="relative mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 lg:grid-cols-2">
         <section className="relative hidden min-h-[680px] overflow-hidden bg-gradient-to-br from-teal-950 via-teal-900 to-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-          <div className="absolute -left-20 top-24 size-64 rounded-full bg-teal-400/10 blur-3xl" />
+          <div className="absolute -start-20 top-24 size-64 rounded-full bg-teal-400/10 blur-3xl" />
           <div className="relative">
             <div className="mb-10 flex items-center gap-3">
               <span className="grid size-12 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">

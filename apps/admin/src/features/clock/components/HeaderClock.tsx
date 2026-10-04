@@ -222,7 +222,7 @@ export function HeaderClock({ userId }: { userId?: string }) {
         </span>
 
         <span
-          className={`ml-0.5 hidden size-1.5 shrink-0 rounded-full sm:block ${session.isActive ? "bg-emerald-500" : session.isIdle ? "bg-amber-500" : "bg-slate-400"}`}
+          className={`ms-0.5 hidden size-1.5 shrink-0 rounded-full sm:block ${session.isActive ? "bg-emerald-500" : session.isIdle ? "bg-amber-500" : "bg-slate-400"}`}
           title={session.isIdle ? copy.idle : session.isActive ? copy.active : copy.inactive}
         />
       </button>

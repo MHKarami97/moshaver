@@ -110,7 +110,7 @@ export function ExamCard({
               <MoreHorizontal size={15} />
               {copy.options}
             </summary>
-            <div className="absolute left-0 z-10 mt-1 grid min-w-36 gap-1 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-1 shadow-lg">
+            <div className="absolute start-0 z-10 mt-1 grid min-w-36 gap-1 rounded-lg border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] p-1 shadow-lg">
               {onEdit ? (
                 <Button className="justify-start" size="sm" variant="ghost" onClick={onEdit}>
                   <Pencil size={14} />

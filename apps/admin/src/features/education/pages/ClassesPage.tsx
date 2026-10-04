@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from "react";
 import { listOrganizations } from "../../access/api/access.api";
 import { useAuth } from "../../auth";
 import { useModal } from "../../../shared/ui/modal";
-import { educationLabel } from "../../../shared/lib/utils";
 import { notify } from "../../../shared/ui/notifications";
 import {
   Badge,
@@ -192,7 +191,7 @@ export function ClassesPage() {
             <p className="mt-1 text-xs text-slate-500">{copy.listDescription}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge tone="blue">{visible.length.toLocaleString("fa-IR")}</Badge>
+            <Badge tone="blue">{visible.length.toLocaleString(copy.locale)}</Badge>
             {canManage ? (
               <Button size="sm" onClick={() => openEditor()}>
                 <Plus size={15} />
@@ -207,7 +206,7 @@ export function ClassesPage() {
               key={row.id}
               type="button"
               onClick={() => setSelectedId(row.id)}
-              className={`grid gap-2 rounded-lg border p-3 text-right shadow-[var(--shadow-surface)] transition ${selectedId === row.id ? "border-brand bg-brand/5 ring-1 ring-brand/15" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand/40"}`}
+              className={`grid gap-2 rounded-lg border p-3 text-start shadow-[var(--shadow-surface)] transition ${selectedId === row.id ? "border-brand bg-brand/5 ring-1 ring-brand/15" : "border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] hover:border-brand/40"}`}
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
@@ -228,9 +227,10 @@ export function ClassesPage() {
               <span className="flex flex-wrap gap-1">
                 <Badge tone="blue">{copy.grade(row.gradeId)}</Badge>
                 <Badge tone="neutral">
-                  {educationLabel(row.educationTypeId)} · {educationLabel(row.trackId)}
+                  {localizedEducationLabel(row.educationTypeId, copy)} ·{" "}
+                  {localizedTrackLabel(row.trackId, copy)}
                 </Badge>
-                <small className="mr-auto flex items-center gap-1 text-xs text-slate-500">
+                <small className="ms-auto flex items-center gap-1 text-xs text-slate-500">
                   <UsersRound size={13} />
                   {row.enrollmentCount}/{row.capacity}
                 </small>
@@ -522,7 +522,7 @@ function ClassDetail({
                       />
                       <span>
                         {student.name}
-                        <small className="mr-1 text-slate-500">
+                        <small className="me-1 text-slate-500">
                           {student.major || student.grade}
                         </small>
                       </span>
@@ -765,10 +765,11 @@ function ClassEditorModal({
               })
             }
           >
-            <option value="general">عمومی</option>
-            <option value="theoretical">نظری</option>
-            <option value="technical_vocational">فنی و حرفه‌ای</option>
-            <option value="kar_danesh">کاردانش</option>
+            {educationTypeOptions(copy).map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.label}
+              </option>
+            ))}
           </select>
         </Field>
         <Field label={copy.track}>
@@ -969,4 +970,29 @@ function trackOptions(type: string, copy: ReturnType<typeof useClassesCopy>) {
     { id: "agriculture", label: english ? "Agriculture" : "کشاورزی" },
     { id: "art", label: english ? "Art" : "هنر" },
   ];
+}
+
+function educationTypeOptions(copy: ReturnType<typeof useClassesCopy>) {
+  const english = copy.locale === "en-US";
+  return [
+    { id: "general", label: english ? "General" : "عمومی" },
+    { id: "theoretical", label: english ? "Theoretical" : "نظری" },
+    {
+      id: "technical_vocational",
+      label: english ? "Technical and vocational" : "فنی و حرفه‌ای",
+    },
+    { id: "kar_danesh", label: english ? "Skills and knowledge" : "کاردانش" },
+  ];
+}
+
+function localizedEducationLabel(id: string, copy: ReturnType<typeof useClassesCopy>) {
+  return educationTypeOptions(copy).find((type) => type.id === id)?.label || id;
+}
+
+function localizedTrackLabel(id: string, copy: ReturnType<typeof useClassesCopy>) {
+  const trackTypes = ["general", "theoretical", "technical_vocational", "kar_danesh"];
+  return (
+    trackTypes.flatMap((type) => trackOptions(type, copy)).find((track) => track.id === id)
+      ?.label || id
+  );
 }

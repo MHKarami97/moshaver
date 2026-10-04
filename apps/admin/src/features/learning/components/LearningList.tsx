@@ -52,7 +52,7 @@ export function LearningList({
       }
     >
       <div
-        className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto overscroll-contain pl-1 pb-1"
+        className="grid max-h-[calc(100dvh-22rem)] gap-2 overflow-y-auto overscroll-contain ps-1 pb-1"
         aria-label={copy.resources}
         tabIndex={0}
       >

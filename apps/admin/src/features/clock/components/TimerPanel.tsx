@@ -71,7 +71,7 @@ export function TimerPanel() {
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 setCustomMinutes(Number(event.target.value))
               }
-              className="mr-auto h-8 w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 text-center font-mono text-xs font-bold outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-900"
+              className="ms-auto h-8 w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 text-center font-mono text-xs font-bold outline-none focus:border-brand dark:border-slate-700 dark:bg-slate-900"
               dir="ltr"
             />
             <span className="text-[10px] text-slate-400">{copy.minutes}</span>

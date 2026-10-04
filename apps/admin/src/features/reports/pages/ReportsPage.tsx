@@ -131,8 +131,8 @@ export function ReportsPage() {
                 {copy.days(days)}
               </button>
             ))}
-            <span className="mr-auto text-xs text-slate-400">
-              {locale.formatDate(from)} تا {locale.formatDate(to)}
+            <span className="ms-auto text-xs text-slate-400">
+              {copy.dateRange(locale.formatDate(from), locale.formatDate(to))}
             </span>
           </div>
         </div>

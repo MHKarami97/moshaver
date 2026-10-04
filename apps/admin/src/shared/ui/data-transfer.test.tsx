@@ -34,6 +34,16 @@ function renderWorkspace() {
 afterEach(cleanup);
 
 describe("data transfer workspace", () => {
+  it("uses a direction-aware header accent and direction-neutral disclosure icon", () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    const { container } = renderWorkspace();
+
+    expect(container.querySelector(".bg-gradient-to-r")).toBeInTheDocument();
+    expect(container.querySelector("svg.lucide-chevron-down")).toBeInTheDocument();
+    expect(container.querySelector("svg.lucide-chevron-left")).not.toBeInTheDocument();
+    window.localStorage.removeItem("moshaver-admin-location");
+  });
+
   it("keeps import controls unavailable for an export-only role", () => {
     const queryClient = new QueryClient();
     render(
