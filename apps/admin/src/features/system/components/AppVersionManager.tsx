@@ -55,7 +55,7 @@ export function AppVersionManager({
               disabled={!canManage}
               key={item.app}
               onClick={() => setEditing({ ...item })}
-              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-right disabled:cursor-default dark:border-slate-700 dark:bg-slate-900"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-start disabled:cursor-default dark:border-slate-700 dark:bg-slate-900"
             >
               <span>
                 <strong>{item.app}</strong>

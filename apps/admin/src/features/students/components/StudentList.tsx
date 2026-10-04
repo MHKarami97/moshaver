@@ -8,13 +8,13 @@ import {
   TableProperties,
   UserRound,
   UsersRound,
-  X,
 } from "lucide-react";
 import type { Student } from "../../../shared/types/domain";
 import { Button, Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
 import { AdminDataTable } from "../../../shared/ui/admin-data-table";
 import { CollectionToolbar } from "../../../shared/ui/collection-toolbar";
 import { SegmentedControl } from "../../../shared/ui/segmented-control";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 import { useState } from "react";
 import { createCollectionView, createViewPreferenceStore } from "@moshaver/admin-workspace-ui";
 import {
@@ -29,6 +29,7 @@ import {
   type StudentStatusFilter,
 } from "./student-ui";
 import { StudentOverviewStats } from "./StudentOverviewStats";
+import { studentCopy } from "../model/student-locale";
 
 export { getStudentStatus } from "./student-ui";
 export type {
@@ -53,31 +54,42 @@ function readStudentDisplayMode(): "table" | "cards" {
   return layout === "cards" ? "cards" : "table";
 }
 
-function StudentStatus({ student }: { student: Student }) {
+function StudentStatus({ student, language }: { student: Student; language: "fa" | "en" }) {
   const status = studentStatusCopy[getStudentStatus(student)];
+  const copy = studentCopy[language];
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold ${status.className}`}
     >
-      {status.label}
+      {copy[getStudentStatus(student)]}
     </span>
   );
 }
 
-function Completeness({ student, compact = false }: { student: Student; compact?: boolean }) {
+function Completeness({
+  student,
+  language,
+  compact = false,
+}: {
+  student: Student;
+  language: "fa" | "en";
+  compact?: boolean;
+}) {
   const value = getStudentProfileCompleteness(student);
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
   return (
     <div className={compact ? "min-w-0" : "min-w-28"}>
       <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-        <span>{compact ? "تکمیل پرونده" : "پرونده"}</span>
+        <span>{compact ? copy.profileCompletionShort : copy.directoryProfile}</span>
         <strong className="text-slate-700 dark:text-slate-200">
-          ٪{value.toLocaleString("fa-IR")}
+          {value.toLocaleString(locale)}%
         </strong>
       </div>
       <div
         className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
         role="progressbar"
-        aria-label="تکمیل پرونده"
+        aria-label={copy.profileCompletionShort}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
@@ -147,13 +159,16 @@ export function StudentList({
   creating?: boolean;
 }) {
   const [displayMode, setDisplayMode] = useState<"table" | "cards">(readStudentDisplayMode);
+  const language = useOptionalAdminLanguage();
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
 
   function changeDisplayMode(next: "table" | "cards") {
     setDisplayMode(next);
     studentDirectoryPreferenceStore()?.save(
       createCollectionView({
         id: STUDENT_DIRECTORY_VIEW_ID,
-        title: "فهرست دانش‌آموزان",
+        title: copy.studentDirectoryPreference,
         layout: next,
         columns: ["name", "grade", "target", "lastSeen", "completeness"],
         visibleColumns: ["name", "grade", "target", "lastSeen", "completeness"],
@@ -163,14 +178,11 @@ export function StudentList({
   const hasFilters = !!search.trim() || status !== "all" || profileFilter !== "all";
   const startItem = filteredTotal ? (page - 1) * pageSize + 1 : 0;
   const endItem = Math.min(page * pageSize, filteredTotal);
-  const statusLabel =
-    status === "active"
-      ? "فعال"
-      : status === "inactive"
-        ? "غیرفعال"
-        : status === "archived"
-          ? "بایگانی"
-          : "";
+  const statusLabel = status === "all" ? "" : copy[status];
+  const itemSummary = copy.showingItems
+    .replace("{start}", startItem.toLocaleString(locale))
+    .replace("{end}", endItem.toLocaleString(locale))
+    .replace("{total}", filteredTotal.toLocaleString(locale));
 
   return (
     <Card className="min-w-0 p-0 xl:flex xl:max-h-[calc(100dvh-6rem)] xl:flex-col">
@@ -186,11 +198,11 @@ export function StudentList({
         <CollectionToolbar
           search={search}
           onSearchChange={setSearch}
-          placeholder="نام، شناسه، نام کاربری، پایه، رشته یا هدف…"
+          placeholder={copy.searchStudents}
           resultLabel={
             <span className="inline-flex items-center gap-1.5">
               <UsersRound size={14} />
-              {filteredTotal.toLocaleString("fa-IR")} نتیجه
+              {filteredTotal.toLocaleString(locale)} {copy.results}
             </span>
           }
           onClear={hasFilters ? onClearFilters : undefined}
@@ -199,12 +211,12 @@ export function StudentList({
               <>
                 {status !== "all" ? (
                   <span className="px-1.5 text-[11px] font-semibold text-slate-600">
-                    وضعیت: {statusLabel}
+                    {copy.statusFilter}: {statusLabel}
                   </span>
                 ) : null}
                 {profileFilter === "incomplete" ? (
                   <span className="px-1.5 text-[11px] font-semibold text-amber-700">
-                    پرونده ناقص
+                    {copy.profileIncomplete}
                   </span>
                 ) : null}
               </>
@@ -212,7 +224,7 @@ export function StudentList({
           }
           actions={
             <SegmentedControl
-              ariaLabel="نمایش فهرست دانش‌آموزان"
+              ariaLabel={copy.studentDirectory}
               value={displayMode}
               onValueChange={(value) => changeDisplayMode(value as "table" | "cards")}
               options={[
@@ -220,7 +232,7 @@ export function StudentList({
                   value: "table",
                   label: (
                     <>
-                      <TableProperties size={14} /> جدول
+                      <TableProperties size={14} /> {copy.studentDirectoryTable}
                     </>
                   ),
                 },
@@ -228,7 +240,7 @@ export function StudentList({
                   value: "cards",
                   label: (
                     <>
-                      <LayoutGrid size={14} /> کارت‌ها
+                      <LayoutGrid size={14} /> {copy.studentDirectoryCards}
                     </>
                   ),
                 },
@@ -239,24 +251,24 @@ export function StudentList({
 
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 md:hidden">
           <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span>مرتب‌سازی</span>
+            <span>{copy.sort}</span>
             <select
               className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-slate-700 outline-none focus:border-brand focus:ring-2 focus:ring-brand dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               value={sort}
               onChange={(event) => onSort(event.target.value as StudentSort)}
             >
-              <option value="name">نام</option>
-              <option value="username">نام کاربری</option>
-              <option value="grade">پایه</option>
-              <option value="lastSeen">آخرین فعالیت</option>
-              <option value="completeness">تکمیل پرونده</option>
+              <option value="name">{copy.sortName}</option>
+              <option value="username">{copy.sortUsername}</option>
+              <option value="grade">{copy.sortGrade}</option>
+              <option value="lastSeen">{copy.sortLastActivity}</option>
+              <option value="completeness">{copy.sortProfileCompletion}</option>
             </select>
           </label>
           <Button
             variant="soft"
             className="h-9 px-3"
             onClick={() => onSort(sort)}
-            aria-label={sortDirection === "asc" ? "مرتب‌سازی نزولی" : "مرتب‌سازی صعودی"}
+            aria-label={sortDirection === "asc" ? copy.sortDescending : copy.sortAscending}
           >
             {sortDirection === "asc" ? <ArrowUp size={15} /> : <ArrowDown size={15} />}
           </Button>
@@ -265,34 +277,35 @@ export function StudentList({
 
       <div className="z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-[rgb(var(--surface-card))] px-3 py-2.5 text-[11px] text-slate-500 sm:px-4 dark:border-slate-800 dark:text-slate-400">
         <span>
-          نمایش {startItem.toLocaleString("fa-IR")} تا {endItem.toLocaleString("fa-IR")} از{" "}
-          {filteredTotal.toLocaleString("fa-IR")}
-          {filteredTotal !== total ? ` · کل ${total.toLocaleString("fa-IR")}` : ""}
+          {itemSummary}
+          {filteredTotal !== total
+            ? ` · ${copy.totalItems.replace("{total}", total.toLocaleString(locale))}`
+            : ""}
         </span>
         {creating ? (
           <span className="rounded-full bg-amber-50 px-2 py-1 font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-            در حال ساخت حساب جدید
+            {copy.creatingAccount}
           </span>
         ) : selectedId ? (
           <span className="inline-flex items-center gap-1 text-brand">
             <CheckCircle2 size={13} />
-            دانش‌آموز انتخاب شده
+            {copy.selectedStudent}
           </span>
         ) : null}
       </div>
 
       {loading ? (
         <div className="p-4">
-          <LoadingState label="در حال دریافت فهرست دانش‌آموزان..." />
+          <LoadingState label={copy.loadingDirectory} />
         </div>
       ) : error ? (
         <div className="p-4">
           <EmptyState
-            title="دریافت فهرست دانش‌آموزان ناموفق بود."
+            title={copy.directoryLoadFailed}
             action={
               onRetry ? (
                 <Button variant="soft" onClick={onRetry}>
-                  تلاش دوباره
+                  {copy.directoryRetry}
                 </Button>
               ) : undefined
             }
@@ -304,7 +317,7 @@ export function StudentList({
             <AdminDataTable
               rows={students}
               rowId={(student) => student.id}
-              label="فهرست دانش‌آموزان"
+              label={copy.studentDirectory}
               activeId={creating ? undefined : selectedId}
               sortId={sort}
               sortDirection={sortDirection}
@@ -315,7 +328,7 @@ export function StudentList({
               mobileCard={(student) => {
                 const education =
                   [student.grade, student.major].filter(Boolean).join(" / ") ||
-                  "پایه و رشته ثبت نشده";
+                  copy.educationNotSet;
                 return (
                   <div className="grid gap-3">
                     <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
@@ -325,18 +338,18 @@ export function StudentList({
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
                           <strong className="truncate text-sm text-ink">{student.name}</strong>
-                          <StudentStatus student={student} />
+                          <StudentStatus student={student} language={language} />
                         </span>
                         <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
                           {education}
                         </span>
                       </span>
-                      <ChevronLeft className="mt-2 text-slate-400" size={16} />
+                      <ChevronLeft className="mt-2 text-slate-400 ltr:rotate-180" size={16} />
                     </div>
-                    <Completeness student={student} compact />
+                    <Completeness student={student} language={language} compact />
                     <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                      <span>{formatStudentLastSeen(student.last_seen_at)}</span>
-                      <span className="font-bold text-brand">باز کردن پرونده</span>
+                      <span>{formatStudentLastSeen(student.last_seen_at, language)}</span>
+                      <span className="font-bold text-brand">{copy.openRecord}</span>
                     </div>
                   </div>
                 );
@@ -344,8 +357,8 @@ export function StudentList({
               columns={[
                 {
                   id: "name",
-                  header: "دانش‌آموز",
-                  sortLabel: "دانش‌آموز",
+                  header: copy.students,
+                  sortLabel: copy.students,
                   cell: (student) => (
                     <div className="flex max-w-[260px] items-center gap-3">
                       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
@@ -354,10 +367,10 @@ export function StudentList({
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
                           <strong className="truncate text-sm text-ink">{student.name}</strong>
-                          <StudentStatus student={student} />
+                          <StudentStatus student={student} language={language} />
                         </span>
                         <span className="mt-1 block truncate text-xs text-slate-500" dir="ltr">
-                          {getStudentUsername(student) || "بدون نام کاربری"}
+                          {getStudentUsername(student) || copy.usernameNotSet}
                         </span>
                       </span>
                     </div>
@@ -365,17 +378,18 @@ export function StudentList({
                 },
                 {
                   id: "grade",
-                  header: "پایه / رشته",
-                  sortLabel: "پایه و رشته",
+                  header: copy.gradeAndMajor,
+                  sortLabel: copy.gradeAndMajor,
                   cell: (student) => (
                     <p className="max-w-[190px] truncate font-semibold text-slate-700 dark:text-slate-200">
-                      {[student.grade, student.major].filter(Boolean).join(" / ") || "ثبت نشده"}
+                      {[student.grade, student.major].filter(Boolean).join(" / ") ||
+                        copy.notRecorded}
                     </p>
                   ),
                 },
                 {
                   id: "target",
-                  header: "هدف",
+                  header: copy.goal,
                   cell: (student) => (
                     <p className="max-w-[220px] truncate text-xs text-slate-500">
                       {[
@@ -383,25 +397,25 @@ export function StudentList({
                         student.targetUniversity || student.target_city,
                       ]
                         .filter(Boolean)
-                        .join(" · ") || "ثبت نشده"}
+                        .join(" · ") || copy.notRecorded}
                     </p>
                   ),
                 },
                 {
                   id: "lastSeen",
-                  header: "آخرین فعالیت",
-                  sortLabel: "آخرین فعالیت",
+                  header: copy.lastActivity,
+                  sortLabel: copy.lastActivity,
                   cell: (student) => (
                     <span className="text-xs text-slate-500">
-                      {formatStudentLastSeen(student.last_seen_at)}
+                      {formatStudentLastSeen(student.last_seen_at, language)}
                     </span>
                   ),
                 },
                 {
                   id: "completeness",
-                  header: "پرونده",
-                  sortLabel: "تکمیل پرونده",
-                  cell: (student) => <Completeness student={student} />,
+                  header: copy.directoryProfile,
+                  sortLabel: copy.profileCompletionShort,
+                  cell: (student) => <Completeness student={student} language={language} />,
                 },
               ]}
             />
@@ -410,15 +424,15 @@ export function StudentList({
           {filteredTotal > 0 ? (
             <div className="z-[1] flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-[rgb(var(--surface-card))] p-3 sm:p-4 dark:border-slate-800">
               <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <span>تعداد در صفحه</span>
+                <span>{copy.itemsPerPage}</span>
                 <select
                   className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-brand focus:ring-2 focus:ring-brand dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
                 >
-                  <option value={25}>۲۵</option>
-                  <option value={50}>۵۰</option>
-                  <option value={100}>۱۰۰</option>
+                  <option value={25}>{(25).toLocaleString(locale)}</option>
+                  <option value={50}>{(50).toLocaleString(locale)}</option>
+                  <option value={100}>{(100).toLocaleString(locale)}</option>
                 </select>
               </label>
               <div className="flex items-center gap-2">
@@ -428,11 +442,11 @@ export function StudentList({
                   disabled={page <= 1}
                   onClick={() => setPage(Math.max(1, page - 1))}
                 >
-                  <ChevronRight size={15} />
-                  قبلی
+                  <ChevronRight size={15} className="ltr:rotate-180" />
+                  {copy.previousPage}
                 </Button>
                 <span className="min-w-20 text-center text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  {page.toLocaleString("fa-IR")} / {Math.max(1, pageCount).toLocaleString("fa-IR")}
+                  {page.toLocaleString(locale)} / {Math.max(1, pageCount).toLocaleString(locale)}
                 </span>
                 <Button
                   variant="soft"
@@ -440,8 +454,8 @@ export function StudentList({
                   disabled={page >= pageCount}
                   onClick={() => setPage(Math.min(pageCount, page + 1))}
                 >
-                  بعدی
-                  <ChevronLeft size={15} />
+                  {copy.nextPage}
+                  <ChevronLeft size={15} className="ltr:rotate-180" />
                 </Button>
               </div>
             </div>
@@ -450,13 +464,11 @@ export function StudentList({
       ) : (
         <div className="p-4">
           <EmptyState
-            title={
-              hasFilters ? "دانش‌آموزی با این فیلترها پیدا نشد." : "هنوز دانش‌آموزی ثبت نشده است."
-            }
+            title={hasFilters ? copy.noStudentMatches : copy.noStudents}
             action={
               hasFilters ? (
                 <Button variant="soft" onClick={onClearFilters}>
-                  نمایش همه دانش‌آموزان
+                  {copy.showAllStudents}
                 </Button>
               ) : undefined
             }

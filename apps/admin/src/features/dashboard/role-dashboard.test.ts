@@ -24,6 +24,21 @@ describe("role dashboard metrics", () => {
     expect(cards.length).toBeGreaterThanOrEqual(2);
     expect(cards.every((card) => card.label && card.hint && card.value !== undefined)).toBe(true);
   });
+
+  it("uses the active English adapter for role metrics", () => {
+    const cards = roleDashboardMetrics(
+      {
+        context: "ADVISOR",
+        generatedAt: "2026-01-01",
+        assignedStudents: 2,
+        unreadConversations: 1,
+      } as RoleDashboardData,
+      "en",
+    );
+
+    expect(cards.map((card) => card.label)).toContain("Assigned students");
+    expect(cards.map((card) => card.label)).toContain("Unread messages");
+  });
 });
 
 describe("role dashboard workflows", () => {

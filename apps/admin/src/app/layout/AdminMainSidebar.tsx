@@ -42,7 +42,7 @@ export function AdminMainSidebar({
           <div className="min-w-0">
             <h1 className="truncate text-lg font-black tracking-tight">{copy.appTitle}</h1>
             <p className="truncate text-[11px] font-semibold text-slate-400">
-              {rolePortalTitle(auth.activeRole)}
+              {rolePortalTitle(auth.activeRole, language)}
             </p>
           </div>
         ) : (

@@ -182,7 +182,7 @@ export function StudentAllocationControl({
             .sort()
             .map((value) => (
               <option key={String(value)} value={value || ""}>
-                {educationLabel(value!)}
+                {educationLabel(value!, language)}
               </option>
             ))}
         </select>
@@ -204,7 +204,7 @@ export function StudentAllocationControl({
             .sort((a, b) => a!.localeCompare(b!, numberLocale))
             .map((value) => (
               <option key={String(value)} value={value || ""}>
-                {educationLabel(value!)}
+                {educationLabel(value!, language)}
               </option>
             ))}
         </select>

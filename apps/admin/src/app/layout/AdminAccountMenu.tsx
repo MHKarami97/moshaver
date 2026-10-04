@@ -44,7 +44,7 @@ export function AdminAccountMenu() {
         <button
           {...props}
           type="button"
-          className="flex h-10 min-w-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-1.5 text-right outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 sm:px-2"
+          className="flex h-10 min-w-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-1.5 text-start outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-brand dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 sm:px-2"
           aria-label={copy.accountMenu}
           title={displayName}
         >

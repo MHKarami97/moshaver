@@ -16,6 +16,7 @@ const copy = {
     catalogDescription:
       "پس از آماده‌سازی کاتالوگ، پیش‌نمایش ورود را بررسی کنید و پیش‌نویس‌ها را ثبت کنید.",
     noSections: "هنوز بخشی برای نمایش وجود ندارد",
+    loadingAnalytics: "در حال بارگذاری بخش تحلیلی",
     loadingExamSnapshot: "در حال دریافت نمای آزمون…",
     examSnapshotFailed: "دریافت نمای آزمون ناموفق بود.",
     examMetrics: "شاخص‌های آزمون",
@@ -65,6 +66,7 @@ const copy = {
     catalog: "Textbook catalog and bulk import",
     catalogDescription: "Preview the import after preparing the catalog, then save the drafts.",
     noSections: "There are no sections to show yet.",
+    loadingAnalytics: "Loading the analytics section",
     loadingExamSnapshot: "Loading exam snapshot…",
     examSnapshotFailed: "Could not load the exam snapshot.",
     examMetrics: "Exam metrics",

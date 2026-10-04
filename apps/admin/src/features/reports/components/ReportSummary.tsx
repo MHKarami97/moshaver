@@ -40,11 +40,7 @@ export function ReportSummary({
     <Card>
       <div className="mb-3">
         <h3 className="font-bold">{copy.summary}</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          {locale.language === "fa"
-            ? "محاسبه‌شده از گزارش‌هایی که همین حالا دریافت شده‌اند."
-            : "Calculated from the reports currently loaded."}
-        </p>
+        <p className="mt-1 text-xs text-slate-500">{copy.summaryDescription}</p>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
         {items.map(([label, value, Icon]) => (

@@ -621,6 +621,7 @@ export function localizedNavigationForCapabilities(
 ) {
   return navigationForCapabilities(capabilities, role).map((group) => ({
     ...group,
+    sectionKey: group.section,
     section: translatedAdminText(group.section, language),
     items: group.items.map((item) => localizeNavigationItem(item, language)),
   }));
@@ -637,7 +638,11 @@ export function localizedMainNavigationForCapabilities(
 }
 
 export function localizedAdminCurrentNavigation(pathname: string, language: AdminLanguage) {
-  return localizeNavigationItem(resolveAdminNavigation(pathname), language);
+  const current = resolveAdminNavigation(pathname);
+  return {
+    ...localizeNavigationItem(current, language),
+    section: translatedAdminText(current.section, language),
+  };
 }
 
 export function localizedAdminBreadcrumbs(path: string, language: AdminLanguage) {

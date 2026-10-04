@@ -26,13 +26,13 @@ type Props = {
   showClose?: boolean;
 };
 
-function templateDays(plans: Plan[]) {
+function templateDays(plans: Plan[], fallbackTitle: string) {
   return plans
     .slice()
     .sort((left, right) => left.planDate.localeCompare(right.planDate))
     .map((plan, offset) => ({
       offset,
-      title: plan.title || "برنامه روز",
+      title: plan.title || fallbackTitle,
       motivationText: plan.motivationText || "",
       tasks: plan.tasks.map(
         ({ id: _id, completedAt: _completedAt, completion: _completion, ...task }) => task,
@@ -40,13 +40,8 @@ function templateDays(plans: Plan[]) {
     }));
 }
 
-function stateLabel(state: PlanTemplate["state"]) {
-  return {
-    DRAFT: "پیش‌نویس",
-    IN_REVIEW: "در انتظار بررسی",
-    PUBLISHED: "منتشرشده",
-    ARCHIVED: "بایگانی",
-  }[state];
+function interpolate(template: string, values: Record<string, string>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
 }
 
 export function PlanTemplateLibrary({
@@ -74,7 +69,10 @@ export function PlanTemplateLibrary({
     queryKey: ["plan-templates", organizationId],
     queryFn: () => getPlanTemplates(organizationId),
   });
-  const snapshot = useMemo(() => templateDays(plans), [plans]);
+  const snapshot = useMemo(
+    () => templateDays(plans, copy.templateDayFallback),
+    [copy.templateDayFallback, plans],
+  );
   const classes = useQuery({
     queryKey: ["classes", "plan-template-apply"],
     queryFn: () => listClasses(organizationId),
@@ -109,21 +107,29 @@ export function PlanTemplateLibrary({
       applyPlanTemplate(selectedTemplate!.id, { targetStudentIds, targetStartDate }),
     onSuccess: (result) => {
       notify(
-        `${result.created.length.toLocaleString("fa-IR")} برنامه ایجاد شد.${result.skipped.length ? ` ${result.skipped.length.toLocaleString("fa-IR")} برنامهٔ موجود بدون تغییر ماند.` : ""}`,
+        interpolate(copy.templateApplySucceeded, {
+          created: result.created.length.toLocaleString(locale.profile.locale),
+          skipped: result.skipped.length
+            ? interpolate(copy.templateApplySkipped, {
+                count: result.skipped.length.toLocaleString(locale.profile.locale),
+              })
+            : "",
+        }),
       );
       setTargetStudentIds([]);
       setSelectedTemplate(null);
       void client.invalidateQueries({ queryKey: ["plans"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "اعمال الگو ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.templateApplyFailed, "error"),
   });
 
   return (
     <div className="grid gap-5" dir={locale.profile.direction}>
       <p className="text-sm text-slate-600 dark:text-slate-300">
-        الگوها فقط برای سازمان فعال ذخیره می‌شوند. پیش‌نویس زیر از {snapshot.length} روزِ بازهٔ فعلی
-        ساخته می‌شود و وضعیت انجام فعالیت‌ها را کپی نمی‌کند.
+        {interpolate(copy.templateLibraryDescription, {
+          days: snapshot.length.toLocaleString(locale.profile.locale),
+        })}
       </p>
       {canManage ? (
         <form
@@ -134,7 +140,7 @@ export function PlanTemplateLibrary({
           }}
         >
           <label className="grid gap-1 text-sm font-medium">
-            عنوان الگو
+            {copy.templateTitle}
             <input
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-950"
               value={title}
@@ -144,7 +150,7 @@ export function PlanTemplateLibrary({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            توضیح (اختیاری)
+            {copy.templateDescription}
             <textarea
               className="min-h-20 rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-950"
               value={description}
@@ -153,53 +159,43 @@ export function PlanTemplateLibrary({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            برچسب‌ها (با ویرگول جدا کنید)
+            {copy.templateTags}
             <input
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-950"
               value={tags}
               onChange={(event) => setTags(event.target.value)}
               maxLength={2400}
-              placeholder="پایه دهم، ریاضی"
+              placeholder={copy.templateTagsPlaceholder}
             />
           </label>
           {create.isError ? (
             <p className="text-sm text-rose-700" role="alert">
-              ذخیره الگو انجام نشد. دوباره تلاش کنید.
+              {copy.templateSaveFailed}
             </p>
           ) : null}
           <Button
             type="submit"
             disabled={!title.trim() || create.isPending || snapshot.length === 0}
           >
-            {create.isPending ? "در حال ذخیره…" : "ساخت پیش‌نویس از بازه فعلی"}
+            {create.isPending ? copy.creatingTemplate : copy.createTemplate}
           </Button>
           {snapshot.length === 0 ? (
-            <p className="text-xs text-amber-700">
-              برای ساخت الگو، ابتدا یک برنامه در بازه فعلی داشته باشید.
-            </p>
+            <p className="text-xs text-amber-700">{copy.templateNeedsPlans}</p>
           ) : null}
         </form>
       ) : null}
       <section className="grid gap-2">
-        <h3 className="text-sm font-bold">
-          {locale.language === "fa" ? "الگوهای سازمان" : "Organization templates"}
-        </h3>
+        <h3 className="text-sm font-bold">{copy.organizationTemplates}</h3>
         {templates.isLoading ? (
           <p className="text-sm text-slate-500">{copy.loadingOrganizations}</p>
         ) : null}
         {templates.isError ? (
           <p className="text-sm text-rose-700" role="alert">
-            دریافت الگوها ناموفق بود.
+            {copy.templatesLoadFailed}
           </p>
         ) : null}
         {!templates.isLoading && !templates.isError && !templates.data?.length ? (
-          <EmptyState
-            title={
-              locale.language === "fa"
-                ? "هنوز الگویی ساخته نشده است"
-                : "No templates have been created yet"
-            }
-          />
+          <EmptyState title={copy.noTemplates} />
         ) : null}
         {templates.data?.map((template) => (
           <article
@@ -209,7 +205,9 @@ export function PlanTemplateLibrary({
             <div className="min-w-0 flex-1">
               <p className="font-bold">
                 {template.title}{" "}
-                <span className="text-xs font-normal text-slate-500">نسخه {template.version}</span>
+                <span className="text-xs font-normal text-slate-500">
+                  {copy.version} {template.version.toLocaleString(locale.profile.locale)}
+                </span>
               </p>
               {template.description ? (
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -217,7 +215,8 @@ export function PlanTemplateLibrary({
                 </p>
               ) : null}
               <p className="mt-1 text-xs text-slate-500">
-                {stateLabel(template.state)} · {template.days.length} روز{" "}
+                {copy.templateState[template.state]} ·{" "}
+                {template.days.length.toLocaleString(locale.profile.locale)} {copy.templateDays}{" "}
                 {template.tags.length ? `· ${template.tags.join("، ")}` : ""}
               </p>
             </div>
@@ -228,12 +227,12 @@ export function PlanTemplateLibrary({
                 disabled={publish.isPending}
                 onClick={() => publish.mutate(template.id)}
               >
-                انتشار
+                {copy.publish}
               </Button>
             ) : null}
             {canApply && template.state === "PUBLISHED" ? (
               <Button className="h-8" variant="soft" onClick={() => setSelectedTemplate(template)}>
-                اعمال برای مخاطبان
+                {copy.applyToAudience}
               </Button>
             ) : null}
           </article>
@@ -242,13 +241,13 @@ export function PlanTemplateLibrary({
       {selectedTemplate ? (
         <section className="grid gap-3 rounded-xl border border-brand/30 bg-brand/5 p-3">
           <div>
-            <h3 className="text-sm font-bold">اعمال «{selectedTemplate.title}»</h3>
-            <p className="text-xs text-slate-500">
-              برنامه‌های موجود حفظ می‌شوند؛ فقط روزهای خالی برای مخاطبان انتخاب‌شده ساخته می‌شوند.
-            </p>
+            <h3 className="text-sm font-bold">
+              {interpolate(copy.applyTemplate, { title: selectedTemplate.title })}
+            </h3>
+            <p className="text-xs text-slate-500">{copy.applyTemplateDescription}</p>
           </div>
           <label className="grid gap-1 text-sm font-medium">
-            شروع از تاریخ
+            {copy.applyStartDate}
             <input
               type="date"
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-950"
@@ -261,7 +260,7 @@ export function PlanTemplateLibrary({
             selectedIds={targetStudentIds}
             onChange={setTargetStudentIds}
             classes={classes.data || []}
-            label="مخاطبان الگو"
+            label={copy.templateAudience}
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -269,12 +268,12 @@ export function PlanTemplateLibrary({
               disabled={!targetStudentIds.length || !targetStartDate}
               onClick={() => apply.mutate()}
             >
-              {locale.language === "fa" ? "اعمال برای" : "Apply to"}{" "}
-              {targetStudentIds.length.toLocaleString(locale.profile.locale)}{" "}
-              {locale.language === "fa" ? "دانش‌آموز" : "students"}
+              {interpolate(copy.applyToStudents, {
+                count: targetStudentIds.length.toLocaleString(locale.profile.locale),
+              })}
             </Button>
             <Button variant="ghost" onClick={() => setSelectedTemplate(null)}>
-              انصراف
+              {copy.cancel}
             </Button>
           </div>
         </section>
@@ -282,7 +281,7 @@ export function PlanTemplateLibrary({
       {showClose ? (
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>
-            بستن
+            {copy.close}
           </Button>
         </div>
       ) : null}

@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { DragEvent, useRef, useState } from "react";
 import { api } from "../api/api";
-import { fa } from "../lib/utils";
 import { useLocale } from "./locale";
 import { useModal } from "./modal";
 import { Button, Card, Field, Textarea } from "./ui";
@@ -79,6 +78,10 @@ export function DataTransferWorkspace(props: Props) {
   if (props.variant === "question-bank") {
     return <QuestionBankDataTransfer {...props} />;
   }
+  return <AssessmentDataTransferWorkspace {...props} />;
+}
+
+function AssessmentDataTransferWorkspace(props: AssessmentTransferProps) {
   const modal = useModal(),
     { formatDate, language, profile } = useLocale(),
     fileRef = useRef<HTMLInputElement>(null);
@@ -177,7 +180,7 @@ export function DataTransferWorkspace(props: Props) {
     } catch (error) {
       modal.open({
         title: copy.unreadableFile,
-        description: workbookError(error),
+        description: workbookError(error, copy),
         tone: "danger",
       });
     }
@@ -197,24 +200,24 @@ export function DataTransferWorkspace(props: Props) {
   }
   function confirmCommit(published: boolean) {
     const replacing = [
-      planPolicy === "replace" && "برنامه‌های موجود",
-      examPolicy === "replace" && "آزمون‌های موجود",
+      planPolicy === "replace" && copy.existingPlans,
+      examPolicy === "replace" && copy.existingExams,
     ]
       .filter(Boolean)
-      .join(" و ");
+      .join(copy.and);
     void modal
       .confirm({
-        title: published ? "ثبت و انتشار اطلاعات؟" : "ثبت اطلاعات به‌صورت پیش‌نویس؟",
+        title: published ? copy.confirmPublishTitle : copy.confirmDraftTitle,
         description: (
           <div className="grid gap-1">
-            <span>{summarySentence(preview.data)}</span>
+            <span>{summarySentence(preview.data, copy)}</span>
             {replacing ? (
-              <strong className="text-rose-700">{replacing} در صورت تطابق جایگزین می‌شوند.</strong>
+              <strong className="text-rose-700">{copy.replacingWarning(replacing)}</strong>
             ) : null}
           </div>
         ),
         tone: replacing ? "danger" : "default",
-        confirmLabel: published ? "ثبت و انتشار" : "ثبت پیش‌نویس",
+        confirmLabel: published ? copy.publishImport : copy.saveDraft,
       })
       .then((ok) => ok && parse(json, (data) => commit.mutate({ data, published })));
   }
@@ -362,7 +365,7 @@ export function DataTransferWorkspace(props: Props) {
                       })
                     }
                   >
-                    نمونه Excel
+                    {copy.excelTemplate}
                   </Button>
                   <Button
                     variant="ghost"
@@ -379,7 +382,7 @@ export function DataTransferWorkspace(props: Props) {
                       })
                     }
                   >
-                    نمونه JSON
+                    {copy.jsonTemplate}
                   </Button>
                 </div>
               </section>
@@ -403,23 +406,22 @@ export function DataTransferWorkspace(props: Props) {
                           <ConflictPolicyPicker
                             value={planPolicy}
                             onChange={setPlanPolicy}
-                            title="برنامه‌های هم‌تاریخ"
-                            description="برنامه دارای سابقه انجام‌شده هرگز جایگزین نمی‌شود."
+                            title={copy.sameDatePlans}
+                            description={copy.sameDatePlansDescription}
                           />
                         ) : null}
                         {props.showExamReplacement ? (
                           <ConflictPolicyPicker
                             value={examPolicy}
                             onChange={setExamPolicy}
-                            title="آزمون‌های تکراری"
-                            description="تطبیق بر اساس عنوان و تاریخ آزمون انجام می‌شود."
+                            title={copy.duplicateExams}
+                            description={copy.duplicateExamsDescription}
                           />
                         ) : null}
                       </div>
                     ) : (
                       <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                        شما اجازه بررسی فایل را دارید، اما ثبت نهایی به دسترسی import.commit نیاز
-                        دارد.
+                        {copy.previewOnlyNotice}
                       </p>
                     )}
                     {canCommit ? (
@@ -429,14 +431,14 @@ export function DataTransferWorkspace(props: Props) {
                           disabled={!valid}
                           onClick={() => confirmCommit(false)}
                         >
-                          ثبت به‌صورت پیش‌نویس
+                          {copy.saveDraft}
                         </Button>
                         <Button
                           loading={commit.isPending}
                           disabled={!valid}
                           onClick={() => confirmCommit(true)}
                         >
-                          ثبت و انتشار برای دانش‌آموز
+                          {copy.saveAndPublish}
                         </Button>
                       </div>
                     ) : null}
@@ -454,49 +456,40 @@ export function DataTransferWorkspace(props: Props) {
                 <Download size={20} />
               </span>
               <div>
-                <h4 className="font-black">آماده‌سازی خروجی</h4>
-                <p className="text-sm text-slate-500">
-                  فایل استاندارد schema-v2 و قابل ورود مجدد تولید می‌شود.
-                </p>
+                <h4 className="font-black">{copy.preparingExport}</h4>
+                <p className="text-sm text-slate-500">{copy.exportDescription}</p>
               </div>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <ExportFact
-                label="محدوده"
+                label={copy.scope}
                 value={
                   props.scope === "exams"
-                    ? "همه آزمون‌ها"
+                    ? copy.allExams
                     : props.scope === "plans"
-                      ? "برنامه‌ها"
-                      : "برنامه‌ها و آزمون‌های مرتبط"
+                      ? copy.plans
+                      : copy.plansAndRelatedExams
                 }
               />
               <ExportFact
-                label="بازه"
+                label={copy.range}
                 value={
                   props.exportFrom && props.exportTo
-                    ? `${formatDate(props.exportFrom)} تا ${formatDate(props.exportTo)}`
-                    : "تمام تاریخ‌ها"
+                    ? `${formatDate(props.exportFrom)} ${copy.to} ${formatDate(props.exportTo)}`
+                    : copy.allDates
                 }
               />
-              <ExportFact label="ساختار" value="Excel قابل ویرایش · schema-v2" />
+              <ExportFact label={copy.structure} value={copy.editableExcelSchema} />
               <ExportFact
-                label="محتوا"
-                value={
-                  props.scope === "exams"
-                    ? "سؤال، پاسخ، بودجه و زمان‌بندی"
-                    : "فعالیت، یادداشت و پیوند آزمون"
-                }
+                label={copy.contents}
+                value={props.scope === "exams" ? copy.examContents : copy.planContents}
               />
             </div>
           </section>
           <aside className="grid content-start gap-3 rounded-xl border border-indigo-200 bg-indigo-50 p-5">
             <ShieldCheck size={28} className="text-brand" />
-            <h4 className="font-black">خروجی قابل بازیابی</h4>
-            <p className="text-sm leading-6 text-slate-600">
-              شناسه‌های داخلی به ارجاع‌های قابل‌حمل تبدیل می‌شوند تا اتصال برنامه و آزمون هنگام ورود
-              مجدد حفظ شود.
-            </p>
+            <h4 className="font-black">{copy.recoverableExport}</h4>
+            <p className="text-sm leading-6 text-slate-600">{copy.recoverableExportDescription}</p>
             <Button
               loading={
                 download.isPending &&
@@ -506,7 +499,7 @@ export function DataTransferWorkspace(props: Props) {
               disabled={!props.studentId}
               onClick={() => download.mutate({ path: exportPath, filename, format: "xlsx" })}
             >
-              <FileSpreadsheet size={17} /> دانلود خروجی Excel
+              <FileSpreadsheet size={17} /> {copy.downloadExcel}
             </Button>
             <Button
               variant="soft"
@@ -524,11 +517,11 @@ export function DataTransferWorkspace(props: Props) {
                 })
               }
             >
-              <FileJson size={17} /> دانلود خروجی JSON
+              <FileJson size={17} /> {copy.downloadJson}
             </Button>
             {canImport ? (
               <Button variant="ghost" onClick={() => setTab("import")}>
-                بازگشت به ورود اطلاعات
+                {copy.returnToImport}
               </Button>
             ) : null}
           </aside>
@@ -566,41 +559,46 @@ function TabButton({
   );
 }
 function Step({ number, title, active }: { number: number; title: string; active: boolean }) {
+  const { profile } = useLocale();
   return (
     <div className="flex items-center gap-2">
       <span
         className={`grid size-7 place-items-center rounded-full text-xs font-black ${active ? "bg-brand text-white" : "bg-slate-100 text-slate-400"}`}
       >
-        {fa(number)}
+        {number.toLocaleString(profile.locale)}
       </span>
       <strong className={active ? "text-ink" : "text-slate-400"}>{title}</strong>
     </div>
   );
 }
 function EmptyReview() {
+  const { language } = useLocale();
+  const copy = transferCopy[language];
   return (
     <div className="grid min-h-52 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
       <div>
         <FileJson className="mx-auto text-slate-300" size={38} />
-        <strong className="mt-3 block text-slate-500">پیش‌نمایش هنوز آماده نیست</strong>
-        <p className="mt-1 text-xs text-slate-400">
-          پس از انتخاب فایل، نتیجه بررسی اینجا نمایش داده می‌شود.
-        </p>
+        <strong className="mt-3 block text-slate-500">{copy.reviewNotReady}</strong>
+        <p className="mt-1 text-xs text-slate-400">{copy.reviewNotReadyDescription}</p>
       </div>
     </div>
   );
 }
 function ReviewLoading() {
+  const { language } = useLocale();
+  const copy = transferCopy[language];
   return (
     <div className="grid min-h-52 place-items-center rounded-xl border border-slate-200 bg-slate-50">
       <div className="text-center">
         <span className="mx-auto block size-9 animate-spin rounded-full border-4 border-indigo-100 border-t-brand" />
-        <strong className="mt-3 block text-sm">در حال بررسی ساختار و تداخل‌ها…</strong>
+        <strong className="mt-3 block text-sm">{copy.reviewing}</strong>
       </div>
     </div>
   );
 }
 function Review({ preview }: { preview: TransferPreview }) {
+  const { language, profile } = useLocale();
+  const copy = transferCopy[language];
   const summary = preview.summary || {},
     hasErrors = !!preview.errors?.length;
   return (
@@ -615,28 +613,28 @@ function Review({ preview }: { preview: TransferPreview }) {
         )}
         <div>
           <strong className={hasErrors ? "text-rose-800" : "text-emerald-800"}>
-            {hasErrors ? "فایل نیاز به اصلاح دارد" : "فایل معتبر و آماده ثبت است"}
+            {hasErrors ? copy.fileNeedsFixing : copy.fileReady}
           </strong>
           <p className="mt-1 text-xs text-slate-600">
-            نسخه ساختار: {fa(preview.schemaVersion || 2)}
+            {copy.schemaVersion}: {(preview.schemaVersion || 2).toLocaleString(profile.locale)}
           </p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Count label="برنامه" value={summary.plans} />
-        <Count label="فعالیت" value={summary.tasks} />
-        <Count label="آزمون" value={summary.exams} />
-        <Count label="سؤال" value={summary.questions} />
-        <Count label="تداخل" value={summary.conflicts} warning={!!summary.conflicts} />
+        <Count label={copy.plan} value={summary.plans} />
+        <Count label={copy.task} value={summary.tasks} />
+        <Count label={copy.exam} value={summary.exams} />
+        <Count label={copy.question} value={summary.questions} />
+        <Count label={copy.conflict} value={summary.conflicts} warning={!!summary.conflicts} />
       </div>
       {preview.errors?.length ? (
-        <IssueList title="خطاهای مسدودکننده" items={preview.errors} tone="red" />
+        <IssueList title={copy.blockingErrors} items={preview.errors} tone="red" />
       ) : null}
       {preview.warnings?.length ? (
-        <IssueList title="موارد نیازمند توجه" items={preview.warnings} tone="amber" />
+        <IssueList title={copy.attentionItems} items={preview.warnings} tone="amber" />
       ) : null}
       {preview.conflicts?.length ? (
-        <IssueList title="تداخل‌های زمانی" items={preview.conflicts} tone="amber" />
+        <IssueList title={copy.timeConflicts} items={preview.conflicts} tone="amber" />
       ) : null}
     </div>
   );
@@ -650,11 +648,14 @@ function Count({
   value?: number;
   warning?: boolean;
 }) {
+  const { profile } = useLocale();
   return (
     <div
       className={`rounded-lg border bg-white p-3 text-center ${warning ? "border-amber-200" : "border-slate-200"}`}
     >
-      <strong className={warning ? "text-amber-700" : "text-ink"}>{fa(value)}</strong>
+      <strong className={warning ? "text-amber-700" : "text-ink"}>
+        {value.toLocaleString(profile.locale)}
+      </strong>
       <span className="mt-1 block text-xs text-slate-500">{label}</span>
     </div>
   );
@@ -668,6 +669,7 @@ function IssueList({
   items: string[];
   tone: "red" | "amber";
 }) {
+  const { profile } = useLocale();
   return (
     <details
       open={tone === "red"}
@@ -679,7 +681,7 @@ function IssueList({
         ) : (
           <AlertTriangle className="me-2 inline" size={16} />
         )}{" "}
-        {title} ({fa(items.length)})
+        {title} ({items.length.toLocaleString(profile.locale)})
       </summary>
       <ul className="mt-2 list-inside list-disc text-xs leading-6">
         {items.map((item) => (
@@ -700,14 +702,16 @@ function ConflictPolicyPicker({
   title: string;
   description: string;
 }) {
+  const { language } = useLocale();
+  const copy = transferCopy[language];
   const options: { value: ConflictPolicy; label: string; hint: string }[] = [
-    { value: "stop", label: "توقف امن", hint: "بدون تغییر اطلاعات قبلی" },
+    { value: "stop", label: copy.policyStop, hint: copy.policyStopHint },
     {
       value: "skip",
-      label: "رد کردن تکراری‌ها",
-      hint: "فقط موارد جدید ثبت شوند",
+      label: copy.policySkip,
+      hint: copy.policySkipHint,
     },
-    { value: "replace", label: "جایگزینی", hint: "اطلاعات قبلی بازنویسی شوند" },
+    { value: "replace", label: copy.policyReplace, hint: copy.policyReplaceHint },
   ];
   return (
     <fieldset className="rounded-xl border border-slate-200 p-3">
@@ -736,32 +740,31 @@ function ConflictPolicyPicker({
   );
 }
 function ResultView({ result, onReset }: { result: ImportResult; onReset: () => void }) {
+  const { language } = useLocale();
+  const copy = transferCopy[language];
   return (
     <div className="grid min-h-80 place-items-center p-6 text-center">
       <div className="max-w-xl">
         <span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
           <CheckCircle2 size={34} />
         </span>
-        <h4 className="mt-4 text-xl font-black">ورود اطلاعات تکمیل شد</h4>
+        <h4 className="mt-4 text-xl font-black">{copy.importFinished}</h4>
         <p className="mt-2 text-sm text-slate-500">
-          {result.published
-            ? "اطلاعات برای دانش‌آموز منتشر شد."
-            : "اطلاعات به‌صورت پیش‌نویس ذخیره شد."}
+          {result.published ? copy.publishedForStudent : copy.savedAsDraft}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Count label="برنامه" value={result.plans} />
-          <Count label="فعالیت" value={result.tasks} />
-          <Count label="آزمون" value={result.exams} />
-          <Count label="سؤال" value={result.questions} />
+          <Count label={copy.plan} value={result.plans} />
+          <Count label={copy.task} value={result.tasks} />
+          <Count label={copy.exam} value={result.exams} />
+          <Count label={copy.question} value={result.questions} />
         </div>
         {result.skippedPlans || result.skippedExams ? (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            {fa((result.skippedPlans || 0) + (result.skippedExams || 0))} مورد تکراری بدون تغییر رد
-            شد.
+            {copy.skippedDuplicates((result.skippedPlans || 0) + (result.skippedExams || 0))}
           </p>
         ) : null}
         <Button className="mt-5" variant="soft" onClick={onReset}>
-          ورود فایل دیگر
+          {copy.importAnotherFile}
         </Button>
       </div>
     </div>
@@ -775,16 +778,24 @@ function ExportFact({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function summarySentence(preview?: TransferPreview) {
+function summarySentence(
+  preview: TransferPreview | undefined,
+  copy: (typeof transferCopy)[keyof typeof transferCopy],
+) {
   const summary = preview?.summary || {};
-  return `${fa(summary.plans || 0)} برنامه، ${fa(summary.tasks || 0)} فعالیت، ${fa(summary.exams || 0)} آزمون و ${fa(summary.questions || 0)} سؤال ثبت می‌شود.`;
+  return copy.summary(
+    Number(summary.plans || 0),
+    Number(summary.tasks || 0),
+    Number(summary.exams || 0),
+    Number(summary.questions || 0),
+  );
 }
-function workbookError(error: unknown) {
+function workbookError(error: unknown, copy: (typeof transferCopy)[keyof typeof transferCopy]) {
   const message = error instanceof Error ? error.message : "";
   if (message.startsWith("MISSING_COLUMNS:"))
-    return `ستون‌های لازم پیدا نشد: ${message.slice("MISSING_COLUMNS:".length)}`;
-  if (message === "WORKBOOK_SHEETS_MISSING") return "برگه Plans یا Exams در فایل وجود ندارد.";
-  return "ساختار فایل یا داده‌های آن معتبر نیست. قالب نمونه را دانلود و ویرایش کنید.";
+    return copy.missingColumns(message.slice("MISSING_COLUMNS:".length));
+  if (message === "WORKBOOK_SHEETS_MISSING") return copy.sheetsMissing;
+  return copy.invalidWorkbook;
 }
 
 const transferCopy = {
@@ -811,6 +822,74 @@ const transferCopy = {
     validateText: "اعتبارسنجی متن",
     reviewAndResolve: "بررسی و رفع مشکل",
     chooseSaveMethod: "روش ثبت را انتخاب کنید",
+    excelTemplate: "نمونه Excel",
+    jsonTemplate: "نمونه JSON",
+    existingPlans: "برنامه‌های موجود",
+    existingExams: "آزمون‌های موجود",
+    and: " و ",
+    confirmPublishTitle: "ثبت و انتشار اطلاعات؟",
+    confirmDraftTitle: "ثبت اطلاعات به‌صورت پیش‌نویس؟",
+    replacingWarning: (items: string) => `${items} در صورت تطابق جایگزین می‌شوند.`,
+    publishImport: "ثبت و انتشار",
+    saveDraft: "ثبت پیش‌نویس",
+    saveAndPublish: "ثبت و انتشار برای دانش‌آموز",
+    sameDatePlans: "برنامه‌های هم‌تاریخ",
+    sameDatePlansDescription: "برنامه دارای سابقه انجام‌شده هرگز جایگزین نمی‌شود.",
+    duplicateExams: "آزمون‌های تکراری",
+    duplicateExamsDescription: "تطبیق بر اساس عنوان و تاریخ آزمون انجام می‌شود.",
+    previewOnlyNotice:
+      "شما اجازه بررسی فایل را دارید، اما ثبت نهایی به دسترسی import.commit نیاز دارد.",
+    preparingExport: "آماده‌سازی خروجی",
+    exportDescription: "فایل استاندارد schema-v2 و قابل ورود مجدد تولید می‌شود.",
+    scope: "محدوده",
+    allExams: "همه آزمون‌ها",
+    plans: "برنامه‌ها",
+    plansAndRelatedExams: "برنامه‌ها و آزمون‌های مرتبط",
+    range: "بازه",
+    to: "تا",
+    allDates: "تمام تاریخ‌ها",
+    structure: "ساختار",
+    editableExcelSchema: "Excel قابل ویرایش · schema-v2",
+    contents: "محتوا",
+    examContents: "سؤال، پاسخ، بودجه و زمان‌بندی",
+    planContents: "فعالیت، یادداشت و پیوند آزمون",
+    recoverableExport: "خروجی قابل بازیابی",
+    recoverableExportDescription:
+      "شناسه‌های داخلی به ارجاع‌های قابل‌حمل تبدیل می‌شوند تا اتصال برنامه و آزمون هنگام ورود مجدد حفظ شود.",
+    downloadExcel: "دانلود خروجی Excel",
+    downloadJson: "دانلود خروجی JSON",
+    returnToImport: "بازگشت به ورود اطلاعات",
+    reviewNotReady: "پیش‌نمایش هنوز آماده نیست",
+    reviewNotReadyDescription: "پس از انتخاب فایل، نتیجه بررسی اینجا نمایش داده می‌شود.",
+    reviewing: "در حال بررسی ساختار و تداخل‌ها…",
+    fileNeedsFixing: "فایل نیاز به اصلاح دارد",
+    fileReady: "فایل معتبر و آماده ثبت است",
+    schemaVersion: "نسخه ساختار",
+    plan: "برنامه",
+    task: "فعالیت",
+    exam: "آزمون",
+    question: "سؤال",
+    conflict: "تداخل",
+    blockingErrors: "خطاهای مسدودکننده",
+    attentionItems: "موارد نیازمند توجه",
+    timeConflicts: "تداخل‌های زمانی",
+    policyStop: "توقف امن",
+    policyStopHint: "بدون تغییر اطلاعات قبلی",
+    policySkip: "رد کردن تکراری‌ها",
+    policySkipHint: "فقط موارد جدید ثبت شوند",
+    policyReplace: "جایگزینی",
+    policyReplaceHint: "اطلاعات قبلی بازنویسی شوند",
+    importFinished: "ورود اطلاعات تکمیل شد",
+    publishedForStudent: "اطلاعات برای دانش‌آموز منتشر شد.",
+    savedAsDraft: "اطلاعات به‌صورت پیش‌نویس ذخیره شد.",
+    skippedDuplicates: (count: number) =>
+      `${count.toLocaleString("fa-IR")} مورد تکراری بدون تغییر رد شد.`,
+    importAnotherFile: "ورود فایل دیگر",
+    summary: (plans: number, tasks: number, exams: number, questions: number) =>
+      `${plans.toLocaleString("fa-IR")} برنامه، ${tasks.toLocaleString("fa-IR")} فعالیت، ${exams.toLocaleString("fa-IR")} آزمون و ${questions.toLocaleString("fa-IR")} سؤال ثبت می‌شود.`,
+    missingColumns: (columns: string) => `ستون‌های لازم پیدا نشد: ${columns}`,
+    sheetsMissing: "برگه Plans یا Exams در فایل وجود ندارد.",
+    invalidWorkbook: "ساختار فایل یا داده‌های آن معتبر نیست. قالب نمونه را دانلود و ویرایش کنید.",
   },
   en: {
     importCompleted: "The import was completed successfully.",
@@ -835,6 +914,75 @@ const transferCopy = {
     validateText: "Validate text",
     reviewAndResolve: "Review and resolve",
     chooseSaveMethod: "Choose how to save",
+    excelTemplate: "Excel template",
+    jsonTemplate: "JSON template",
+    existingPlans: "existing plans",
+    existingExams: "existing exams",
+    and: " and ",
+    confirmPublishTitle: "Save and publish imported data?",
+    confirmDraftTitle: "Save imported data as a draft?",
+    replacingWarning: (items: string) => `Matching ${items} will be replaced.`,
+    publishImport: "Save and publish",
+    saveDraft: "Save as draft",
+    saveAndPublish: "Save and publish for the student",
+    sameDatePlans: "Plans on the same date",
+    sameDatePlansDescription: "A plan with completed activity is never replaced.",
+    duplicateExams: "Duplicate exams",
+    duplicateExamsDescription: "Matches use the exam title and date.",
+    previewOnlyNotice:
+      "You can review this file, but final saving requires the import.commit capability.",
+    preparingExport: "Prepare export",
+    exportDescription: "A standard, re-importable schema-v2 file will be generated.",
+    scope: "Scope",
+    allExams: "All exams",
+    plans: "Plans",
+    plansAndRelatedExams: "Plans and related exams",
+    range: "Date range",
+    to: "to",
+    allDates: "All dates",
+    structure: "Structure",
+    editableExcelSchema: "Editable Excel · schema-v2",
+    contents: "Contents",
+    examContents: "Questions, answers, syllabus, and scheduling",
+    planContents: "Activities, notes, and exam links",
+    recoverableExport: "Recoverable export",
+    recoverableExportDescription:
+      "Internal IDs become portable references so plan and exam connections survive a later import.",
+    downloadExcel: "Download Excel export",
+    downloadJson: "Download JSON export",
+    returnToImport: "Return to import",
+    reviewNotReady: "Preview is not ready yet",
+    reviewNotReadyDescription: "The validation result will appear here after you select a file.",
+    reviewing: "Reviewing structure and conflicts…",
+    fileNeedsFixing: "This file needs changes",
+    fileReady: "This file is valid and ready to save",
+    schemaVersion: "Schema version",
+    plan: "Plan",
+    task: "Activity",
+    exam: "Exam",
+    question: "Question",
+    conflict: "Conflict",
+    blockingErrors: "Blocking errors",
+    attentionItems: "Items needing attention",
+    timeConflicts: "Time conflicts",
+    policyStop: "Stop safely",
+    policyStopHint: "Leave existing data unchanged",
+    policySkip: "Skip duplicates",
+    policySkipHint: "Save only new items",
+    policyReplace: "Replace",
+    policyReplaceHint: "Overwrite matching existing data",
+    importFinished: "Import complete",
+    publishedForStudent: "The data was published for the student.",
+    savedAsDraft: "The data was saved as a draft.",
+    skippedDuplicates: (count: number) =>
+      `${count.toLocaleString("en-US")} duplicate items were skipped without changes.`,
+    importAnotherFile: "Import another file",
+    summary: (plans: number, tasks: number, exams: number, questions: number) =>
+      `${plans.toLocaleString("en-US")} plans, ${tasks.toLocaleString("en-US")} activities, ${exams.toLocaleString("en-US")} exams, and ${questions.toLocaleString("en-US")} questions will be saved.`,
+    missingColumns: (columns: string) => `Required columns are missing: ${columns}`,
+    sheetsMissing: "The workbook must include a Plans or Exams sheet.",
+    invalidWorkbook:
+      "The file structure or data is invalid. Download and edit the template before trying again.",
   },
 } as const;
 

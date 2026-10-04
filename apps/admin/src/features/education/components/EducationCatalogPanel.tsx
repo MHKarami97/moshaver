@@ -16,17 +16,22 @@ import {
   type ManagedEducationBook,
 } from "../api/education-catalog.api";
 
-const blank = (): EducationBookInput => ({
+const blank = (defaults: {
+  schoolYear: string;
+  branch: string;
+  track: string;
+  category: string;
+}): EducationBookInput => ({
   id: "",
-  schoolYear: "1405-1406",
+  schoolYear: defaults.schoolYear,
   grade: 10,
   titleFa: "",
   titleEn: "",
   country: "IR",
   level: "second",
-  branch: "نظری",
-  track: "مشترک",
-  category: "عمومی",
+  branch: defaults.branch,
+  track: defaults.track,
+  category: defaults.category,
   appliesTo: [],
   notes: "",
 });
@@ -44,7 +49,7 @@ export function EducationCatalogPanel({
     queryKey: ["education-catalog", "managed-books"],
     queryFn: getManagedBooks,
   });
-  const [draft, setDraft] = useState<EducationBookInput>(blank);
+  const [draft, setDraft] = useState<EducationBookInput>(() => blank(copy.newBookDefaults));
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [state, setState] = useState<"ALL" | ManagedEducationBook["state"]>("ALL");
@@ -60,7 +65,7 @@ export function EducationCatalogPanel({
         : createEducationBook(draft),
     onSuccess: () => {
       refresh();
-      setDraft(blank());
+      setDraft(blank(copy.newBookDefaults));
       setEditing(null);
       notify(copy.saved, "success");
     },
@@ -243,7 +248,7 @@ export function EducationCatalogPanel({
                   variant="ghost"
                   onClick={() => {
                     setEditing(null);
-                    setDraft(blank());
+                    setDraft(blank(copy.newBookDefaults));
                   }}
                 >
                   {copy.cancel}

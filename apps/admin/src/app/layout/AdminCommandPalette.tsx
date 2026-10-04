@@ -349,7 +349,7 @@ export function AdminCommandPalette({
                   type="button"
                   role="option"
                   aria-selected={active}
-                  className={`mb-1 flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-right outline-none transition last:mb-0 focus-visible:ring-2 focus-visible:ring-brand ${active ? "bg-indigo-50 text-brand" : "text-slate-700 hover:bg-slate-50"}`}
+                  className={`mb-1 flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start outline-none transition last:mb-0 focus-visible:ring-2 focus-visible:ring-brand ${active ? "bg-indigo-50 text-brand" : "text-slate-700 hover:bg-slate-50"}`}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => choose(index)}
                 >

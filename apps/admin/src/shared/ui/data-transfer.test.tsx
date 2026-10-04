@@ -136,4 +136,18 @@ describe("data transfer workspace", () => {
     expect(screen.getByText("خروجی قابل بازیابی")).toBeInTheDocument();
     expect(screen.getByText("دانلود خروجی Excel")).toBeInTheDocument();
   });
+
+  it("renders the complete import/export workflow in English", async () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    renderWorkspace();
+
+    expect(screen.getByRole("button", { name: "Choose file" })).toBeInTheDocument();
+    expect(screen.getByText("Review and resolve")).toBeInTheDocument();
+    expect(screen.getByText("Choose how to save")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(screen.getByText("Prepare export")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download Excel export" })).toBeInTheDocument();
+    window.localStorage.removeItem("moshaver-admin-location");
+  });
 });

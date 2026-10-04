@@ -2,8 +2,9 @@
 // EducationSectionCard.tsx
 // ─────────────────────────────────────────────────────────────
 import { Link } from "react-router-dom";
-import { ArrowUpLeft } from "lucide-react";
+import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { EducationSection } from "../model/eduction.types";
+import { useLocale } from "../../../shared/ui/locale";
 
 const CARD_CLASS = [
   "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5",
@@ -16,6 +17,9 @@ const CARD_CLASS = [
 
 export function EducationSectionCard({ section }: { section: EducationSection }) {
   const { path, title, description, icon: Icon } = section;
+  const { language } = useLocale();
+  const isLtr = language === "en";
+  const Arrow = isLtr ? ArrowUpRight : ArrowUpLeft;
 
   return (
     <li className="min-w-0">
@@ -34,10 +38,10 @@ export function EducationSectionCard({ section }: { section: EducationSection })
         </div>
 
         {/* Appears only on hover/focus — zero noise at rest */}
-        <ArrowUpLeft
+        <Arrow
           size={14}
           aria-hidden="true"
-          className="shrink-0 -translate-x-1 text-slate-300 opacity-0 transition-[transform,opacity,color] duration-150 group-hover:translate-x-0 group-hover:text-brand group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          className={`shrink-0 text-slate-300 opacity-0 transition-[transform,opacity,color] duration-150 group-hover:translate-x-0 group-hover:text-brand group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none ${isLtr ? "translate-x-1" : "-translate-x-1"}`}
         />
       </Link>
     </li>

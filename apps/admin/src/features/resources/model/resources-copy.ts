@@ -2,6 +2,7 @@ import type { AdminLanguage } from "../../../shared/ui/locale";
 
 const copy = {
   fa: {
+    locale: "fa-IR",
     general: "عمومی",
     resourceUpdated: "منبع به‌روزرسانی شد.",
     resourceCreated: "منبع آموزشی ساخته شد.",
@@ -59,6 +60,7 @@ const copy = {
     recipientsLabel: "دریافت‌کننده",
   },
   en: {
+    locale: "en-US",
     general: "General",
     resourceUpdated: "Resource updated.",
     resourceCreated: "Learning resource created.",

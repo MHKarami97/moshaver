@@ -9,6 +9,7 @@ export function AdminContextSidebar({
   collapsed,
   mainCollapsed,
   current,
+  sourceSection,
   items,
   unreadNotifications,
   selectedStudentId,
@@ -18,6 +19,8 @@ export function AdminContextSidebar({
   collapsed: boolean;
   mainCollapsed: boolean;
   current: AdminCurrentNavigation;
+  /** Canonical section name retained for route construction. */
+  sourceSection: string;
   items: ReadonlyArray<{
     path: string;
     title: string;
@@ -80,7 +83,7 @@ export function AdminContextSidebar({
           return (
             <NavLink
               key={path}
-              to={adminDestination(path, current.section, selectedStudentId)}
+              to={adminDestination(path, sourceSection, selectedStudentId)}
               title={title}
               aria-label={title}
               aria-current={active ? "page" : undefined}

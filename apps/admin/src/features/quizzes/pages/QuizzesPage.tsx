@@ -43,6 +43,7 @@ import { QuizSidebar } from "../components/QuizSidebar";
 import { QuizQuestionBankPanel } from "../components/QuizQuestionBankPanel";
 import type { QuizDraft } from "../model/quiz.types";
 import { useQuizCopy } from "../model/quiz-locale";
+import { normalizePersianText } from "../../../shared/lib/utils";
 export function QuizzesPage() {
   const copy = useQuizCopy();
   const qc = useQueryClient();
@@ -98,11 +99,15 @@ export function QuizzesPage() {
     enabled: !!quizId && auth.can("quizzes.read"),
   });
   const selected = quizzes.data?.find((item) => item.id === quizId);
+  const normalizeSearch = (value: string) =>
+    copy.language === "fa"
+      ? normalizePersianText(value).toLocaleLowerCase(copy.numberLocale)
+      : value.toLocaleLowerCase(copy.numberLocale);
   const visibleQuizzes = (quizzes.data || []).filter(
     (item) =>
-      `${item.title} ${item.subject || ""} ${item.exam?.title || ""}`
-        .toLocaleLowerCase("fa")
-        .includes(quizSearch.trim().toLocaleLowerCase("fa")) &&
+      normalizeSearch(`${item.title} ${item.subject || ""} ${item.exam?.title || ""}`).includes(
+        normalizeSearch(quizSearch.trim()),
+      ) &&
       (status === "all" || (status === "active" ? !!item.active : !item.active)),
   );
   function setQuizId(value: string) {
@@ -132,12 +137,7 @@ export function QuizzesPage() {
   useEffect(() => {
     if (quizId && quizzes.isSuccess && !selected) {
       setQuizId("");
-      notify(
-        copy.language === "en"
-          ? "The selected quiz no longer exists."
-          : "آزمونک انتخاب‌شده دیگر وجود ندارد.",
-        "warning",
-      );
+      notify(copy.selectedQuizMissing, "warning");
     }
   }, [copy.language, quizId, quizzes.isSuccess, selected]);
   useEffect(
@@ -165,86 +165,86 @@ export function QuizzesPage() {
       id ? updateQuiz(id, draft) : createQuiz(draft),
     onSuccess: (value, variables) => {
       qc.invalidateQueries({ queryKey: ["quizzes"] });
-      notify(variables.id ? "آزمونک به‌روز شد." : "آزمونک ساخته شد.");
+      notify(variables.id ? copy.quizSaved : copy.quizCreated);
       if (value && typeof value === "object" && "id" in value) setQuizId(String(value.id));
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره آزمونک ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.saveQuizFailed, "error"),
   });
   const toggle = useMutation({
     mutationFn: () => updateQuiz(quizId, { active: !selected?.active }),
     onSuccess: () => {
-      notify(selected?.active ? "آزمونک غیرفعال شد." : "آزمونک فعال شد.");
+      notify(selected?.active ? copy.quizDeactivated : copy.quizActivated);
       void qc.invalidateQueries({ queryKey: ["quizzes"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "تغییر وضعیت آزمونک ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.toggleQuizFailed, "error"),
   });
   const removeQuiz = useMutation({
     mutationFn: deleteQuiz,
     onSuccess: (result: { archived?: boolean }) => {
-      notify(result.archived ? "آزمونک بایگانی شد؛ تلاش‌های ثبت‌شده حفظ شدند." : "آزمونک حذف شد.");
+      notify(result.archived ? copy.quizArchived : copy.quizDeleted);
       setQuizId("");
       void qc.invalidateQueries({ queryKey: ["quizzes"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "حذف آزمونک ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.deleteQuizFailed, "error"),
   });
   const saveAssignments = useMutation({
     mutationFn: () => setQuizAssignments(quizId, assignedStudentIds),
     onSuccess: () => {
-      notify("دسترسی دانش‌آموزان به‌روز شد.");
+      notify(copy.studentAccessSaved);
       void qc.invalidateQueries({ queryKey: ["quiz-assignments", quizId] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره دسترسی ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.saveAccessFailed, "error"),
   });
   const saveClassAssignments = useMutation({
     mutationFn: () => setQuizClassAssignments(quizId, assignedClassIds),
     onSuccess: () => {
-      notify("دسترسی کلاس‌ها به‌روز شد.");
+      notify(copy.classAccessSaved);
       void qc.invalidateQueries({ queryKey: ["quiz-class-assignments", quizId] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره دسترسی کلاس ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.saveAccessFailed, "error"),
   });
   const saveAudienceRules = useMutation({
     mutationFn: () => setQuizAudienceRules(quizId, audienceRules),
     onSuccess: () => {
-      notify("قوانین مخاطبان ذخیره شد.");
+      notify(copy.audienceRulesSaved);
       void qc.invalidateQueries({ queryKey: ["quizzes"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره قوانین ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.saveAudienceRulesFailed, "error"),
   });
   const releaseResults = useMutation({
     mutationFn: () => releaseQuizResults(quizId),
     onSuccess: () => {
-      notify("نتایج آزمونک برای دانش‌آموزان منتشر شد.");
+      notify(copy.resultsReleased);
       void qc.invalidateQueries({ queryKey: ["quizzes"] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "انتشار نتایج ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.releaseResultsFailed, "error"),
   });
   const add = useMutation({
     mutationFn: ({ id, draft }: { id?: string; draft: ReturnType<typeof emptyQuestion> }) =>
       id ? updateQuizQuestion(id, draft) : createQuizQuestion(quizId, draft),
     onSuccess: (_, variables) => {
-      notify(variables.id ? "سؤال آزمونک ویرایش شد." : "سؤال آزمونک افزوده شد.");
+      notify(variables.id ? copy.questionSaved : copy.questionAdded);
       qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "ذخیره سؤال ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.saveQuestionFailed, "error"),
   });
   const visibleQuestions = (questions.data ?? []).filter((item) => questionMatches(item, search));
   const remove = useMutation({
     mutationFn: deleteQuizQuestion,
     onSuccess: () => {
-      notify("سؤال حذف شد.");
+      notify(copy.questionDeleted);
       void qc.invalidateQueries({ queryKey: ["quiz-questions", quizId] });
     },
     onError: (error) =>
-      notify(error instanceof Error ? error.message : "حذف سؤال ناموفق بود.", "error"),
+      notify(error instanceof Error ? error.message : copy.deleteQuestionFailed, "error"),
   });
   const openQuizEditor = (item?: typeof selected) => {
     const initial: QuizDraft = item
@@ -260,7 +260,7 @@ export function QuizzesPage() {
       : { title: "", subject: "", durationMinutes: 20, attemptLimit: 1, resultPolicy: "immediate" };
     modal.open({
       title: item ? copy.editQuiz : copy.newQuiz,
-      description: "مشخصات و سیاست تحویل را ثبت کنید؛ مخاطبان و سؤال‌ها در گام بعد مدیریت می‌شوند.",
+      description: copy.editorDescription,
       size: "lg",
       content: (
         <QuizEditorModal
@@ -299,26 +299,24 @@ export function QuizzesPage() {
       <AssessmentWorkspaceIntro
         icon={<CircleHelp size={20} />}
         title={copy.quizzes}
-        description={
-          copy.language === "en"
-            ? "Control creation, content, audiences, and result release in one focused workflow."
-            : "ساخت، محتوا، مخاطب و انتشار نتیجه را در یک جریان فشرده کنترل کنید."
-        }
+        description={copy.workspaceDescription}
         metrics={
           <>
             <AssessmentMetric>
               {(quizzes.data || []).length.toLocaleString(copy.numberLocale)} {copy.quizzes}
             </AssessmentMetric>
             <AssessmentMetric>
-              {(quizzes.data || []).filter((item) => item.active).length.toLocaleString("fa-IR")}{" "}
-              فعال
+              {(quizzes.data || [])
+                .filter((item) => item.active)
+                .length.toLocaleString(copy.numberLocale)}{" "}
+              {copy.active}
             </AssessmentMetric>
           </>
         }
       />
       <nav
         className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-slate-900"
-        aria-label={copy.language === "en" ? "Quiz sections" : "بخش‌های آزمونک"}
+        aria-label={copy.sectionsLabel}
       >
         <Button
           variant={view === "quizzes" ? "soft" : "ghost"}
@@ -373,19 +371,19 @@ export function QuizzesPage() {
               {quizId && selected ? (
                 <Card className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
                   <div className="min-w-0">
-                    <span className="text-xs font-bold text-brand">آزمونک انتخاب‌شده</span>
+                    <span className="text-xs font-bold text-brand">{copy.selectedQuiz}</span>
                     <strong className="mt-1 block truncate text-base">{selected.title}</strong>
                     <p className="mt-1 text-xs text-slate-500">
-                      {selected.subject || "بدون درس"} ·{" "}
-                      {selected.durationMinutes.toLocaleString("fa-IR")} دقیقه ·{" "}
-                      {selected.questions.length.toLocaleString("fa-IR")} سؤال
+                      {selected.subject || copy.noSubject} ·{" "}
+                      {selected.durationMinutes.toLocaleString(copy.numberLocale)} {copy.minutes} ·{" "}
+                      {selected.questions.length.toLocaleString(copy.numberLocale)} {copy.questions}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:justify-end">
                     {canUpdate ? (
                       <Button size="sm" variant="soft" onClick={() => openQuizEditor(selected)}>
                         <Pencil size={15} />
-                        ویرایش
+                        {copy.edit}
                       </Button>
                     ) : null}
                     {canUpdate ? (
@@ -395,18 +393,16 @@ export function QuizzesPage() {
                         onClick={() =>
                           void modal
                             .confirm({
-                              title: selected?.active
-                                ? "غیرفعال‌کردن آزمونک؟"
-                                : "فعال‌کردن آزمونک؟",
+                              title: selected?.active ? copy.toggleOffTitle : copy.toggleOnTitle,
                               description: selected?.active
-                                ? "دانش‌آموزان دیگر به این آزمونک دسترسی نخواهند داشت."
-                                : "آزمونک دوباره برای دانش‌آموزان قابل استفاده می‌شود.",
-                              confirmLabel: selected?.active ? "غیرفعال کن" : "فعال کن",
+                                ? copy.toggleOffDescription
+                                : copy.toggleOnDescription,
+                              confirmLabel: selected?.active ? copy.deactivate : copy.activate,
                             })
                             .then((ok) => ok && toggle.mutate())
                         }
                       >
-                        {selected.active ? "غیرفعال" : "فعال"}
+                        {selected.active ? copy.inactive : copy.active}
                       </Button>
                     ) : null}
                   </div>
@@ -415,16 +411,17 @@ export function QuizzesPage() {
               {quizId && selected && canUpdate ? (
                 <Card className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
                   <div>
-                    <strong className="text-sm">مخاطب و انتشار</strong>
+                    <strong className="text-sm">{copy.audienceAndRelease}</strong>
                     <p className="text-xs text-slate-500">
-                      {assignedStudentIds.length.toLocaleString("fa-IR")} دانش‌آموز مستقیم ·{" "}
-                      {assignedClassIds.length.toLocaleString("fa-IR")} کلاس ·{" "}
+                      {assignedStudentIds.length.toLocaleString(copy.numberLocale)}{" "}
+                      {copy.directStudents} ·{" "}
+                      {assignedClassIds.length.toLocaleString(copy.numberLocale)} {copy.classes} ·{" "}
                       {audienceRules.gradeIds.length +
                         audienceRules.educationTypeIds.length +
                         audienceRules.trackIds.length +
                         audienceRules.learnerProfiles.length +
                         audienceRules.independentTypes.length}{" "}
-                      قانون
+                      {copy.rules}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -433,9 +430,8 @@ export function QuizzesPage() {
                       variant="soft"
                       onClick={() =>
                         modal.open({
-                          title: "مخاطبان آزمونک",
-                          description:
-                            "دانش‌آموز، کلاس یا قواعد آموزشی را در یک جریان انتخاب و ذخیره کنید.",
+                          title: copy.audienceTitle,
+                          description: copy.audienceDescription,
                           size: "xl",
                           content: (
                             <QuizAudienceModal
@@ -460,7 +456,7 @@ export function QuizzesPage() {
                         })
                       }
                     >
-                      مدیریت مخاطبان
+                      {copy.manageAudience}
                     </Button>
                     {selected.resultPolicy === "manual" ? (
                       <Button
@@ -469,7 +465,7 @@ export function QuizzesPage() {
                         loading={releaseResults.isPending}
                         onClick={() => releaseResults.mutate()}
                       >
-                        انتشار نتایج
+                        {copy.releaseResults}
                       </Button>
                     ) : null}
                   </div>
@@ -478,9 +474,10 @@ export function QuizzesPage() {
               {quizId && analytics.data ? (
                 <Card className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4">
                   <div>
-                    <strong className="text-sm">تحلیل عملکرد</strong>
+                    <strong className="text-sm">{copy.performanceAnalytics}</strong>
                     <p className="text-xs text-slate-500">
-                      {analytics.data.attempts.toLocaleString("fa-IR")} تلاش ثبت‌شده
+                      {analytics.data.attempts.toLocaleString(copy.numberLocale)}{" "}
+                      {copy.submittedAttempts}
                     </p>
                   </div>
                   <Button
@@ -488,14 +485,14 @@ export function QuizzesPage() {
                     variant="soft"
                     onClick={() =>
                       modal.open({
-                        title: "تحلیل آزمونک",
-                        description: "آمار فقط بر پایه تلاش‌های ارسال‌شده محاسبه می‌شود.",
+                        title: copy.performanceAnalytics,
+                        description: copy.analyticsDescription,
                         size: "xl",
                         content: <QuizAnalyticsPanel value={analytics.data!} />,
                       })
                     }
                   >
-                    مشاهده تحلیل
+                    {copy.viewAnalytics}
                   </Button>
                 </Card>
               ) : null}
@@ -504,14 +501,12 @@ export function QuizzesPage() {
                   {canManageQuestions ? (
                     <Card className="flex items-center justify-between gap-2 p-3">
                       <div>
-                        <strong className="text-sm">سؤال‌های آزمونک</strong>
-                        <p className="text-xs text-slate-500">
-                          ساخت و ویرایش در پنجره جداگانه انجام می‌شود.
-                        </p>
+                        <strong className="text-sm">{copy.quizQuestions}</strong>
+                        <p className="text-xs text-slate-500">{copy.questionsEditorHelp}</p>
                       </div>
                       <Button size="sm" onClick={() => openQuestionEditor()}>
                         <Plus size={15} />
-                        سؤال جدید
+                        {copy.newQuestion}
                       </Button>
                     </Card>
                   ) : null}
@@ -529,10 +524,10 @@ export function QuizzesPage() {
                     onDelete={(item) =>
                       void modal
                         .confirm({
-                          title: "حذف سؤال آزمونک؟",
-                          description: "این سؤال برای همیشه از آزمونک حذف می‌شود.",
+                          title: copy.deleteQuestionTitle,
+                          description: copy.deleteQuestionDescription,
                           tone: "danger",
-                          confirmLabel: "حذف",
+                          confirmLabel: copy.delete,
                         })
                         .then((ok) => ok && remove.mutate(item.id))
                     }
@@ -549,26 +544,27 @@ export function QuizzesPage() {
 }
 
 function QuizAnalyticsPanel({ value }: { value: import("../api/quizzes.api").QuizAnalytics }) {
+  const copy = useQuizCopy();
   return (
     <Card className="grid gap-3 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <strong className="text-sm">تحلیل عملکرد</strong>
-          <p className="text-xs text-slate-500">
-            آمار فقط بر پایه تلاش‌های ارسال‌شده محاسبه می‌شود.
-          </p>
+          <strong className="text-sm">{copy.performanceAnalytics}</strong>
+          <p className="text-xs text-slate-500">{copy.analyticsDescription}</p>
         </div>
         <span className="rounded-lg bg-brand/10 px-2 py-1 text-xs font-bold text-brand">
-          {value.attempts.toLocaleString("fa-IR")} تلاش ·{" "}
-          {value.averagePercent === null ? "—" : `${value.averagePercent.toLocaleString("fa-IR")}٪`}
+          {value.attempts.toLocaleString(copy.numberLocale)} {copy.analyticsAttempts} ·{" "}
+          {value.averagePercent === null
+            ? "—"
+            : `${value.averagePercent.toLocaleString(copy.numberLocale)}%`}
         </span>
       </div>
       {value.byGrade.length ? (
         <div className="flex flex-wrap gap-2">
           {value.byGrade.map((row) => (
             <span key={row.grade} className="rounded-lg border px-2 py-1 text-xs">
-              {row.grade}: {row.averagePercent.toLocaleString("fa-IR")}٪ (
-              {row.attempts.toLocaleString("fa-IR")})
+              {copy.grade} {row.grade}: {row.averagePercent.toLocaleString(copy.numberLocale)}% (
+              {row.attempts.toLocaleString(copy.numberLocale)})
             </span>
           ))}
         </div>
@@ -578,20 +574,25 @@ function QuizAnalyticsPanel({ value }: { value: import("../api/quizzes.api").Qui
           <article key={question.id} className="grid gap-1 rounded-xl border p-2.5">
             <div className="flex items-start justify-between gap-3">
               <strong className="text-sm">
-                {(index + 1).toLocaleString("fa-IR")}. {question.text}
+                {(index + 1).toLocaleString(copy.numberLocale)}. {question.text}
               </strong>
               <span className="shrink-0 text-xs text-slate-500">
                 {question.accuracy === null
-                  ? "بدون تلاش"
-                  : `${question.accuracy.toLocaleString("fa-IR")}٪ درست`}
+                  ? copy.noAttempts
+                  : copy.correctPercent(question.accuracy.toLocaleString(copy.numberLocale))}
               </span>
             </div>
             <small className="text-xs text-slate-500">
-              الف: {(question.responses.a || 0).toLocaleString("fa-IR")} · ب:{" "}
-              {(question.responses.b || 0).toLocaleString("fa-IR")} · ج:{" "}
-              {(question.responses.c || 0).toLocaleString("fa-IR")} · د:{" "}
-              {(question.responses.d || 0).toLocaleString("fa-IR")} · سفید:{" "}
-              {(question.responses.blank || 0).toLocaleString("fa-IR")}
+              {copy.responseLabel("A")}:{" "}
+              {(question.responses.a || 0).toLocaleString(copy.numberLocale)} ·{" "}
+              {copy.responseLabel("B")}:{" "}
+              {(question.responses.b || 0).toLocaleString(copy.numberLocale)} ·{" "}
+              {copy.responseLabel("C")}:{" "}
+              {(question.responses.c || 0).toLocaleString(copy.numberLocale)} ·{" "}
+              {copy.responseLabel("D")}:{" "}
+              {(question.responses.d || 0).toLocaleString(copy.numberLocale)} ·{" "}
+              {copy.blankResponses}:{" "}
+              {(question.responses.blank || 0).toLocaleString(copy.numberLocale)}
             </small>
           </article>
         ))}
@@ -631,6 +632,7 @@ function AudienceRuleControl({
   onSave: () => void;
   saving: boolean;
 }) {
+  const copy = useQuizCopy();
   const grades = [
     ...new Set(
       students
@@ -663,55 +665,51 @@ function AudienceRuleControl({
   return (
     <section className="grid gap-2 border-t pt-3 dark:border-slate-800">
       <div>
-        <strong className="text-sm">قوانین گروه هدف</strong>
-        <p className="text-xs text-slate-500">
-          در هر ستون چند انتخاب مجاز است؛ بین ستون‌ها شرط «و» اعمال می‌شود.
-        </p>
+        <strong className="text-sm">{copy.audienceRules}</strong>
+        <p className="text-xs text-slate-500">{copy.audienceRulesHelp}</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         <RuleChoices
-          title="پایه"
+          title={copy.grade}
           values={grades}
           selected={value.gradeIds}
-          label={(item) => `پایه ${item.toLocaleString("fa-IR")}`}
+          label={(item) => `${copy.grade} ${item.toLocaleString(copy.numberLocale)}`}
           onToggle={(item) => toggle("gradeIds", item)}
         />
         <RuleChoices
-          title="نوع آموزش"
+          title={copy.educationType}
           values={types}
           selected={value.educationTypeIds}
           label={(item) => item}
           onToggle={(item) => toggle("educationTypeIds", item)}
         />
         <RuleChoices
-          title="رشته"
+          title={copy.track}
           values={tracks}
           selected={value.trackIds}
           label={(item) => item}
           onToggle={(item) => toggle("trackIds", item)}
         />
         <RuleChoices
-          title="نوع یادگیرنده"
+          title={copy.learnerProfile}
           values={["school", "independent"]}
           selected={value.learnerProfiles}
-          label={(item) => (item === "school" ? "مدرسه‌ای" : "مستقل")}
+          label={(item) => (item === "school" ? copy.schoolLearner : copy.independentLearner)}
           onToggle={(item) => toggle("learnerProfiles", item)}
         />
         <RuleChoices
-          title="نوع یادگیرنده مستقل"
+          title={copy.independentType}
           values={["adult", "gap_year", "homeschool", "other"]}
           selected={value.independentTypes}
           label={(item) =>
-            ({ adult: "بزرگسال", gap_year: "سال فاصله", homeschool: "آموزش خانگی", other: "سایر" })[
-              item
-            ] || item
+            copy.independentTypes[item as keyof typeof copy.independentTypes] || item
           }
           onToggle={(item) => toggle("independentTypes", item)}
         />
       </div>
       <div>
         <Button size="sm" loading={saving} onClick={onSave}>
-          ذخیره قوانین
+          {copy.saveRules}
         </Button>
       </div>
     </section>
@@ -730,6 +728,7 @@ function RuleChoices<T extends string | number>({
   label: (value: T) => string;
   onToggle: (value: T) => void;
 }) {
+  const copy = useQuizCopy();
   return (
     <div className="grid gap-1 rounded-xl border p-2">
       <strong className="text-xs">{title}</strong>
@@ -744,9 +743,7 @@ function RuleChoices<T extends string | number>({
           {label(item)}
         </label>
       ))}
-      {!values.length ? (
-        <small className="text-xs text-slate-500">داده‌ای وجود ندارد.</small>
-      ) : null}
+      {!values.length ? <small className="text-xs text-slate-500">{copy.noData}</small> : null}
     </div>
   );
 }
@@ -797,15 +794,16 @@ function QuizAudienceModal({
   onSaveRules: () => void;
   busy: boolean;
 }) {
+  const copy = useQuizCopy();
   const [tab, setTab] = useState<"students" | "classes" | "rules">("students");
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-3 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
         {(
           [
-            ["students", "دانش‌آموزان"],
-            ["classes", "کلاس‌ها"],
-            ["rules", "قواعد آموزشی"],
+            ["students", copy.audienceStudents],
+            ["classes", copy.audienceClasses],
+            ["rules", copy.audienceEducationRules],
           ] as const
         ).map(([id, label]) => (
           <Button
@@ -824,18 +822,16 @@ function QuizAudienceModal({
             students={students}
             selectedIds={studentIds}
             onChange={setStudentIds}
-            label="دانش‌آموزان هدف"
+            label={copy.targetStudents}
           />
           <Button loading={busy} onClick={onSaveStudents}>
-            ذخیره دانش‌آموزان
+            {copy.saveStudents}
           </Button>
         </>
       ) : null}
       {tab === "classes" ? (
         <>
-          <p className="text-xs text-slate-500">
-            دانش‌آموزان فعالِ ثبت‌نام‌شده در کلاس‌های انتخابی به آزمونک دسترسی دارند.
-          </p>
+          <p className="text-xs text-slate-500">{copy.classAudienceHelp}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {classes
               .filter((item) => item.status === "ACTIVE")
@@ -860,14 +856,14 @@ function QuizAudienceModal({
                     <strong className="block text-sm">{item.name}</strong>
                     <small className="text-xs text-slate-500">
                       {item.code} · {item.schoolYear} ·{" "}
-                      {item.enrollmentCount.toLocaleString("fa-IR")} دانش‌آموز
+                      {item.enrollmentCount.toLocaleString(copy.numberLocale)} {copy.students}
                     </small>
                   </span>
                 </label>
               ))}
           </div>
           <Button loading={busy} onClick={onSaveClasses}>
-            ذخیره کلاس‌ها
+            {copy.saveClasses}
           </Button>
         </>
       ) : null}

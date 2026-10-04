@@ -140,4 +140,44 @@ describe("student collection scroll flow", () => {
     expect(screen.getByText("Record status")).toBeInTheDocument();
     expect(screen.getByLabelText("Profile completion")).toBeInTheDocument();
   });
+
+  it("localizes the student directory controls, table, and pagination for English", () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <StudentList
+          students={[student]}
+          total={1250}
+          filteredTotal={1250}
+          page={2}
+          pageCount={50}
+          pageSize={25}
+          setPage={vi.fn()}
+          setPageSize={vi.fn()}
+          selectedId=""
+          search=""
+          setSearch={vi.fn()}
+          status="all"
+          counts={{ all: 1250, active: 1200, inactive: 30, archived: 20 }}
+          incomplete={3}
+          profileFilter="all"
+          sort="name"
+          sortDirection="asc"
+          onSort={vi.fn()}
+          onStatusChange={vi.fn()}
+          onIncompleteToggle={vi.fn()}
+          onClearFilters={vi.fn()}
+          onSelect={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByPlaceholderText("Name, ID, username, grade, track, or goal…")).toBeVisible();
+    expect(screen.getByLabelText("Student directory")).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "Student" })).toBeVisible();
+    expect(screen.getByText("Showing 26–50 of 1,250")).toBeVisible();
+    expect(screen.getByText("Items per page")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Previous/ })).toBeVisible();
+    expect(document.documentElement).toHaveAttribute("dir", "ltr");
+  });
 });

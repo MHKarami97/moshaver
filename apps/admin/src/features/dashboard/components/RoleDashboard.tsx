@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../auth";
 import { Badge, Button, EmptyState, LoadingState } from "../../../shared/ui/ui";
-import { fa } from "../../../shared/lib/utils";
+import { useLocale } from "../../../shared/ui/locale";
 import type { AttentionStudent, RoleDashboardData } from "../model/dashboard.types";
+import { dashboardCopy } from "../model/dashboard-copy";
 import { AttentionInbox } from "./AttentionInbox";
 import { getRoleConfig } from "../model/role-config";
 import { DashboardQuickActions } from "./DashboardQuickActions";
@@ -25,45 +26,25 @@ type Metric = {
   icon: LucideIcon;
   tone: "green" | "blue" | "amber" | "red";
 };
-const roleCopy: Record<string, { title: string; description: string }> = {
-  GUARDIAN: {
-    title: "نمای خانواده",
-    description: "برنامه، پیشرفت و ارتباط با تیم آموزشی فرزندتان",
-  },
-  ADVISOR: {
-    title: "میز کار مشاور",
-    description: "پیگیری برنامه‌ها، درخواست‌ها و دانش‌آموزان نیازمند توجه",
-  },
-  TEACHER: { title: "میز کار دبیر", description: "کلاس‌ها، آزمون‌ها و الگوهای خطای دانش‌آموزان" },
-  MENTOR: { title: "میز کار منتور", description: "هدف‌ها، روند روزانه و گفت‌وگوهای دانش‌آموزان" },
-  CONTENT_MANAGER: {
-    title: "استودیوی محتوای آموزشی",
-    description: "درس‌ها، سؤال‌ها، آزمون‌ها و آزمونک‌های در حال انتشار",
-  },
-  ORGANIZATION_ADMIN: {
-    title: "مدیریت سازمان",
-    description: "اعضا، کارکنان، دانش‌آموزان و سلامت عملیاتی سازمان",
-  },
-  PLATFORM_ADMIN: {
-    title: "فرماندهی پلتفرم",
-    description: "سازمان‌ها، کاربران، امنیت و نسخه‌های در حال اجرا",
-  },
-};
 const n = (value: unknown) => (typeof value === "number" ? value : 0);
 
-export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
+export function roleDashboardMetrics(
+  data: RoleDashboardData,
+  language: "fa" | "en" = "fa",
+): Metric[] {
+  const copy = dashboardCopy[language];
   const common: Metric[] = [
     {
-      label: "دانش‌آموز تحت پوشش",
+      label: copy.assignedStudents,
       value: n(data.assignedStudents),
-      hint: "در محدوده نقش فعال",
+      hint: copy.assignedStudentsHint,
       icon: UsersRound,
       tone: "green",
     },
     {
-      label: "پیام خوانده‌نشده",
+      label: copy.unreadMessages,
       value: n(data.unreadConversations),
-      hint: "گفت‌وگوهای نیازمند پاسخ",
+      hint: copy.unreadMessagesHint,
       icon: MessageSquare,
       tone: "blue",
     },
@@ -72,9 +53,9 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
     case "GUARDIAN":
       return [
         {
-          label: "فرزندان",
+          label: copy.children,
           value: n(data.children),
-          hint: "پروفایل‌های متصل و تأییدشده",
+          hint: copy.childrenHint,
           icon: UsersRound,
           tone: "green",
         },
@@ -84,30 +65,30 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
       return [
         ...common,
         {
-          label: "نیازمند توجه",
+          label: copy.needsAttention,
           value: n(data.attentionStudents),
-          hint: "دانش‌آموز با پیگیری باز",
+          hint: copy.needsAttentionHint,
           icon: Activity,
           tone: "red",
         },
         {
-          label: "درخواست بازیابی",
+          label: copy.recoveryRequests,
           value: n(data.recoveryRequests),
-          hint: "در انتظار تصمیم",
+          hint: copy.recoveryRequestsHint,
           icon: RefreshCw,
           tone: "amber",
         },
         {
-          label: "مسئله فعالیت",
+          label: copy.taskIssues,
           value: n(data.taskIssues),
-          hint: "گزارش باز دانش‌آموز",
+          hint: copy.taskIssuesHint,
           icon: CalendarDays,
           tone: "amber",
         },
         {
-          label: "تلاش مجدد",
+          label: copy.retryRequests,
           value: n(data.retryRequests),
-          hint: "درخواست آزمون",
+          hint: copy.retryRequestsHint,
           icon: BookOpenCheck,
           tone: "blue",
         },
@@ -116,23 +97,23 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
       return [
         ...common,
         {
-          label: "درس فعال",
+          label: copy.activeSubjects,
           value: Array.isArray(data.subjects) ? data.subjects.length : 0,
-          hint: "درس‌های تخصیص‌یافته",
+          hint: copy.activeSubjectsHint,
           icon: BookOpenCheck,
           tone: "blue",
         },
         {
-          label: "خطای باز",
+          label: copy.openIssues,
           value: n(data.studentsNeedingAttention),
-          hint: "نیازمند مرور آموزشی",
+          hint: copy.openIssuesHint,
           icon: Activity,
           tone: "red",
         },
         {
-          label: "بانک سؤال",
+          label: copy.questionBank,
           value: n(data.contentTasks?.questions),
-          hint: "سؤال‌های آماده",
+          hint: copy.questionBankHint,
           icon: FileQuestion,
           tone: "amber",
         },
@@ -141,16 +122,16 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
       return [
         ...common,
         {
-          label: "برنامه امروز",
+          label: copy.todayPlansMetric,
           value: n(data.recentProgress?.plans),
-          hint: "برنامه‌های تحت پیگیری",
+          hint: copy.todayPlansHint,
           icon: CalendarDays,
           tone: "green",
         },
         {
-          label: "هدف پیش‌رو",
+          label: copy.upcomingGoalsMetric,
           value: data.upcomingGoals?.length || 0,
-          hint: "آزمون و هدف آینده",
+          hint: copy.upcomingGoalsHint,
           icon: BookOpenCheck,
           tone: "amber",
         },
@@ -158,30 +139,30 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
     case "CONTENT_MANAGER":
       return [
         {
-          label: "درس",
+          label: copy.subjectsMetric,
           value: n(data.subjects),
-          hint: "درس‌های فعال",
+          hint: copy.subjectsHint,
           icon: BookOpenCheck,
           tone: "green",
         },
         {
-          label: "سؤال",
+          label: copy.questionsMetric,
           value: n(data.questions),
-          hint: "بانک محتوای آزمون",
+          hint: copy.questionsHint,
           icon: FileQuestion,
           tone: "blue",
         },
         {
-          label: "آزمونک",
+          label: copy.quizzesMetric,
           value: n(data.quizzes),
-          hint: `${fa(n(data.draftCount))} پیش‌نویس`,
+          hint: `${n(data.draftCount).toLocaleString(language === "en" ? "en-US" : "fa-IR")} ${copy.quizzesHint}`,
           icon: BookOpenCheck,
           tone: "amber",
         },
         {
-          label: "آزمون",
+          label: copy.examsMetric,
           value: n(data.exams),
-          hint: "محتوای ارزیابی",
+          hint: copy.examsHint,
           icon: CalendarDays,
           tone: "red",
         },
@@ -189,30 +170,30 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
     case "ORGANIZATION_ADMIN":
       return [
         {
-          label: "اعضای فعال",
+          label: copy.activeMembers,
           value: n(data.members),
-          hint: "عضویت معتبر سازمان",
+          hint: copy.activeMembersHint,
           icon: UsersRound,
           tone: "green",
         },
         {
-          label: "دانش‌آموز",
+          label: copy.studentsMetric,
           value: n(data.students),
-          hint: "حساب آموزشی",
+          hint: copy.studentsHint,
           icon: UsersRound,
           tone: "blue",
         },
         {
-          label: "کارکنان",
+          label: copy.staffMetric,
           value: n(data.staff),
-          hint: "تیم سازمان",
+          hint: copy.staffHint,
           icon: ShieldCheck,
           tone: "amber",
         },
         {
-          label: "کاربر غیرفعال",
+          label: copy.inactiveUsers,
           value: n(data.inactiveUsers),
-          hint: "نیازمند بررسی حساب",
+          hint: copy.inactiveUsersHint,
           icon: Activity,
           tone: "red",
         },
@@ -220,30 +201,30 @@ export function roleDashboardMetrics(data: RoleDashboardData): Metric[] {
     case "PLATFORM_ADMIN":
       return [
         {
-          label: "سازمان",
+          label: copy.organizationsMetric,
           value: n(data.organizations),
-          hint: "محدوده‌های پلتفرم",
+          hint: copy.organizationsHint,
           icon: Building2,
           tone: "green",
         },
         {
-          label: "کاربر",
+          label: copy.usersMetric,
           value: n(data.users),
-          hint: "تمام حساب‌های سامانه",
+          hint: copy.usersHint,
           icon: UsersRound,
           tone: "blue",
         },
         {
-          label: "رویداد امنیتی",
+          label: copy.securityEvents,
           value: n(data.auditSummary?.events24h),
-          hint: "در ۲۴ ساعت گذشته",
+          hint: copy.securityEventsHint,
           icon: ShieldCheck,
           tone: "amber",
         },
         {
-          label: "ورود قفل‌شده",
+          label: copy.lockedLogins,
           value: n(data.auditSummary?.lockedLogins),
-          hint: "محدودیت فعال ورود",
+          hint: copy.lockedLoginsHint,
           icon: Activity,
           tone: "red",
         },
@@ -277,24 +258,56 @@ export function RoleDashboard({
   onRetry: () => void;
   onRetryAttention: () => void;
 }) {
-  const auth = useAuth(),
-    copy = roleCopy[data?.context || auth.activeRole || ""] || {
-      title: "داشبورد",
-      description: "نمای کلی فضای کاری شما",
-    };
+  const auth = useAuth();
+  const { language, profile } = useLocale();
+  const dashboard = dashboardCopy[language];
+  const roleKey = data?.context || auth.activeRole || "";
+  const roleCopy = {
+    GUARDIAN: {
+      title: dashboard.guardianWorkspaceTitle,
+      description: dashboard.guardianWorkspaceDescription,
+    },
+    ADVISOR: {
+      title: dashboard.advisorWorkspaceTitle,
+      description: dashboard.advisorWorkspaceDescription,
+    },
+    TEACHER: {
+      title: dashboard.teacherWorkspaceTitle,
+      description: dashboard.teacherWorkspaceDescription,
+    },
+    MENTOR: {
+      title: dashboard.mentorWorkspaceTitle,
+      description: dashboard.mentorWorkspaceDescription,
+    },
+    CONTENT_MANAGER: {
+      title: dashboard.contentManagerWorkspaceTitle,
+      description: dashboard.contentManagerWorkspaceDescription,
+    },
+    ORGANIZATION_ADMIN: {
+      title: dashboard.organizationAdminWorkspaceTitle,
+      description: dashboard.organizationAdminWorkspaceDescription,
+    },
+    PLATFORM_ADMIN: {
+      title: dashboard.platformAdminWorkspaceTitle,
+      description: dashboard.platformAdminWorkspaceDescription,
+    },
+  }[roleKey] || {
+    title: dashboard.defaultWorkspaceTitle,
+    description: dashboard.defaultWorkspaceDescription,
+  };
 
   const role = data?.context; // "PLATFORM_ADMIN" | "TEACHER" | ...
   const { tone, icon: Icon, label } = getRoleConfig(role);
 
-  if (loading) return <LoadingState label="در حال آماده‌سازی میز کار نقش فعال…" />;
+  if (loading) return <LoadingState label={dashboard.workspaceLoading} />;
   if (error || !data)
     return (
       <EmptyState
-        title="داشبورد این نقش دریافت نشد."
+        title={dashboard.workspaceUnavailable}
         action={
           <Button variant="soft" onClick={onRetry}>
             <RefreshCw size={16} />
-            تلاش دوباره
+            {dashboard.retry}
           </Button>
         }
       />
@@ -313,7 +326,7 @@ export function RoleDashboard({
                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="sr-only">{label}</span>
               </Badge>
-              <h1 className="truncate text-xl font-black text-ink sm:text-2xl">{copy.title}</h1>
+              <h1 className="truncate text-xl font-black text-ink sm:text-2xl">{roleCopy.title}</h1>
             </div>
 
             <Button
@@ -321,21 +334,21 @@ export function RoleDashboard({
               size="sm"
               loading={refreshing}
               onClick={onRefresh}
-              aria-label="به‌روزرسانی داده‌های داشبورد"
-              title="به‌روزرسانی داده‌های داشبورد"
+              aria-label={dashboard.refreshWorkspace}
+              title={dashboard.refreshWorkspace}
             >
               <RefreshCw size={16} />
             </Button>
           </div>
 
           <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            {copy.description}
+            {roleCopy.description}
           </p>
         </div>
         {/* Metrics */}
         <section className="overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
           <ul className="divide-y divide-slate-100 dark:divide-slate-800/60">
-            {metrics(data).map((item) => {
+            {metrics(data, language).map((item) => {
               const MetricIcon = item.icon;
               return (
                 <li
@@ -359,8 +372,10 @@ export function RoleDashboard({
                     </span>
                   ) : null}
 
-                  <strong className="min-w-[3.5rem] shrink-0 text-right text-base font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-50">
-                    {typeof item.value === "number" ? fa(item.value) : item.value}
+                  <strong className="min-w-[3.5rem] shrink-0 text-end text-base font-bold tabular-nums tracking-tight text-slate-900 dark:text-slate-50">
+                    {typeof item.value === "number"
+                      ? item.value.toLocaleString(profile.locale)
+                      : item.value}
                   </strong>
                 </li>
               );

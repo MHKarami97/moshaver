@@ -21,12 +21,16 @@ import { useAuth } from "../../auth";
 import { useQuery } from "@tanstack/react-query";
 import { getExamAnalytics, type ExamAnalytics } from "../api/exams.api";
 import { Card, EmptyState, LoadingState } from "../../../shared/ui/ui";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useLocale } from "../../../shared/ui/locale";
+import { examsCopy } from "../exams-locale";
 
 export function ExamsPage() {
   const modal = useModal();
   const auth = useAuth();
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filters = useExamFilters();
@@ -40,26 +44,29 @@ export function ExamsPage() {
 
   const mutations = useExamMutations(filters.students.studentId);
 
-  function openEditor(exam?: Exam) {
-    modal.open({
-      title: exam ? "ویرایش آزمون" : "آزمون جدید",
-      size: "lg",
-      content: (
-        <ExamForm
-          initial={makeExamDraft(exam)}
-          onCancel={modal.close}
-          onSubmit={async (body) => {
-            await mutations.save.mutateAsync({
-              id: exam?.id,
-              body,
-            });
+  const openEditor = useCallback(
+    (exam?: Exam) => {
+      modal.open({
+        title: exam ? copy.editExam : copy.newExam,
+        size: "lg",
+        content: (
+          <ExamForm
+            initial={makeExamDraft(exam)}
+            onCancel={modal.close}
+            onSubmit={async (body) => {
+              await mutations.save.mutateAsync({
+                id: exam?.id,
+                body,
+              });
 
-            modal.close();
-          }}
-        />
-      ),
-    });
-  }
+              modal.close();
+            }}
+          />
+        ),
+      });
+    },
+    [copy.editExam, copy.newExam, modal, mutations.save],
+  );
 
   useEffect(() => {
     if (searchParams.get("new") !== "1" || !auth.can("exams.create")) return;
@@ -72,12 +79,12 @@ export function ExamsPage() {
       },
       { replace: true },
     );
-  }, [auth, searchParams, setSearchParams]);
+  }, [auth, openEditor, searchParams, setSearchParams]);
 
   function openRetryReview(request: RetryRequest, status: "approved" | "rejected") {
     modal.open({
-      title: status === "approved" ? "تأیید تلاش مجدد" : "رد درخواست تلاش مجدد",
-      description: request.examTitle || "آزمون",
+      title: status === "approved" ? copy.reviewRetryApproved : copy.reviewRetryRejected,
+      description: request.examTitle || copy.exam,
       content: (
         <RetryReviewForm
           status={status}
@@ -100,13 +107,13 @@ export function ExamsPage() {
   function confirmRemove(exam: Exam) {
     void modal
       .confirm({
-        title: "حذف آزمون؟",
+        title: copy.deleteExamTitle,
 
-        description: `«${exam.title}» بعد از پایان زمان بازگشت حذف خواهد شد.`,
+        description: copy.deleteExamDescription(exam.title),
 
         tone: "danger",
 
-        confirmLabel: "شروع حذف",
+        confirmLabel: copy.startDelete,
 
         softConfirm: true,
 
@@ -124,25 +131,25 @@ export function ExamsPage() {
         const deleteDelay = 10;
 
         notifications.undoCountdown(
-          `آزمون «${exam.title}» آماده حذف است`,
+          copy.deleteReady(exam.title),
 
           deleteDelay,
 
           () => {
             cancelled = true;
 
-            notify("حذف آزمون لغو شد.", "info");
+            notify(copy.deleteCancelled, "info");
           },
 
           {
-            description: "در صورت عدم لغو، آزمون به صورت خودکار حذف می‌شود.",
+            description: copy.deleteCountdown,
           },
         );
 
         window.setTimeout(() => {
           if (cancelled) return;
 
-          const loadingId = notifications.loading("در حال حذف آزمون...");
+          const loadingId = notifications.loading(copy.deletingExam);
 
           mutations.remove.mutate(
             exam.id,
@@ -151,8 +158,8 @@ export function ExamsPage() {
               onSuccess() {
                 notifications.dismiss(loadingId);
 
-                notifications.success("آزمون حذف شد.", {
-                  description: `آزمون «${exam.title}» حذف شد.`,
+                notifications.success(copy.examDeleted, {
+                  description: copy.deleteReady(exam.title),
                 });
 
                 void data.refreshExams();
@@ -161,8 +168,8 @@ export function ExamsPage() {
               onError(error) {
                 notifications.dismiss(loadingId);
 
-                notifications.error("حذف آزمون انجام نشد.", {
-                  description: error instanceof Error ? error.message : "خطای ناشناخته رخ داد.",
+                notifications.error(copy.deleteFailed, {
+                  description: error instanceof Error ? error.message : copy.unknownError,
                 });
               },
             },
@@ -186,7 +193,7 @@ export function ExamsPage() {
 
   function handleToggle(exam: Exam) {
     if (!exam.published && !exam.delivery?.questionCount) {
-      notify("برای انتشار، ابتدا حداقل یک سؤال به آزمون اضافه کنید.", "warning");
+      notify(copy.addQuestionBeforePublish, "warning");
 
       return;
     }
@@ -199,7 +206,7 @@ export function ExamsPage() {
 
   function openSyllabus(exam: Exam) {
     modal.open({
-      title: "افزودن بودجه‌بندی",
+      title: copy.addSyllabus,
       description: exam.title,
       content: (
         <SyllabusForm
@@ -220,7 +227,7 @@ export function ExamsPage() {
   function deleteSyllabus(id: string) {
     void modal
       .confirm({
-        title: "حذف بودجه‌بندی؟",
+        title: copy.deleteSyllabusTitle,
         tone: "danger",
       })
       .then((ok) => ok && mutations.deleteSyllabus.mutate(id));
@@ -241,7 +248,7 @@ export function ExamsPage() {
         onCreate={auth.can("exams.create") ? () => openEditor() : undefined}
         onHistory={() =>
           modal.open({
-            title: "سابقه و پاسخ‌های آزمون",
+            title: copy.attemptHistory,
             size: "xl",
             content: <ExamAttempts studentId={filters.students.studentId} />,
           })
@@ -250,14 +257,14 @@ export function ExamsPage() {
           auth.can("import.preview") || auth.can("export.read")
             ? () =>
                 modal.open({
-                  title: "ورود و خروج داده آزمون‌ها",
+                  title: copy.transferTitle,
                   size: "xl",
                   content: (
                     <DataTransferWorkspace
                       studentId={filters.students.studentId}
                       scope="exams"
-                      title="انتقال کامل آزمون‌ها"
-                      description="آزمون‌ها را همراه سؤال، پاسخ، توضیح، بودجه‌بندی، زمان‌بندی و محدودیت تلاش بررسی و منتقل کنید."
+                      title={copy.transferWorkspaceTitle}
+                      description={copy.transferWorkspaceDescription}
                       showExamReplacement
                       canImport={auth.can("import.preview")}
                       canCommit={auth.can("import.commit")}
@@ -306,8 +313,8 @@ export function ExamsPage() {
           auth.can("exams.assign")
             ? (exam) =>
                 modal.open({
-                  title: `تخصیص آزمون: ${exam.title}`,
-                  description: "حذف تخصیص پس از شروع آزمون برای حفظ داده های تلاش مسدود است.",
+                  title: copy.assignmentTitle(exam.title),
+                  description: copy.assignmentDescription,
                   size: "lg",
                   content: (
                     <ExamAssignmentManager
@@ -323,8 +330,8 @@ export function ExamsPage() {
           auth.can("exams.read")
             ? (exam) =>
                 modal.open({
-                  title: `تحلیل آزمون: ${exam.title}`,
-                  description: "بر پایه تلاش‌های ارسال‌شده و منقضی‌شده.",
+                  title: copy.analyticsTitle(exam.title),
+                  description: copy.analyticsDescription,
                   size: "xl",
                   content: <ExamAnalyticsPanel examId={exam.id} />,
                 })
@@ -348,34 +355,37 @@ export function ExamsPage() {
 }
 
 function ExamAnalyticsPanel({ examId }: { examId: string }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
   const analytics = useQuery({
     queryKey: ["exam-analytics", examId],
     queryFn: () => getExamAnalytics(examId),
   });
-  if (analytics.isLoading) return <LoadingState label="در حال محاسبه تحلیل آزمون…" />;
-  if (analytics.isError || !analytics.data)
-    return <EmptyState title="دریافت تحلیل آزمون ناموفق بود." />;
+  if (analytics.isLoading) return <LoadingState label={copy.loadingAnalytics} />;
+  if (analytics.isError || !analytics.data) return <EmptyState title={copy.loadAnalyticsFailed} />;
   return <ExamAnalyticsView value={analytics.data} />;
 }
 function ExamAnalyticsView({ value }: { value: ExamAnalytics }) {
+  const { language } = useLocale();
+  const copy = examsCopy(language);
+  const locale = language === "fa" ? "fa-IR" : "en-US";
   return (
     <Card className="grid gap-3 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <strong className="text-sm">نتیجه کلی</strong>
-          <p className="text-xs text-slate-500">تنها تلاش‌های ارسال‌شده و منقضی‌شده</p>
+          <strong className="text-sm">{copy.overallResult}</strong>
+          <p className="text-xs text-slate-500">{copy.submittedAndExpiredAttempts}</p>
         </div>
         <strong className="rounded-lg bg-brand/10 px-2 py-1 text-xs text-brand">
-          {value.attempts.toLocaleString("fa-IR")} تلاش ·{" "}
-          {value.averagePercent === null ? "—" : `${value.averagePercent.toLocaleString("fa-IR")}٪`}
+          {copy.analyticsAttempts(value.attempts, value.averagePercent)}
         </strong>
       </div>
       {value.byGrade.length ? (
         <div className="flex flex-wrap gap-2">
           {value.byGrade.map((row) => (
             <span key={row.grade} className="rounded-lg border px-2 py-1 text-xs">
-              {row.grade}: {row.averagePercent.toLocaleString("fa-IR")}٪ (
-              {row.attempts.toLocaleString("fa-IR")})
+              {row.grade}: {row.averagePercent.toLocaleString(locale)}
+              {language === "fa" ? "٪" : "%"} ({row.attempts.toLocaleString(locale)})
             </span>
           ))}
         </div>
@@ -385,20 +395,22 @@ function ExamAnalyticsView({ value }: { value: ExamAnalytics }) {
           <article key={question.id} className="grid gap-1 rounded-xl border p-2.5">
             <div className="flex items-start justify-between gap-3">
               <strong className="text-sm">
-                {(index + 1).toLocaleString("fa-IR")}. {question.text}
+                {(index + 1).toLocaleString(locale)}. {question.text}
               </strong>
               <span className="shrink-0 text-xs text-slate-500">
                 {question.accuracy === null
-                  ? "بدون تلاش"
-                  : `${question.accuracy.toLocaleString("fa-IR")}٪ درست`}
+                  ? copy.noAttemptsYet
+                  : copy.correctPercent(question.accuracy)}
               </span>
             </div>
             <small className="text-xs text-slate-500">
-              الف: {(question.responses.a || 0).toLocaleString("fa-IR")} · ب:{" "}
-              {(question.responses.b || 0).toLocaleString("fa-IR")} · ج:{" "}
-              {(question.responses.c || 0).toLocaleString("fa-IR")} · د:{" "}
-              {(question.responses.d || 0).toLocaleString("fa-IR")} · سفید:{" "}
-              {(question.responses.blank || 0).toLocaleString("fa-IR")}
+              {copy.responseBreakdown(
+                question.responses.a || 0,
+                question.responses.b || 0,
+                question.responses.c || 0,
+                question.responses.d || 0,
+                question.responses.blank || 0,
+              )}
             </small>
           </article>
         ))}

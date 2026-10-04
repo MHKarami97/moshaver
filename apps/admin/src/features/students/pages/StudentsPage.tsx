@@ -6,6 +6,7 @@ import type { Student } from "../../../shared/types/domain";
 import { useStudents } from "../../../shared/hooks/useStudents";
 import { normalizePersianText } from "../../../shared/lib/utils";
 import { useModal } from "../../../shared/ui/modal";
+import { useOptionalAdminLanguage } from "../../../shared/ui/locale";
 import { useAuth } from "../../auth";
 import { getApiWorkContextKey } from "../../../shared/api/api";
 import { Button, Card, EmptyState, ErrorState, LoadingState } from "../../../shared/ui/ui";
@@ -51,6 +52,7 @@ import {
   studentToForm,
   type StudentForm,
 } from "../model/student-form";
+import { studentCopy } from "../model/student-locale";
 
 const detailTabs: StudentDetailTab[] = ["overview", "activity", "profile", "access", "security"];
 const sortValues: StudentSort[] = ["name", "username", "grade", "lastSeen", "completeness"];
@@ -91,9 +93,11 @@ function numberParam(value: string | null, fallback: number, allowed?: number[])
 function FeedbackBanner({
   feedback,
   onDismiss,
+  closeLabel,
 }: {
   feedback: StudentEditorFeedback;
   onDismiss: () => void;
+  closeLabel: string;
 }) {
   if (!feedback) return null;
   return (
@@ -105,7 +109,7 @@ function FeedbackBanner({
       <button
         type="button"
         className="grid size-6 shrink-0 place-items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-        aria-label="بستن پیام"
+        aria-label={closeLabel}
         onClick={onDismiss}
       >
         <X size={14} />
@@ -115,6 +119,9 @@ function FeedbackBanner({
 }
 
 export function StudentsPage() {
+  const language = useOptionalAdminLanguage();
+  const copy = studentCopy[language];
+  const locale = language === "en" ? "en-US" : "fa-IR";
   const auth = useAuth();
   const visibleDetailTabs: StudentDetailTab[] = [
     "overview",
@@ -188,7 +195,7 @@ export function StudentsPage() {
     );
   }, [form.username, selectedId, students]);
   const usernameError = usernameConflict
-    ? `این نام کاربری قبلاً برای «${usernameConflict.name}» استفاده شده است.`
+    ? copy.usernameInUse.replace("{name}", usernameConflict.name)
     : undefined;
 
   const counts = useMemo(
@@ -246,9 +253,14 @@ export function StudentsPage() {
             : sort === "grade"
               ? b.grade || ""
               : b.name || "";
-        return av.localeCompare(bv, "fa", { numeric: true, sensitivity: "base" }) * direction;
+        return (
+          av.localeCompare(bv, language === "en" ? "en" : "fa", {
+            numeric: true,
+            sensitivity: "base",
+          }) * direction
+        );
       });
-  }, [deferredSearch, profileFilter, sort, sortDirection, status, students]);
+  }, [deferredSearch, language, profileFilter, sort, sortDirection, status, students]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const activePage = Math.min(page, pageCount);
@@ -290,10 +302,9 @@ export function StudentsPage() {
     if (!dirty) return commitSelection(student);
     void modal
       .confirm({
-        title: "تغییرات ذخیره‌نشده کنار گذاشته شود؟",
-        description:
-          "ویرایش‌های فعلی ذخیره نشده‌اند. با انتخاب دانش‌آموز دیگر، این تغییرات از بین می‌روند.",
-        confirmLabel: "ادامه",
+        title: copy.discardChangesTitle,
+        description: copy.discardChangesDescription,
+        confirmLabel: copy.continue,
       })
       .then((ok) => {
         if (ok) commitSelection(student);
@@ -326,9 +337,9 @@ export function StudentsPage() {
     if (!dirty) return run();
     void modal
       .confirm({
-        title: "فرم فعلی پاک شود؟",
-        description: "تغییرات ذخیره‌نشده کنار گذاشته می‌شوند و فرم ساخت دانش‌آموز جدید باز می‌شود.",
-        confirmLabel: "دانش‌آموز جدید",
+        title: copy.clearFormTitle,
+        description: copy.clearFormDescription,
+        confirmLabel: copy.createStudent,
       })
       .then((ok) => {
         if (ok) run();
@@ -354,9 +365,9 @@ export function StudentsPage() {
     if (!dirty) return run();
     void modal
       .confirm({
-        title: "ساخت دانش‌آموز لغو شود؟",
-        description: "اطلاعات واردشده در فرم جدید از بین می‌رود.",
-        confirmLabel: "لغو ساخت",
+        title: copy.cancelCreateTitle,
+        description: copy.cancelCreateDescription,
+        confirmLabel: copy.cancelCreation,
       })
       .then((ok) => {
         if (ok) run();
@@ -368,10 +379,9 @@ export function StudentsPage() {
     if (!dirty) return run();
     void modal
       .confirm({
-        title: "بازگشت به فهرست؟",
-        description:
-          "تغییرات ذخیره‌نشده در پروفایل باقی می‌مانند، اما بهتر است قبل از ادامه آن‌ها را ذخیره کنید.",
-        confirmLabel: "بازگشت",
+        title: copy.returnToDirectoryTitle,
+        description: copy.returnToDirectoryDescription,
+        confirmLabel: copy.backToList,
       })
       .then((ok) => {
         if (ok) run();
@@ -403,17 +413,14 @@ export function StudentsPage() {
       setDetailTab("overview");
       setFeedback({
         tone: "success",
-        message: "دانش‌آموز با موفقیت ساخته شد.",
+        message: copy.studentCreated,
       });
       void qc.invalidateQueries({ queryKey: ["students"] });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(
-          error,
-          "ساخت دانش‌آموز ناموفق بود. اطلاعات را بررسی و دوباره تلاش کنید.",
-        ),
+        message: readableError(error, copy.studentCreateFailed),
       }),
   });
 
@@ -422,13 +429,13 @@ export function StudentsPage() {
     onSuccess: (student) => {
       replaceCachedStudent(student);
       setForm(studentToForm(student));
-      setFeedback({ tone: "success", message: "تغییرات پروفایل ذخیره شد." });
+      setFeedback({ tone: "success", message: copy.profileSaved });
       void qc.invalidateQueries({ queryKey: ["students"] });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(error, "ذخیره تغییرات ناموفق بود."),
+        message: readableError(error, copy.profileSaveFailed),
       }),
   });
 
@@ -443,14 +450,14 @@ export function StudentsPage() {
       });
       setFeedback({
         tone: "success",
-        message: "حساب دانش‌آموز بایگانی شد. تاریخچه برای بازیابی حفظ شده است.",
+        message: copy.studentArchived,
       });
       void qc.invalidateQueries({ queryKey: ["students"] });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(error, "بایگانی حساب ناموفق بود."),
+        message: readableError(error, copy.studentArchiveFailed),
       }),
   });
 
@@ -474,19 +481,19 @@ export function StudentsPage() {
         });
       const message =
         action === "force-logout"
-          ? "تمام نشست‌های فعال دانش‌آموز بسته شد."
+          ? copy.sessionsEnded
           : action === "deactivate"
-            ? "حساب دانش‌آموز غیرفعال شد."
+            ? copy.studentDeactivated
             : action === "restore"
-              ? "حساب دانش‌آموز بازیابی شد."
-              : "حساب دانش‌آموز فعال شد.";
+              ? copy.studentRestored
+              : copy.studentActivated;
       setFeedback({ tone: "success", message });
       void qc.invalidateQueries({ queryKey: ["students"] });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(error, "اجرای عملیات حساب ناموفق بود."),
+        message: readableError(error, copy.lifecycleFailed),
       }),
   });
 
@@ -496,26 +503,26 @@ export function StudentsPage() {
       setSecurityPassword("");
       setFeedback({
         tone: "success",
-        message: "رمز عبور تغییر کرد و نشست‌های قبلی دانش‌آموز بسته شدند.",
+        message: copy.passwordChanged,
       });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(error, "تغییر رمز عبور ناموفق بود."),
+        message: readableError(error, copy.passwordChangeFailed),
       }),
   });
 
   const reviewSyncHealth = useMutation({
     mutationFn: () => reviewStudentSyncHealth(selectedId),
     onSuccess: () => {
-      setFeedback({ tone: "success", message: "وضعیت همگام‌سازی بررسی و ثبت شد." });
+      setFeedback({ tone: "success", message: copy.syncHealthReviewed });
       void qc.invalidateQueries({ queryKey: ["student-sync-health", selectedId] });
     },
     onError: (error) =>
       setFeedback({
         tone: "error",
-        message: readableError(error, "ثبت بررسی همگام‌سازی ناموفق بود."),
+        message: readableError(error, copy.syncHealthReviewFailed),
       }),
   });
 
@@ -681,26 +688,18 @@ export function StudentsPage() {
   }
 
   function confirmLifecycle(action: "activate" | "deactivate" | "restore" | "force-logout") {
-    const copy = {
-      activate: ["فعال‌سازی حساب؟", "دانش‌آموز دوباره اجازه ورود خواهد داشت.", "فعال‌سازی"],
-      deactivate: [
-        "غیرفعال‌سازی حساب؟",
-        "نشست‌های دانش‌آموز بسته و ورود او متوقف می‌شود.",
-        "غیرفعال‌سازی",
-      ],
-      restore: ["بازیابی حساب؟", "حساب بایگانی‌شده با تمام تاریخچه دوباره فعال می‌شود.", "بازیابی"],
-      "force-logout": [
-        "خروج اجباری دانش‌آموز؟",
-        "تمام نشست‌های فعال این دانش‌آموز فوراً بسته می‌شوند.",
-        "خروج اجباری",
-      ],
+    const lifecycleCopy = {
+      activate: [copy.activateTitle, copy.activateDescription, copy.activateAccount],
+      deactivate: [copy.deactivateTitle, copy.deactivateDescription, copy.deactivateAccount],
+      restore: [copy.restoreTitle, copy.restoreDescription, copy.restoreAccount],
+      "force-logout": [copy.forceLogoutTitle, copy.forceLogoutDescription, copy.forceLogout],
     }[action];
     void modal
       .confirm({
-        title: copy[0],
-        description: copy[1],
-        confirmLabel: copy[2],
-        confirmationText: action === "restore" ? "بازیابی" : undefined,
+        title: lifecycleCopy[0],
+        description: lifecycleCopy[1],
+        confirmLabel: lifecycleCopy[2],
+        confirmationText: action === "restore" ? copy.restoreAccount : undefined,
         tone: action === "deactivate" || action === "force-logout" ? "danger" : "default",
       })
       .then((ok) => ok && lifecycle.mutate(action));
@@ -719,49 +718,52 @@ export function StudentsPage() {
     ...(auth.can("learning.read")
       ? [
           {
-            label: "موارد یادگیری",
+            label: copy.learningItems,
             value: learning.data?.summary.totalItems || 0,
             loading: learning.isLoading,
             error: learning.isError,
-            hint: "داده بخش یادگیری",
+            hint: copy.learningDataHint,
           },
         ]
       : []),
     ...(auth.can("exams.read")
       ? [
           {
-            label: "تلاش آزمون",
+            label: copy.examAttempts,
             value: countData(attempts.data),
             loading: attempts.isLoading,
             error: attempts.isError,
-            hint: "تعداد تلاش‌های ثبت‌شده",
+            hint: copy.examAttemptsHint,
           },
         ]
       : []),
     {
-      label: "روزهای هفتگی",
+      label: copy.weeklyDays,
       value: countData(weekly.data),
       loading: weekly.isLoading,
       error: weekly.isError,
-      hint: "داده پیشرفت هفتگی",
+      hint: copy.weeklyProgressHint,
     },
     {
-      label: "موضوع عملکرد",
+      label: copy.performanceTopics,
       value: countData(topics.data),
       loading: topics.isLoading,
       error: topics.isError,
-      hint: "موضوع‌های تحلیل‌شده",
+      hint: copy.performanceTopicsHint,
     },
     ...(auth.can("student.activity.read")
       ? [
           {
-            label: "همگام‌سازی در انتظار",
+            label: copy.pendingSync,
             value: (syncHealth.data || []).reduce((sum, device) => sum + device.pendingCount, 0),
             loading: syncHealth.isLoading,
             error: syncHealth.isError,
             hint: syncHealth.data?.some((device) => device.status === "failed")
-              ? "یک دستگاه خطای همگام‌سازی دارد"
-              : `${syncHealth.data?.length || 0} دستگاه گزارش داده‌اند`,
+              ? copy.deviceSyncFailed
+              : copy.devicesReported.replace(
+                  "{count}",
+                  (syncHealth.data?.length || 0).toLocaleString(locale),
+                ),
           },
         ]
       : []),
@@ -769,7 +771,11 @@ export function StudentsPage() {
 
   const detailContent = selected ? (
     <>
-      <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback(null)} />
+      <FeedbackBanner
+        feedback={feedback}
+        onDismiss={() => setFeedback(null)}
+        closeLabel={copy.closeMessage}
+      />
       <div className={feedback ? "mt-4" : ""}>
         {detailTab === "overview" ? (
           <StudentOverview
@@ -790,10 +796,10 @@ export function StudentsPage() {
                   variant="soft"
                   size="sm"
                   loading={reviewSyncHealth.isPending}
-                  loadingLabel="در حال ثبت…"
+                  loadingLabel={copy.reviewingSyncHealth}
                   onClick={() => reviewSyncHealth.mutate()}
                 >
-                  ثبت بررسی همگام‌سازی
+                  {copy.reviewSyncHealth}
                 </Button>
               </div>
             ) : null}
@@ -828,20 +834,20 @@ export function StudentsPage() {
             onArchive={() =>
               void modal
                 .confirm({
-                  title: "بایگانی دانش‌آموز؟",
-                  description: "حساب غیرفعال می‌شود اما تاریخچه برای بازیابی حفظ خواهد شد.",
+                  title: copy.archiveStudentTitle,
+                  description: copy.archiveStudentDescription,
                   tone: "danger",
-                  confirmLabel: "بایگانی",
-                  confirmationText: "بایگانی",
+                  confirmLabel: copy.archiveConfirmation,
+                  confirmationText: copy.archiveConfirmation,
                 })
                 .then((ok) => ok && remove.mutate())
             }
             onPassword={() =>
               void modal
                 .confirm({
-                  title: "تغییر رمز دانش‌آموز؟",
-                  description: "رمز تغییر می‌کند و تمام نشست‌های قبلی دانش‌آموز بسته می‌شوند.",
-                  confirmLabel: "تغییر رمز",
+                  title: copy.changeStudentPasswordTitle,
+                  description: copy.changeStudentPasswordDescription,
+                  confirmLabel: copy.changePassword,
                 })
                 .then((ok) => ok && resetPassword.mutate())
             }
@@ -906,12 +912,16 @@ export function StudentsPage() {
                     onClick={cancelCreate}
                     className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    <ArrowRight size={15} />
-                    بازگشت به فهرست
+                    <ArrowRight size={15} className="ltr:rotate-180" />
+                    {copy.backToDirectory}
                   </button>
                 </div>
                 <div className="min-h-0 p-3 sm:p-4 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
-                  <FeedbackBanner feedback={feedback} onDismiss={() => setFeedback(null)} />
+                  <FeedbackBanner
+                    feedback={feedback}
+                    onDismiss={() => setFeedback(null)}
+                    closeLabel={copy.closeMessage}
+                  />
                   <div className={feedback ? "mt-4" : ""}>
                     <StudentEditor
                       mode="create"
@@ -948,41 +958,41 @@ export function StudentsPage() {
               <Card className="hidden xl:block">
                 <div className="grid min-h-64 place-items-center text-center">
                   {studentStore.isLoading ? (
-                    <LoadingState label="در حال آماده‌سازی پرونده‌های دانش‌آموزان..." />
+                    <LoadingState label={copy.preparingRecords} />
                   ) : studentStore.isError ? (
                     <ErrorState
-                      title="پرونده‌ها آماده نشدند."
-                      description="فهرست دانش‌آموزان را دوباره دریافت کنید و سپس یک پرونده را باز کنید."
+                      title={copy.recordsUnavailable}
+                      description={copy.recordsUnavailableDescription}
                       action={
                         <Button variant="soft" onClick={() => void studentStore.refetch()}>
-                          تلاش دوباره
+                          {copy.retry}
                         </Button>
                       }
                     />
                   ) : !students.length ? (
                     <EmptyState
-                      title="هنوز دانش‌آموزی ثبت نشده است."
-                      description="پس از ساخت اولین دانش‌آموز، پرونده، فعالیت و تنظیمات حساب او در این بخش در دسترس خواهد بود."
+                      title={copy.noStudents}
+                      description={copy.emptyStudentsDescription}
                       icon={<UserPlus size={20} />}
                       action={
                         auth.can("students.create") ? (
                           <Button onClick={startCreate}>
                             <UserPlus size={16} />
-                            ساخت دانش‌آموز
+                            {copy.saveStudent}
                           </Button>
                         ) : undefined
                       }
                     />
                   ) : (
                     <EmptyState
-                      title="یک دانش‌آموز را انتخاب کنید"
-                      description="پرونده و فضای کاری دانش‌آموز انتخاب‌شده در این بخش نمایش داده می‌شود."
+                      title={copy.selectStudentTitle}
+                      description={copy.selectStudentDescription}
                       icon={<UserPlus size={20} />}
                       action={
                         auth.can("students.create") ? (
                           <Button onClick={startCreate}>
                             <UserPlus size={16} />
-                            دانش‌آموز جدید
+                            {copy.createStudent}
                           </Button>
                         ) : undefined
                       }

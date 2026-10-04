@@ -39,15 +39,17 @@ import {
 } from "./api/resources.api";
 import { resourcesCopy } from "./model/resources-copy";
 
-const empty: ResourceInput = {
-  title: "",
-  description: "",
-  type: "LINK",
-  category: "عمومی",
-  url: "",
-  status: "PUBLISHED",
-  studentIds: [],
-};
+function emptyResource(category = ""): ResourceInput {
+  return {
+    title: "",
+    description: "",
+    type: "LINK",
+    category,
+    url: "",
+    status: "PUBLISHED",
+    studentIds: [],
+  };
+}
 
 export function ResourcesPage() {
   const auth = useAuth(),
@@ -72,7 +74,7 @@ export function ResourcesPage() {
     queryFn: () => listClasses(),
     enabled: canManage && auth.can("classes.read"),
   });
-  const [form, setForm] = useState<ResourceInput>(empty),
+  const [form, setForm] = useState<ResourceInput>(() => emptyResource(copy.general)),
     [editing, setEditing] = useState<string | null>(null),
     [selectedId, setSelectedId] = useState<string | null>(null),
     [query, setQuery] = useState(""),
@@ -104,7 +106,7 @@ export function ResourcesPage() {
     mutationFn: deleteResource,
     onSuccess: () => {
       refresh();
-      setForm(empty);
+      setForm(emptyResource(copy.general));
       setEditing(null);
       setSelectedId(null);
       setConfirmDelete(false);
@@ -128,10 +130,10 @@ export function ResourcesPage() {
           (status === "ALL" || item.status === status) &&
           (!category || item.category === category) &&
           `${item.title} ${item.description} ${item.type} ${item.category}`
-            .toLocaleLowerCase("fa")
-            .includes(query.trim().toLocaleLowerCase("fa")),
+            .toLocaleLowerCase(copy.locale)
+            .includes(query.trim().toLocaleLowerCase(copy.locale)),
       ),
-    [category, query, resources.data, status],
+    [category, copy.locale, query, resources.data, status],
   );
   const visibleStudents = useMemo(
     () =>
@@ -165,7 +167,7 @@ export function ResourcesPage() {
       title: item.title,
       description: item.description,
       type: item.type,
-      category: item.category || "عمومی",
+      category: item.category || copy.general,
       url: item.url,
       status: item.status,
       studentIds: item.assignments.map((assignment) => assignment.student.id),
@@ -178,7 +180,7 @@ export function ResourcesPage() {
   const startNew = () => {
     setSelectedId(null);
     setEditing(null);
-    setForm(empty);
+    setForm(emptyResource(copy.general));
     setStudentQuery("");
     setConfirmDelete(false);
   };
@@ -193,7 +195,7 @@ export function ResourcesPage() {
           status: item.status,
           studentIds: item.assignments.map((assignment) => assignment.student.id),
         }
-      : empty;
+      : emptyResource(copy.general);
     modal.open({
       title: item ? copy.editResource : copy.newResource,
       description: copy.editorDescription,
@@ -377,7 +379,7 @@ export function ResourcesPage() {
                         (resources.data || []).map((item) => item.category || copy.general),
                       ),
                     ]
-                      .sort((a, b) => a.localeCompare(b, language))
+                      .sort((a, b) => a.localeCompare(b, copy.locale))
                       .map((item) => (
                         <option key={item} value={item}>
                           {item}
@@ -934,6 +936,7 @@ function ResourceEditorModal({
         selectedIds={draft.studentIds}
         onChange={(studentIds) => setDraft({ ...draft, studentIds })}
         classes={classes}
+        label={copy.recipients}
       />
       <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card)_/_96%)] px-1 pt-3 pb-1 shadow-[0_-8px_16px_rgb(15_23_42_/_0.04)]">
         <Button type="button" variant="ghost" onClick={onClose}>
@@ -1035,7 +1038,7 @@ function ResourceListItem({
           <Badge tone="blue">{item.category || copy.general}</Badge>
           <small className="flex items-center gap-1 text-xs text-slate-500">
             <UsersRound size={12} />
-            {item.assignments.length.toLocaleString("fa-IR")}
+            {copy.students(item.assignments.length)}
           </small>
         </span>
       </button>
@@ -1076,7 +1079,7 @@ function ResourceListItem({
         </Badge>
         <small className="flex items-center gap-1 text-xs text-slate-500">
           <UsersRound size={13} />
-          {copy.students(item.assignments.length)} {copy.recipientsLabel}
+          {copy.students(item.assignments.length)}
         </small>
       </span>
     </button>

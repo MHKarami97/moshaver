@@ -56,7 +56,7 @@ export function AdminLayout() {
   const breadcrumbs = localizedAdminBreadcrumbs(location.pathname, language);
   const contextual =
     localizedNavigationForCapabilities(auth.capabilities, auth.activeRole, language).find(
-      (group) => group.section === current.section,
+      (group) => group.sectionKey === sourceCurrent.section,
     )?.items || [];
   const showContextRail = contextual.length > 1;
   const selectedStudentId = readSelectedStudentId(location.search);
@@ -112,6 +112,7 @@ export function AdminLayout() {
           collapsed={contextCollapsed}
           mainCollapsed={mainCollapsed}
           current={current}
+          sourceSection={sourceCurrent.section}
           items={contextual}
           unreadNotifications={notificationState.unread}
           selectedStudentId={selectedStudentId}
@@ -134,7 +135,7 @@ export function AdminLayout() {
           selectedStudentId={selectedStudentId}
           sticky={current.path !== "planner"}
           onOpenMobileNavigation={openMobileNavigation}
-          role={roleLabel(auth.activeRole)}
+          role={roleLabel(auth.activeRole, language)}
           organization={auth.context?.activeOrganization?.name}
           multipleRoles={(auth.context?.roles.filter((role) => role !== "STUDENT").length || 0) > 1}
           showStudent={sourceCurrent.section === "آموزش"}

@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { StudentAllocationControl } from "./student-allocation-control";
+import { LocaleProvider } from "./locale";
 
 const students = [
   {
@@ -57,5 +58,18 @@ describe("StudentAllocationControl", () => {
 
     expect(within(container).getByText("یادگیرنده بزرگسال")).toBeInTheDocument();
     expect(within(container).queryByText("دانش‌آموز کلاس")).not.toBeInTheDocument();
+  });
+
+  it("uses English education labels in the resource-assignment flow", () => {
+    window.localStorage.setItem("moshaver-admin-location", "international");
+    render(
+      <LocaleProvider>
+        <StudentAllocationControl students={students} selectedIds={[]} onChange={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole("option", { name: "Theoretical" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Experimental sciences" })).toBeInTheDocument();
+    window.localStorage.removeItem("moshaver-admin-location");
   });
 });

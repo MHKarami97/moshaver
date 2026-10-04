@@ -53,6 +53,12 @@ const copy = {
     importReady: (count: number, locale: string) =>
       `${count.toLocaleString(locale)} ردیف آماده ورود است.`,
     row: (row: number, error: string) => `ردیف ${row}: ${error}`,
+    newBookDefaults: {
+      schoolYear: "1405-1406",
+      branch: "نظری",
+      track: "مشترک",
+      category: "عمومی",
+    },
   },
   en: {
     loading: "Loading education catalog…",
@@ -106,6 +112,12 @@ const copy = {
     importReady: (count: number, locale: string) =>
       `${count.toLocaleString(locale)} rows are ready to import.`,
     row: (row: number, error: string) => `Row ${row}: ${error}`,
+    newBookDefaults: {
+      schoolYear: "2026-2027",
+      branch: "General",
+      track: "Common",
+      category: "General",
+    },
   },
 } as const;
 

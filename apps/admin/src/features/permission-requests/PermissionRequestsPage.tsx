@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Check, RefreshCw, X } from "lucide-react";
 import { api } from "../../shared/api/api";
 import { AdminList } from "../../shared/ui/admin-list";
@@ -10,7 +10,7 @@ import {
 } from "../../shared/ui/management-workspace";
 import { useModal } from "../../shared/ui/modal";
 import { Badge, Button, Textarea } from "../../shared/ui/ui";
-import { useLocale } from "../../shared/ui/locale";
+import { useLocale, useOptionalAdminLanguage } from "../../shared/ui/locale";
 import { permissionRequestsCopy } from "./permission-requests-locale";
 
 type Request = {
@@ -237,7 +237,13 @@ export function PermissionDecisionModal({
   onSubmit: (note: string) => Promise<void>;
 }) {
   const [note, setNote] = useState("");
+  const language = useOptionalAdminLanguage();
+  const copy = permissionRequestsCopy(language);
   const approving = decision === "APPROVED";
+  const noteInstanceId = useId();
+  const noteId = `permission-note-${request.id}-${noteInstanceId}`;
+  const noteLabelId = `permission-note-label-${request.id}-${noteInstanceId}`;
+  const noteHelpId = `permission-note-help-${request.id}-${noteInstanceId}`;
   return (
     <form
       className="grid gap-4"
@@ -250,53 +256,49 @@ export function PermissionDecisionModal({
         <div className="flex flex-wrap items-center gap-2">
           <strong className="text-sm text-ink">{request.title}</strong>
           <Badge tone={approving ? "green" : "red"}>
-            {approving ? "در حال تأیید" : "در حال رد"}
+            {approving ? copy.approving : copy.rejecting}
           </Badge>
         </div>
         <p className="text-xs text-slate-600 dark:text-slate-300">
-          درخواستِ {request.studentName || "دانش‌آموز"} برای {request.organizationName || "سازمان"}
+          {copy.requestFor(
+            request.studentName || copy.student,
+            request.organizationName || copy.organization,
+          )}
         </p>
         <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">{request.details}</p>
       </section>
       <div className="grid gap-1.5">
-        <label htmlFor={`permission-note-${request.id}`} className="text-sm font-semibold text-ink">
-          پیام برای دانش‌آموز <span className="font-normal text-slate-500">(اختیاری)</span>
+        <label id={noteLabelId} htmlFor={noteId} className="text-sm font-semibold text-ink">
+          {copy.studentMessage} <span className="font-normal text-slate-500">{copy.optional}</span>
         </label>
-        <p id={`permission-note-help-${request.id}`} className="text-xs leading-5 text-slate-500">
-          {approving
-            ? "در صورت نیاز، زمان بازگشت یا شرط تأیید را روشن بنویسید."
-            : "دلیل رد یا اقدام بعدی را بنویسید تا دانش‌آموز بداند چه کاری باید انجام دهد."}
+        <p id={noteHelpId} className="text-xs leading-5 text-slate-500">
+          {approving ? copy.approveHelp : copy.rejectHelp}
         </p>
         <Textarea
-          id={`permission-note-${request.id}`}
+          id={noteId}
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          aria-describedby={`permission-note-help-${request.id}`}
-          placeholder={
-            approving
-              ? "مثلاً: تا ساعت ۲۰ بازگردید."
-              : "مثلاً: لطفاً زمان خروج را با مسئول خوابگاه هماهنگ کنید."
-          }
+          aria-labelledby={noteLabelId}
+          aria-describedby={noteHelpId}
+          placeholder={approving ? copy.approvePlaceholder : copy.rejectPlaceholder}
           rows={3}
           autoFocus
         />
       </div>
       <p className="rounded-md border border-[rgb(var(--border-subtle))] bg-[rgb(var(--surface-card))] px-3 py-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-        {approving
-          ? "ثبت تأیید، وضعیت درخواست را تغییر می‌دهد و تصمیم شما در فهرست قابل پیگیری می‌ماند."
-          : "ثبت رد، وضعیت درخواست را تغییر می‌دهد و پیام شما در فهرست قابل پیگیری می‌ماند."}
+        {approving ? copy.approveNotice : copy.rejectNotice}
       </p>
       <div className="flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--border-subtle))] pt-3">
         <Button type="button" variant="soft" disabled={busy} onClick={onCancel}>
-          انصراف
+          {copy.cancel}
         </Button>
         <Button
           type="submit"
           variant={approving ? "primary" : "danger"}
           loading={busy}
-          loadingLabel="در حال ثبت…"
+          loadingLabel={copy.saving}
         >
-          {approving ? "ثبت تأیید" : "ثبت رد"}
+          {approving ? copy.submitApprove : copy.submitReject}
         </Button>
       </div>
     </form>

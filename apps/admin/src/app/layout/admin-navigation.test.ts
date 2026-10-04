@@ -180,6 +180,7 @@ describe("admin navigation metadata", () => {
     expect(english.find((group) => group.section === "Management")?.items[0]?.title).toBe(
       "My students",
     );
+    expect(english.find((group) => group.section === "Management")?.sectionKey).toBe("مدیریت");
     expect(localizedAdminCurrentNavigation("/admin/students", "en").description).toBe(
       "Manage student accounts, status, and access",
     );

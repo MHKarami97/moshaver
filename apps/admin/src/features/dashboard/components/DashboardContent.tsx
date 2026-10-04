@@ -48,7 +48,7 @@ export function DashboardContent({
           title={copy.dashboardFailed}
           action={
             <Button variant="soft" onClick={onRetrySummary}>
-              <AlertCircle size={15} /> تلاش دوباره
+              <AlertCircle size={15} /> {copy.retry}
             </Button>
           }
         />
