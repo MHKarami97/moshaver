@@ -33,7 +33,14 @@ async function request(method, path, options) {
   return result.payload.data;
 }
 
-const signupBody = { nationalCode: signupUsername, password: signupPassword, name: "دانش‌آموز ثبت‌نامی", grade: 12, educationTypeId: "theoretical", trackId: "experimental_sciences" };
+const platform = await login("e2e.platform");
+const organizations = await request("GET", "/organizations", { session: platform, role: "PLATFORM_ADMIN" });
+const orgA = organizations.find((item) => item.name === "E2E Organization A");
+assert(orgA, "self-signup organization is available", { organizations });
+await request("PATCH", "/onboarding/student-signup-policy", { session: platform, role: "PLATFORM_ADMIN", body: { enabled: true } });
+await request("PATCH", `/onboarding/organizations/${orgA.id}/student-signup-policy`, { session: platform, role: "PLATFORM_ADMIN", body: { managedByOrganization: true, enabled: true, limit: 10 } });
+
+const signupBody = { organizationId: orgA.id, nationalCode: signupUsername, password: signupPassword, name: "دانش‌آموز ثبت‌نامی", grade: 12, educationTypeId: "theoretical", trackId: "experimental_sciences" };
 const signup = await raw("POST", "/onboarding/student-signup", { body: signupBody });
 assert(signup.status === 201 && signup.payload?.data?.onboardingStatus === "PENDING_ASSIGNMENT", "student self-signup enters pending assignment", signup);
 const duplicate = await raw("POST", "/onboarding/student-signup", { body: signupBody });
@@ -41,7 +48,7 @@ assert(duplicate.status === 409 && duplicate.payload?.error?.code === "NATIONAL_
 
 const studentSession = await login(signupUsername, signupPassword);
 const studentContext = await request("GET", "/me/context", { session: studentSession, role: "STUDENT" });
-assert(studentContext.roles.includes("STUDENT") && studentContext.availableOrganizations.length === 0, "new student has only student access before assignment", studentContext);
+assert(studentContext.roles.includes("STUDENT") && studentContext.availableOrganizations.some((item) => item.id === orgA.id), "self-signed student receives their selected organization access", studentContext);
 const student = await request("GET", "/students/me", { session: studentSession, role: "STUDENT" });
 assert(student.id === signup.payload.data.id && student.onboardingStatus === "PENDING_ASSIGNMENT", "student profile exposes pending onboarding state", student);
 
@@ -49,12 +56,9 @@ const advisorSession = await login("e2e.advisor.a");
 const forbiddenQueue = await raw("GET", "/onboarding/students/pending", { session: advisorSession, role: "ADVISOR" });
 assert(forbiddenQueue.status === 403, "advisor cannot manage onboarding queue", forbiddenQueue);
 
-const platform = await login("e2e.platform");
 const pending = await request("GET", "/onboarding/students/pending", { session: platform, role: "PLATFORM_ADMIN" });
 assert(pending.some((item) => item.id === student.id), "platform admin sees new student in queue", pending);
-const organizations = await request("GET", "/organizations", { session: platform, role: "PLATFORM_ADMIN" });
 const users = await request("GET", "/users?role=ADVISOR&status=ACTIVE", { session: platform, role: "PLATFORM_ADMIN" });
-const orgA = organizations.find((item) => item.name === "E2E Organization A");
 const advisorA = users.find((item) => item.username === "e2e.advisor.a");
 const advisorB = users.find((item) => item.username === "e2e.advisor.b");
 assert(orgA && advisorA && advisorB, "assignment options are available from API v2", { orgA, advisorA, advisorB });
